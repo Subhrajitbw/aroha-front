@@ -1,0 +1,65 @@
+[
+    {
+      "id": 4,
+      "name": "Furniture",
+      "slug": "furniture",
+      "children": [
+        {
+          "id": 5,
+          "name": "Sofas",
+          "slug": "sofas",
+          "children": []
+        },
+        {
+          "id": 6,
+          "name": "Chairs",
+          "slug": "chairs",
+          "children": [
+            {
+              "id": 7,
+              "name": "Iconic Chairs",
+              "slug": "iconic-chairs",
+              "children": []
+            },
+            {
+              "id": 8,
+              "name": "Cafe Chairs",
+              "slug": "cafe-chairs",
+              "children": []
+            },
+            {
+              "id": 9,
+              "name": "Vintage Classic Chairs",
+              "slug": "vintage-classic-chairs",
+              "children": []
+            },
+            {
+              "id": 10,
+              "name": "Bar High Chairs",
+              "slug": "bar-high-chairs",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Wallpapers",
+      "slug": "wallpapers",
+      "children": [
+        {
+          "id": 12,
+          "name": "Kids Room Wallpapers",
+          "slug": "kids-room-wallpapers",
+          "children": []
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Winter Wear",
+      "slug": "winter-wear",
+      "children": []
+    }
+  ]

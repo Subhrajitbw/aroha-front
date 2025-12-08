@@ -1,0 +1,41 @@
+/* iOS-specific optimizations */
+
+/* Enable smooth scrolling on iOS */
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix background image rendering */
+.bg-image {
+  -webkit-backface-visibility: hidden;
+  -webkit-transform: translate3d(0, 0, 0);
+  -webkit-perspective: 1000;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Prevent iOS text size adjustment */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Fix sticky hover states on iOS */
+@media (hover: none) {
+  .hover-effect {
+    transition: none !important;
+  }
+}
+
+/* Improve scroll performance */
+.scroll-container {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+/* Fix image rendering on iOS */
+img {
+  -webkit-backface-visibility: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+}

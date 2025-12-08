@@ -1,0 +1,83 @@
+/* Smooth scrolling behavior for the entire page */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Main wrapper styles */
+.main-wrapper {
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  perspective: 10px;
+  transform-style: preserve-3d;
+  scroll-snap-type: y mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Scroll snap section styles */
+.scroll-snap-section {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  min-height: 100vh;
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+/* Smooth transitions for all animated elements */
+.gsap-animated {
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+}
+
+/* Parallax container */
+.parallax-wrapper {
+  position: relative;
+  height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
+  perspective: 8px;
+}
+
+/* Parallax layer base styles */
+.parallax-layer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* Specific parallax layers */
+.parallax-layer-back {
+  transform: translateZ(-5px) scale(1.625);
+}
+
+.parallax-layer-base {
+  transform: translateZ(0);
+}
+
+/* Hide scrollbar but keep functionality */
+.main-wrapper {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.main-wrapper::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* Smooth transition for page content */
+.page-content {
+  transition: opacity 0.5s ease-in-out;
+}
+
+/* Loading state */
+.page-content.loading {
+  opacity: 0;
+}
+
+/* Active state */
+.page-content.active {
+  opacity: 1;
+}

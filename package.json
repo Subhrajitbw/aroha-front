@@ -1,0 +1,82 @@
+{
+  "name": "aroha",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "@gsap/react": "^2.1.2",
+    "@medusajs/js-sdk": "^2.11.3",
+    "@portabletext/react": "^5.0.0",
+    "@react-oauth/google": "^0.12.2",
+    "@react-spring/web": "^9.7.5",
+    "@sanity/client": "^7.13.1",
+    "@sanity/image-url": "^1.2.0",
+    "@studio-freight/lenis": "^1.0.42",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^29.5.0",
+    "@types/react": "^18.0.28",
+    "@types/react-dom": "^18.0.11",
+    "@use-gesture/react": "^10.3.1",
+    "axios": "^1.7.7",
+    "clsx": "^2.1.1",
+    "connect-sdk-client-js": "^6.0.5",
+    "framer-motion": "^11.3.24",
+    "gsap": "^3.13.0",
+    "jquery": "^3.7.1",
+    "jwt-decode": "^4.0.0",
+    "liquid-glass-react": "^1.1.1",
+    "loadash": "^1.0.0",
+    "lodash.throttle": "^4.1.1",
+    "lucide-react": "^0.503.0",
+    "meilisearch": "^0.54.0",
+    "prop-types": "^15.8.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-facebook-login": "^4.1.1",
+    "react-intersection-observer": "^9.16.0",
+    "react-masonry-css": "^1.0.16",
+    "react-remove-scroll": "^2.7.1",
+    "react-router-dom": "^6.2.1",
+    "react-slick": "^0.30.3",
+    "react-swipeable": "^7.0.2",
+    "slick-carousel": "^1.8.1",
+    "swiper": "^11.2.6",
+    "throttle": "^1.0.3",
+    "web-vitals": "^2.1.4",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.8",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.32.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.6",
+    "postcss": "^8.4.16",
+    "tailwindcss": "^3.1.8",
+    "vite": "^5.2.3"
+  },
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "eslintConfig": {
+    "root": true
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "packageManager": "yarn@3.2.1+sha512.2e8753234dc01d8cc7ed64c98e459a382c68cf239ce06102b2bec91cbbdf383ba520010e85df0f70fc400648d0706ac5bf37b59d99e3488c44a5436b50bf4204"
+}

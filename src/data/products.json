@@ -1,0 +1,78 @@
+{
+    "categories": [
+      {
+        "name": "Living Room",
+        "description": "Explore our collection of stylish and modern living room furniture.",
+        "image": "https://foyr.com/learn/wp-content/uploads/2019/02/interior-design-ideas-for-living-room.jpg",
+        "display": "normal",
+        "products": [
+          {
+            "title": "DECADE CHAIR",
+            "price": 150,
+            "image": "/bg.png",
+            "colors": ["#E0DED2", "#C0A678", "#000000", "#FFFFFF"]
+          },
+          {
+            "title": "BOLD SOFA",
+            "price": 3500,
+            "image": "/bg.png",
+            "colors": ["#C0A678", "#000000", "#FFFFFF"]
+          },
+          {
+            "title": "SOFT ROUND TABLE",
+            "price": 2300,
+            "image": "/bg.png",
+            "colors": ["#E0DED2", "#C0A678", "#000000"]
+          }
+        ]
+      },
+      {
+        "name": "Dining Room",
+        "description": "Discover our collection of stylish and modern dining room furniture.",
+        "image": "https://media.designcafe.com/wp-content/uploads/2020/04/11170923/dining-room-wall-decor-for-your-home.jpg",
+        "display": "invert",
+
+        "products": [
+          {
+            "title": "CIRCULA DINING TABLE",
+            "price": 1695,
+            "image": "/bg.png",
+            "colors": ["#E0DED2", "#C0A678", "#000000", "#FFFFFF"]
+          },
+          {
+            "title": "NEW LOUNGE CHAIR",
+            "price": 1200,
+            "image": "/bg.png",
+            "colors": ["#E0DED2", "#C0A678"]
+          },
+          {
+            "title": "DANG 2 DOOR CONSOLE",
+            "price": 2895,
+            "image": "/bg.png",
+            "colors": ["#E0DED2", "#C0A678", "#000000", "#FFFFFF"]
+          }
+        ]
+      },
+      {
+        "name": "Bedroom",
+        "description": "Explore our collection of stylish and modern bedroom furniture.",
+        "image": "https://interiosplash.com/wp-content/uploads/2024/09/24-optimized-1.webp",
+        "display": "normal",
+        "products": [
+          {
+            "title": "COZY BED",
+            "price": 4200,
+            "image": "/bg.png",
+            "colors": ["#E0DED2", "#FFFFFF", "#C0A678"]
+          },
+          {
+            "title": "BEDROOM DRAWER",
+            "price": 1100,
+            "image": "/bg.png",
+            "colors": ["#000000", "#C0A678"]
+          }
+        ]
+      }
+    ]
+  }
+  
