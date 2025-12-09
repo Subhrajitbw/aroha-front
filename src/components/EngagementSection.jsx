@@ -69,14 +69,22 @@ const EngagementSection = () => {
 
   // GSAP Animations - Only animate, don't hide initially
   useEffect(() => {
-    if (loading || items.length === 0) return;
+  if (loading || items.length === 0) return;
 
-    const ctx = gsap.context(() => {
-      // Set initial state without hiding
-      gsap.set([headerRef.current, cardsRef.current], { opacity: 1 });
+  const ctx = gsap.context(() => {
+    const headerEl = headerRef.current;
+    const cardEls = cardsRef.current.filter(Boolean); // remove undefined
 
-      if (!isMobile) {
-        gsap.from(headerRef.current, {
+    if (headerEl) {
+      gsap.set(headerEl, { opacity: 1 });
+    }
+    if (cardEls.length) {
+      gsap.set(cardEls, { opacity: 1 });
+    }
+
+    if (!isMobile) {
+      if (headerEl) {
+        gsap.from(headerEl, {
           scrollTrigger: {
             trigger: sectionRef.current,
             start: "top 80%",
@@ -87,8 +95,10 @@ const EngagementSection = () => {
           duration: 0.8,
           ease: "power3.out",
         });
+      }
 
-        gsap.from(cardsRef.current, {
+      if (cardEls.length) {
+        gsap.from(cardEls, {
           scrollTrigger: {
             trigger: sectionRef.current,
             start: "top 70%",
@@ -101,10 +111,12 @@ const EngagementSection = () => {
           ease: "power3.out",
         });
       }
-    }, sectionRef);
+    }
+  }, sectionRef);
 
-    return () => ctx.revert();
-  }, [loading, items, isMobile]);
+  return () => ctx.revert();
+}, [loading, items, isMobile]);
+
 
   if (loading) {
     return (
