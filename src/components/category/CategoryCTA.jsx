@@ -8,11 +8,11 @@ const CategoryCTA = forwardRef(({ selectedCategory, linkState = {} }, ref) => {
 
   const categoryName = selectedCategory.name || "Products";
   const categoryId = selectedCategory.id || selectedCategory._id;
-
+  const handle = selectedCategory.handle
   return (
     <div ref={ref} className="text-center">
       <Link
-        to={`/shop/category/${categoryId}`}
+        to={`/shop/category/${handle}`}
         state={{ initialCategoryId: categoryId }}
         className="group inline-flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-medium text-amber-700 bg-white/90 backdrop-blur-sm transition-all duration-300 transform-gpu hover:scale-105"
       >

@@ -1,117 +1,195 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+// src/components/nav/MegaMenu.jsx
+import React, { useRef, useEffect, forwardRef } from "react";
+import { Link } from "react-router-dom";
+import { gsap } from "gsap";
+import { ChevronRight, ArrowRight } from "lucide-react";
 
-const MegaMenu = ({ isOpen, content, onClose, caretPosition }) => {
-  if (!content) return null;
+const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseLeave }, ref) => {
+  const menuRef = useRef(null);
+  const backdropRef = useRef(null);
+  const contentRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      gsap.set(backdropRef.current, { display: "block" });
+      gsap.to(backdropRef.current, {
+        autoAlpha: 1,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+      
+      gsap.fromTo(
+        menuRef.current,
+        { y: -30, scale: 0.95 },
+        {
+          y: 0,
+          scale: 1,
+          autoAlpha: 1,
+          duration: 0.5,
+          ease: "power3.out",
+        }
+      );
+
+      gsap.fromTo(
+        contentRef.current?.querySelectorAll(".mega-column") || [],
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.6,
+          stagger: 0.05,
+          ease: "power2.out",
+          delay: 0.1,
+        }
+      );
+    } else {
+      gsap.to(menuRef.current, {
+        y: -20,
+        scale: 0.98,
+        autoAlpha: 0,
+        duration: 0.3,
+        ease: "power2.in",
+      });
+      
+      gsap.to(backdropRef.current, {
+        autoAlpha: 0,
+        duration: 0.25,
+        ease: "power2.in",
+        onComplete: () => {
+          gsap.set(backdropRef.current, { display: "none" });
+        },
+      });
+    }
+  }, [isOpen]);
+
+  // Prevent click propagation on menu to avoid closing when clicking inside
+  const handleMenuClick = (e) => {
+    e.stopPropagation();
+  };
+
+  if (!content || !content.columns?.length) return null;
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 8 }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          className="absolute left-0 top-full w-full pt-4 z-[60]" // pt-4 creates the gap for the caret
-          onMouseLeave={onClose}
-        >
-          {/* Caret (Triangle) Pointer */}
-          {caretPosition !== null && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute top-[10px] w-3 h-3 bg-white border-t border-l border-neutral-100 rotate-45 z-[61]"
-              style={{ left: `${caretPosition}%`, transform: 'translateX(-50%) rotate(45deg)' }}
-            />
-          )}
+    <>
+      {/* Backdrop overlay - MODIFIED: Added pointer-events control */}
+      <div
+        ref={backdropRef}
+        className="fixed inset-x-0 top-0 h-screen  z-40 pointer-events-auto"
+        style={{ display: "none" }}
+        onClick={onClose}
+        onMouseEnter={onMouseLeave}
+      />
 
-          {/* Main Container */}
-          <div className="relative mx-auto max-w-7xl">
-            <div className="bg-white/95 backdrop-blur-xl border border-neutral-100 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] rounded-sm overflow-hidden">
-              <div className="grid grid-cols-12 min-h-[320px]">
-                
-                {/* Columns Section */}
-                <div className="col-span-8 p-10 lg:p-12">
-                  <div className="grid grid-cols-3 gap-12">
-                    {content.columns?.map((col, idx) => (
-                      <div key={idx} className="space-y-6">
-                        {/* Column Title */}
-                        <Link 
-                          to={col.href}
-                          className="block font-serif text-lg text-neutral-900 hover:text-neutral-600 transition-colors tracking-wide"
-                        >
-                          {col.title}
-                        </Link>
-                        
-                        {/* Column Links */}
-                        {col.items && col.items.length > 0 && (
-                          <ul className="space-y-3">
-                            {col.items.map((item, itemIdx) => (
-                              <li key={itemIdx}>
-                                <Link
-                                  to={item.href}
-                                  className="group flex items-center text-sm text-neutral-500 hover:text-neutral-900 transition-colors font-light"
-                                >
-                                  <span className="relative">
-                                    {item.name}
-                                    <span className="absolute -bottom-px left-0 w-0 h-px bg-neutral-900 transition-all duration-300 group-hover:w-full"></span>
-                                  </span>
-                                </Link>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+      {/* Mega menu container - MODIFIED: Better event handling */}
+      <div
+        ref={(node) => {
+          menuRef.current = node;
+          if (ref) {
+            if (typeof ref === 'function') {
+              ref(node);
+            } else {
+              ref.current = node;
+            }
+          }
+        }}
+        className="absolute left-0 right-0 top-full mt-3 z-50 pointer-events-auto"
+        style={{ visibility: "hidden" }}
+        onMouseLeave={onMouseLeave}
+        onClick={handleMenuClick}
+      >
+        {/* Caret indicator - properly positioned */}
+        {typeof caretPosition === "number" && (
+          <div
+            className="absolute w-3 h-3 bg-white transform rotate-45 pointer-events-none"
+            style={{
+              top: "-6px",
+              left: `${caretPosition}%`,
+              marginLeft: "-6px",
+              boxShadow: "-2px -2px 8px rgba(0,0,0,0.05)",
+              zIndex: 51,
+            }}
+          />
+        )}
 
-                {/* Showcase / Featured Section */}
-                <div className="col-span-4 bg-neutral-50/50 border-l border-neutral-100 p-10 lg:p-12 relative">
-                  <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-400 mb-6 block">
-                    Editorial
-                  </span>
-
-                  {content.featured && content.featured.map((feat, idx) => (
-                    <Link 
-                      key={idx} 
-                      to={feat.href}
-                      className="group block relative w-full aspect-[4/3] overflow-hidden bg-neutral-200"
+        {/* Main menu panel - MODIFIED: Added hover bridge */}
+        <div className="relative">
+          {/* Invisible hover bridge to prevent gap issues */}
+          <div 
+            className="absolute -top-6 left-0 right-0 h-6 pointer-events-auto"
+            aria-hidden="true"
+          />
+          
+          <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-neutral-100 overflow-hidden mx-6">
+            <div
+              ref={contentRef}
+              className="max-w-[1400px] mx-auto px-12 py-14 space-y-8"
+            >
+              <h2>Explore our Shop</h2>
+              {/* Categories grid - full width */}
+              <div className={`grid ${
+                content.columns.length <= 3 ? 'grid-cols-3' : 
+                content.columns.length <= 4 ? 'grid-cols-4' : 
+                content.columns.length <= 6 ? 'grid-cols-5' :
+                'grid-cols-6'
+              } gap-x-12 gap-y-10`}>
+                {content.columns.map((column, idx) => (
+                  <div key={idx} className="mega-column">
+                    {/* Column header */}
+                    <Link
+                      to={column.href}
+                      onClick={onClose}
+                      className="group block mb-6"
                     >
-                      <img 
-                        src={feat.image} 
-                        alt={feat.title}
-                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                      />
-                      
-                      {/* Overlay */}
-                      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors duration-500" />
-                      
-                      {/* Text Content */}
-                      <div className="absolute bottom-0 left-0 w-full p-6 text-white">
-                        <div className="flex items-end justify-between">
-                          <h4 className="font-serif text-xl leading-tight max-w-[70%]">
-                            {feat.title}
-                          </h4>
-                          <div className="w-8 h-8 rounded-full border border-white/40 flex items-center justify-center backdrop-blur-sm group-hover:bg-white group-hover:text-black transition-all duration-300">
-                            <ArrowRight size={14} />
-                          </div>
-                        </div>
-                      </div>
+                      <h3 className="text-[11px] font-medium tracking-[0.15em] uppercase text-neutral-900 group-hover:text-neutral-600 transition-colors duration-300 flex items-center gap-2 mb-3">
+                        {column.title}
+                        <ChevronRight
+                          size={12}
+                          strokeWidth={2}
+                          className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"
+                        />
+                      </h3>
+                      <div className="h-[1px] bg-gradient-to-r from-neutral-200 via-neutral-300 to-transparent" />
                     </Link>
-                  ))}
-                </div>
 
+                    {/* Column items */}
+                    <nav className="space-y-4">
+                      {column.items?.slice(0, 5).map((item, itemIdx) => (
+                        <Link
+                          key={itemIdx}
+                          to={item.href}
+                          onClick={onClose}
+                          className="group flex items-start gap-3 text-[13px] text-neutral-600 hover:text-neutral-900 transition-all duration-300"
+                        >
+                          <span className="mt-1.5 w-[3px] h-[3px] rounded-full bg-neutral-300 group-hover:bg-neutral-900 group-hover:w-[5px] group-hover:h-[5px] transition-all duration-300 flex-shrink-0" />
+                          <span className="leading-relaxed tracking-wide group-hover:translate-x-0.5 transition-transform duration-300">
+                            {item.name}
+                          </span>
+                        </Link>
+                      ))}
+                    </nav>
+
+                    {/* View all link */}
+                    {column.items?.length > 5 && (
+                      <Link
+                        to={column.href}
+                        onClick={onClose}
+                        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-500 hover:text-neutral-900 transition-colors mt-5 tracking-wide"
+                      >
+                        <span>View all</span>
+                        <ArrowRight size={11} strokeWidth={2} />
+                      </Link>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </div>
+      </div>
+    </>
   );
-};
+});
+
+MegaMenu.displayName = 'MegaMenu';
 
 export default MegaMenu;

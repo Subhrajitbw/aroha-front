@@ -1,22 +1,36 @@
 import { useEffect, useState, useRef } from "react";
-import NavBarLight from "../components/NavbarLight";
+import { useNavigate } from "react-router-dom";
 import LoadingOverlay from "../components/LoadingOverlay";
 import { gsap } from "gsap";
 import LookbookProductSection from "../components/LookbookProductSection";
-import { sdk } from "../lib/medusaClient"; 
+import { sdk } from "../lib/medusaClient";
 
 const Lookbook = () => {
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [isShowSingle, setIsShowIsSingle] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [isHoveringProduct, setIsHoveringProduct] = useState(false); // Track hover state
+  const [isHoveringProduct, setIsHoveringProduct] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   const gridRef = useRef(null);
   const cursorRef = useRef(null);
-  const cursorTextRef = useRef(null); // Reference for the "View" text
+  const cursorTextRef = useRef(null);
+  const touchStartPos = useRef({ x: 0, y: 0 });
+  const isDragging = useRef(false);
+  const navigate = useNavigate();
 
   const close = () => setIsShowIsSingle(false);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024 || 'ontouchstart' in window);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // 1. Fetch Products
   useEffect(() => {
@@ -51,9 +65,10 @@ const Lookbook = () => {
     return () => { isMounted = false; };
   }, []);
 
-  // 2. Animations & Cursor
+  // 2. Desktop Mouse Interactions
   useEffect(() => {
-    // Webflow
+    if (isMobile) return; // Skip on mobile
+
     const pageElement = document.documentElement;
     if (pageElement) pageElement.setAttribute("data-wf-page", "62c3453c8232198387a52aa4");
     if (window.Webflow) {
@@ -63,18 +78,18 @@ const Lookbook = () => {
     document.dispatchEvent(new Event("readystatechange"));
 
     const handleMouseMove = (e) => {
-      // Cursor Movement
+      // Smooth cursor movement
       if (cursorRef.current) {
         gsap.to(cursorRef.current, {
           left: e.clientX,
           top: e.clientY,
-          duration: 0.15,
+          duration: 0.3,
           ease: "power2.out",
           overwrite: true
         });
       }
 
-      // Grid Parallax
+      // Smooth grid parallax
       if (gridRef.current) {
         const gridItems = gridRef.current.querySelectorAll(".lookbook-item");
         const centerX = window.innerWidth / 2;
@@ -83,11 +98,11 @@ const Lookbook = () => {
         const distMultiY = (e.clientY - centerY) / centerY;
 
         gsap.to(gridItems, {
-          duration: 0.5,
-          x: distMultiX * -100,
-          y: distMultiY * -100,
-          ease: "power3.out",
-          stagger: { amount: 0 },
+          duration: 0.8,
+          x: distMultiX * -60,
+          y: distMultiY * -60,
+          ease: "power2.out",
+          stagger: { amount: 0.05 },
           overwrite: "auto"
         });
       }
@@ -95,10 +110,78 @@ const Lookbook = () => {
 
     document.addEventListener("mousemove", handleMouseMove);
     return () => document.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+  }, [isMobile]);
 
-  // 3. Show/Hide "View" text based on hover state
+  // 3. Mobile Touch Interactions
   useEffect(() => {
+    if (!isMobile || !gridRef.current) return;
+
+    const gridElement = gridRef.current;
+
+    const handleTouchStart = (e) => {
+      isDragging.current = false;
+      touchStartPos.current = {
+        x: e.touches[0].clientX,
+        y: e.touches[0].clientY
+      };
+    };
+
+    const handleTouchMove = (e) => {
+      const touch = e.touches[0];
+      const deltaX = Math.abs(touch.clientX - touchStartPos.current.x);
+      const deltaY = Math.abs(touch.clientY - touchStartPos.current.y);
+      
+      // If moved more than 10px, consider it a drag
+      if (deltaX > 10 || deltaY > 10) {
+        isDragging.current = true;
+      }
+
+      // Smooth parallax on touch move
+      const gridItems = gridElement.querySelectorAll(".lookbook-item");
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+      const distMultiX = (touch.clientX - centerX) / centerX;
+      const distMultiY = (touch.clientY - centerY) / centerY;
+
+      gsap.to(gridItems, {
+        duration: 0.5,
+        x: distMultiX * -40,
+        y: distMultiY * -40,
+        ease: "power2.out",
+        stagger: { amount: 0.03 },
+        overwrite: "auto"
+      });
+    };
+
+    const handleTouchEnd = () => {
+      // Reset position smoothly after touch ends
+      if (gridElement) {
+        const gridItems = gridElement.querySelectorAll(".lookbook-item");
+        gsap.to(gridItems, {
+          duration: 0.6,
+          x: 0,
+          y: 0,
+          ease: "power2.out",
+          stagger: { amount: 0.05 }
+        });
+      }
+    };
+
+    gridElement.addEventListener("touchstart", handleTouchStart, { passive: true });
+    gridElement.addEventListener("touchmove", handleTouchMove, { passive: true });
+    gridElement.addEventListener("touchend", handleTouchEnd, { passive: true });
+
+    return () => {
+      gridElement.removeEventListener("touchstart", handleTouchStart);
+      gridElement.removeEventListener("touchmove", handleTouchMove);
+      gridElement.removeEventListener("touchend", handleTouchEnd);
+    };
+  }, [isMobile, products]);
+
+  // 4. Show/Hide "View" text on hover (desktop only)
+  useEffect(() => {
+    if (isMobile) return;
+    
     if (cursorTextRef.current) {
       gsap.to(cursorTextRef.current, {
         opacity: isHoveringProduct ? 1 : 0,
@@ -107,13 +190,64 @@ const Lookbook = () => {
         ease: "power2.out"
       });
     }
-  }, [isHoveringProduct]);
+  }, [isHoveringProduct, isMobile]);
+
+  // Handle product click - navigate to product page
+  const handleProductClick = (product, e) => {
+    e.preventDefault();
+    
+    // On mobile, check if it was a drag
+    if (isMobile && isDragging.current) {
+      isDragging.current = false;
+      return;
+    }
+
+    // Navigate to product page
+    if (product.handle) {
+      navigate(`/products/${product.handle}`);
+    }
+  };
+
+  const renderProductItem = (product, i, columnKey) => (
+    <div 
+      key={`${product._id}-${columnKey}-${i}`} 
+      role="listitem" 
+      className="lookbook-item w-dyn-item cursor-pointer"
+      onMouseEnter={() => !isMobile && setIsHoveringProduct(true)}
+      onMouseLeave={() => !isMobile && setIsHoveringProduct(false)}
+    >
+      <a 
+        className="cursor-pointer lookbook-item-link w-inline-block" 
+        onClick={(e) => handleProductClick(product, e)}
+        style={{ 
+          cursor: isMobile ? 'pointer' : 'none',
+          WebkitTapHighlightColor: 'transparent'
+        }}
+      >
+        <img 
+          src={product.images[0]} 
+          loading="eager" 
+          alt={product.name} 
+          className="lookbook-item-image"
+          draggable="false"
+          style={{
+            userSelect: 'none',
+            WebkitUserDrag: 'none'
+          }}
+        />
+      </a>
+    </div>
+  );
 
   return (
     <div className="page-wrapper">
       <div className="global-styles w-embed">
         <style dangerouslySetInnerHTML={{
             __html: `
+              * {
+                -webkit-tap-highlight-color: transparent;
+              }
+
               .cursor-wrapper {
                 position: fixed !important;
                 top: 0;
@@ -122,6 +256,7 @@ const Lookbook = () => {
                 height: 100vh;
                 pointer-events: none !important;
                 z-index: 99999 !important;
+                display: ${isMobile ? 'none' : 'block'} !important;
               }
 
               .cursor {
@@ -146,140 +281,119 @@ const Lookbook = () => {
                 letter-spacing: 2px !important;
                 white-space: nowrap !important;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
-                /* Start hidden */
                 opacity: 0;
                 transform: scale(0.8);
               }
 
-              .journal-post:last-child .journal-post-line { display: none; }
+              .lookbook-grid {
+                will-change: transform;
+              }
+
+              .lookbook-item {
+                will-change: transform;
+                transform: translateZ(0);
+                backface-visibility: hidden;
+              }
+
+              .lookbook-item-image {
+                transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                            filter 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+                will-change: transform;
+              }
+
+              .lookbook-item:hover .lookbook-item-image {
+                transform: scale(1.05);
+              }
+
+              .lookbook-item:active .lookbook-item-image {
+                transform: scale(0.98);
+              }
+
+              @media (max-width: 1023px) {
+                .lookbook-item-image {
+                  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                }
+                
+                .lookbook-item:active .lookbook-item-image {
+                  transform: scale(0.95);
+                  filter: brightness(0.9);
+                }
+              }
+
+              .journal-post:last-child .journal-post-line { 
+                display: none; 
+              }
+
+              /* Smooth scrolling */
+              html {
+                scroll-behavior: smooth;
+              }
+
+              /* Disable text selection on images */
+              .lookbook-item-image {
+                user-select: none;
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+              }
             `
         }} />
       </div>
       
       {loading && <LoadingOverlay />}
       
-      {/* CURSOR */}
-      <div className="cursor-wrapper">
-        <div className="cursor" ref={cursorRef}>
-          <div className="cursor-text view" ref={cursorTextRef}>View</div>
+      {/* CURSOR - Desktop Only */}
+      {!isMobile && (
+        <div className="cursor-wrapper">
+          <div className="cursor" ref={cursorRef}>
+            <div className="cursor-text view" ref={cursorTextRef}>View</div>
+          </div>
         </div>
-      </div>
+      )}
 
-      <main className={`main-wrapper`}>
-        <div className={`lookbook-wrapper`}>
+      <main className="main-wrapper">
+        <div className="lookbook-wrapper">
           <div className="lookbook-grid" ref={gridRef}>
             
             {/* COLUMN 1 */}
             <div className="lookbook-grid-column w-dyn-list">
               <div role="list" className="lookbook-grid-column-inner w-dyn-items">
-                {products.slice(0, 6).map((product, i) => (
-                  <div 
-                    key={`${product._id}-1-${i}`} 
-                    role="listitem" 
-                    className="lookbook-item w-dyn-item cursor-pointer"
-                    onMouseEnter={() => setIsHoveringProduct(true)}
-                    onMouseLeave={() => setIsHoveringProduct(false)}
-                  >
-                    <a className="cusror-pointer lookbook-item-link w-inline-block" onClick={() => { setSelectedProduct(product.originalData || product); setIsShowIsSingle(true); }}>
-                      <img src={product.images[0]} loading="eager" alt={product.name} className="lookbook-item-image" />
-                    </a>
-                  </div>
-                ))}
+                {products.slice(0, 6).map((product, i) => renderProductItem(product, i, '1'))}
               </div>
             </div>
 
             {/* COLUMN 2 */}
             <div className="lookbook-grid-column w-dyn-list">
               <div role="list" className="lookbook-grid-column-inner w-dyn-items">
-                {products.slice(6, 12).map((product, i) => (
-                  <div 
-                    key={`${product._id}-2-${i}`} 
-                    role="listitem" 
-                    className="lookbook-item w-dyn-item cursor-pointer"
-                    onMouseEnter={() => setIsHoveringProduct(true)}
-                    onMouseLeave={() => setIsHoveringProduct(false)}
-                  >
-                    <a className="cusror-pointer lookbook-item-link w-inline-block" onClick={() => { setSelectedProduct(product.originalData || product); setIsShowIsSingle(true); }}>
-                      <img src={product.images[0]} loading="eager" alt={product.name} className="lookbook-item-image" />
-                    </a>
-                  </div>
-                ))}
+                {products.slice(6, 12).map((product, i) => renderProductItem(product, i, '2'))}
               </div>
             </div>
 
             {/* COLUMN 3 */}
             <div className="lookbook-grid-column w-dyn-list">
               <div role="list" className="lookbook-grid-column-inner w-dyn-items">
-                {products.slice(12, 18).map((product, i) => (
-                  <div 
-                    key={`${product._id}-3-${i}`} 
-                    role="listitem" 
-                    className="lookbook-item w-dyn-item cursor-pointer"
-                    onMouseEnter={() => setIsHoveringProduct(true)}
-                    onMouseLeave={() => setIsHoveringProduct(false)}
-                  >
-                    <a className="cusror-pointer lookbook-item-link w-inline-block" onClick={() => { setSelectedProduct(product.originalData || product); setIsShowIsSingle(true); }}>
-                      <img src={product.images[0]} loading="eager" alt={product.name} className="lookbook-item-image" />
-                    </a>
-                  </div>
-                ))}
+                {products.slice(12, 18).map((product, i) => renderProductItem(product, i, '3'))}
               </div>
             </div>
 
             {/* COLUMN 4 */}
             <div className="lookbook-grid-column w-dyn-list">
               <div role="list" className="lookbook-grid-column-inner w-dyn-items">
-                {products.slice(18, 24).map((product, i) => (
-                  <div 
-                    key={`${product._id}-4-${i}`} 
-                    role="listitem" 
-                    className="lookbook-item w-dyn-item cursor-pointer"
-                    onMouseEnter={() => setIsHoveringProduct(true)}
-                    onMouseLeave={() => setIsHoveringProduct(false)}
-                  >
-                    <a className="cusror-pointer lookbook-item-link w-inline-block" onClick={() => { setSelectedProduct(product.originalData || product); setIsShowIsSingle(true); }}>
-                      <img src={product.images[0]} loading="eager" alt={product.name} className="lookbook-item-image" />
-                    </a>
-                  </div>
-                ))}
+                {products.slice(18, 24).map((product, i) => renderProductItem(product, i, '4'))}
               </div>
             </div>
 
             {/* COLUMN 5 (Repeat) */}
             <div className="lookbook-grid-column w-dyn-list">
               <div role="list" className="lookbook-grid-column-inner w-dyn-items">
-                {products.slice(0, 6).map((product, i) => (
-                  <div 
-                    key={`${product._id}-5-${i}`} 
-                    role="listitem" 
-                    className="lookbook-item w-dyn-item cursor-pointer"
-                    onMouseEnter={() => setIsHoveringProduct(true)}
-                    onMouseLeave={() => setIsHoveringProduct(false)}
-                  >
-                    <a className="cusror-pointer lookbook-item-link w-inline-block" onClick={() => { setIsShowIsSingle(true); }}>
-                      <img src={product.images[0]} loading="eager" alt={product.name} className="lookbook-item-image" />
-                    </a>
-                  </div>
-                ))}
+                {products.slice(0, 6).map((product, i) => renderProductItem(product, i, '5'))}
               </div>
             </div>
 
             {/* COLUMN 6 (Repeat) */}
             <div className="lookbook-grid-column w-dyn-list">
               <div role="list" className="lookbook-grid-column-inner w-dyn-items">
-                {products.slice(6, 12).map((product, i) => (
-                  <div 
-                    key={`${product._id}-6-${i}`} 
-                    role="listitem" 
-                    className="lookbook-item w-dyn-item cursor-pointer"
-                    onMouseEnter={() => setIsHoveringProduct(true)}
-                    onMouseLeave={() => setIsHoveringProduct(false)}
-                  >
-                    <a className="cusror-pointer lookbook-item-link w-inline-block" onClick={() => { setSelectedProduct(product.originalData || product); setIsShowIsSingle(true); }}>
-                      <img src={product.images[0]} loading="eager" alt={product.name} className="lookbook-item-image" />
-                    </a>
-                  </div>
-                ))}
+                {products.slice(6, 12).map((product, i) => renderProductItem(product, i, '6'))}
               </div>
             </div>
 

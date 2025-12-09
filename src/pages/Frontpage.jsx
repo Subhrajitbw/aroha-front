@@ -22,8 +22,6 @@ const Frontpage = () => {
   // ---------------------------------------------------------
   const [isLoading, setIsLoading] = useState(true);
   const [currentSection, setCurrentSection] = useState(0);
-  
-  // Store collections here instead of categories
   const [collections, setCollections] = useState([]);
   
   const { isOpen: isMenuOpen } = useMenuStore();
@@ -33,7 +31,11 @@ const Frontpage = () => {
   const readyRef = useRef(false);
   const lastScrollTime = useRef(0);
   const lastTouchY = useRef(0);
-  const scrollDebounceTime = 400;
+  const touchStartTime = useRef(0);
+  const scrollAccumulator = useRef(0);
+  const scrollThreshold = 30; // Lower threshold for better responsiveness
+  const animationDuration = 0.5;
+  const cooldownTime = 50; // Minimal cooldown between scrolls
 
   // ---------------------------------------------------------
   // 2. DATA FETCHING
@@ -41,10 +43,9 @@ const Frontpage = () => {
   useEffect(() => {
     const fetchCollections = async () => {
       try {
-        // Fetch the first 3 Collections
         const { collections: fetchedCollections } = await sdk.store.collection.list({
           limit: 3,
-          fields: "id,title,handle,metadata" // Ensure handle is fetched
+          fields: "id,title,handle,metadata"
         });
         
         setCollections(fetchedCollections);
@@ -94,22 +95,21 @@ const Frontpage = () => {
   }, []);
 
   // Unlock when loading finished
-  // Update this useEffect to clean up on unmount
-useEffect(() => {
-  if (!isLoading) {
-    window.scrollTo(0, 0);
-    requestAnimationFrame(() => (readyRef.current = true));
-    document.body.style.overflow = "hidden"; // For Frontpage custom scroll
-  } else {
-    readyRef.current = false;
-  }
+  useEffect(() => {
+    if (!isLoading) {
+      window.scrollTo(0, 0);
+      requestAnimationFrame(() => {
+        readyRef.current = true;
+      });
+      document.body.style.overflow = "hidden";
+    } else {
+      readyRef.current = false;
+    }
 
-  // CLEANUP: Reset overflow when leaving this page
-  return () => {
-    document.body.style.overflow = "unset";
-  };
-}, [isLoading]);
-
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isLoading]);
 
   // Simulated Loading Timer
   useEffect(() => {
@@ -119,23 +119,35 @@ useEffect(() => {
 
   const getTotalSections = () => 6 + collections.length;
 
+  // Ultra-fast scroll animation
   const animatedScrollToSection = useCallback((index) => {
     if (!readyRef.current || isAnimating.current) return;
+    
+    const total = getTotalSections();
+    if (index < 0 || index >= total) return;
+    
     const toSection = sectionRefs.current[index];
     if (!toSection) return;
 
     isAnimating.current = true;
+    setCurrentSection(index);
+
+    // Kill any existing scroll animations immediately
+    gsap.killTweensOf(window);
 
     gsap.to(window, {
-      duration: 0.8,
-      ease: "power2.inOut",
-      scrollTo: { y: toSection.offsetTop, autoKill: false },
+      duration: animationDuration,
+      ease: "power4.out",
+      scrollTo: { 
+        y: toSection.offsetTop, 
+        autoKill: false 
+      },
       onComplete: () => {
-        setCurrentSection(index);
-        setTimeout(() => (isAnimating.current = false), 100);
+        isAnimating.current = false;
+        scrollAccumulator.current = 0;
       },
     });
-  }, []);
+  }, [collections.length]);
 
   // Scroll Handlers
   useEffect(() => {
@@ -145,56 +157,103 @@ useEffect(() => {
 
     const changeSection = (dir) => {
       if (isAnimating.current) return;
+      
       const next = currentSection + dir;
       if (next >= 0 && next < total) {
         animatedScrollToSection(next);
       }
     };
 
+    // Fixed wheel handler
     const wheelHandler = (e) => {
       e.preventDefault();
-      const now = Date.now();
-      if (now - lastScrollTime.current < scrollDebounceTime) return;
+      
       if (isAnimating.current) return;
-      if (Math.abs(e.deltaY) < 3) return;
-      const dir = e.deltaY > 0 ? 1 : -1;
-      lastScrollTime.current = now;
-      changeSection(dir);
+
+      const now = Date.now();
+      const timeSinceLastScroll = now - lastScrollTime.current;
+
+      // Only check cooldown when actually scrolling
+      if (timeSinceLastScroll < cooldownTime) return;
+
+      // Reset accumulator if paused
+      if (timeSinceLastScroll > 300) {
+        scrollAccumulator.current = 0;
+      }
+
+      // Accumulate scroll - use raw deltaY for better sensitivity
+      scrollAccumulator.current += e.deltaY;
+
+      // Check if we've reached threshold
+      if (Math.abs(scrollAccumulator.current) >= scrollThreshold) {
+        const dir = scrollAccumulator.current > 0 ? 1 : -1;
+        lastScrollTime.current = now;
+        scrollAccumulator.current = 0;
+        changeSection(dir);
+      }
     };
 
+    // Touch handlers
     const onTouchStart = (e) => {
       lastTouchY.current = e.touches[0].clientY;
+      touchStartTime.current = Date.now();
+    };
+
+    const onTouchMove = (e) => {
+      if (Math.abs(e.touches[0].clientY - lastTouchY.current) > 10) {
+        e.preventDefault();
+      }
     };
 
     const onTouchEnd = (e) => {
       if (isAnimating.current) return;
+      
+      const touchEndTime = Date.now();
+      const touchDuration = touchEndTime - touchStartTime.current;
       const deltaY = lastTouchY.current - e.changedTouches[0].clientY;
-      if (Math.abs(deltaY) > 50) {
+      const velocity = Math.abs(deltaY) / touchDuration;
+
+      const threshold = velocity > 0.5 ? 20 : 40;
+
+      if (Math.abs(deltaY) > threshold) {
         changeSection(deltaY > 0 ? 1 : -1);
       }
     };
 
     const keyHandler = (e) => {
       if (isAnimating.current) return;
-      const keyMap = { ArrowDown: 1, PageDown: 1, ArrowUp: -1, PageUp: -1, Space: 1 };
+      
+      const keyMap = { 
+        ArrowDown: 1, 
+        PageDown: 1, 
+        ArrowUp: -1, 
+        PageUp: -1, 
+        Space: 1 
+      };
+      
       if (keyMap[e.key] !== undefined) {
         e.preventDefault();
         changeSection(keyMap[e.key]);
       } else if (e.key === "Home") {
+        e.preventDefault();
         animatedScrollToSection(0);
       } else if (e.key === "End") {
+        e.preventDefault();
         animatedScrollToSection(total - 1);
       }
     };
 
+    // Add event listeners
     window.addEventListener("wheel", wheelHandler, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd, { passive: true });
     window.addEventListener("keydown", keyHandler);
 
     return () => {
       window.removeEventListener("wheel", wheelHandler);
       window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
       window.removeEventListener("keydown", keyHandler);
     };
@@ -238,11 +297,8 @@ useEffect(() => {
             className={sectionClass}
           >
             <AnimatedSection
-              // Pass handle so it fetches its own products
               collectionHandle={collection.handle} 
-              // Use metadata image if available, fallback handled inside component
               defaultBackground={collection.metadata?.image}
-              // Alternate layout
               desktopViewMode={(index + 1) % 2 === 0 ? "invert" : "normal"}
               title={collection.title}
               description={collection.metadata?.description}

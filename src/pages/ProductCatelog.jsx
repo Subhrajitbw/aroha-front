@@ -22,14 +22,14 @@ export default function ProductCatalog() {
 
   const location = useLocation();
   const navigate = useNavigate();
-  const { categoryId: categoryIdParam } = useParams();
+  const { categoryHandle: categoryHandleParam } = useParams();
 
-  // Initial category from URL or navigation state
-  const initialCategoryIdFromState =
-    categoryIdParam || location.state?.initialCategoryId || null;
+  // Initial category handle from URL or navigation state
+  const initialCategoryHandleFromState =
+    categoryHandleParam || location.state?.initialCategoryHandle || null;
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState(
-    initialCategoryIdFromState
+  const [selectedCategoryHandle, setSelectedCategoryHandle] = useState(
+    initialCategoryHandleFromState
   );
 
   // Pagination
@@ -47,24 +47,27 @@ export default function ProductCatalog() {
   const [filters, setFilters] = useState({
     priceRange: [0, 50000000],
     collections: [],
-    categories: initialCategoryIdFromState ? [initialCategoryIdFromState] : [],
+    // we’ll keep categories in filters as handles now
+    categories: initialCategoryHandleFromState
+      ? [initialCategoryHandleFromState]
+      : [],
     discountedOnly: false,
     newOnly: false,
     inStockOnly: false,
     ratings: [],
   });
 
-  // Keep selectedCategoryId and filters.categories in sync with URL changes
+  // Keep selectedCategoryHandle and filters.categories in sync with URL changes
   useEffect(() => {
     const next =
-      categoryIdParam || location.state?.initialCategoryId || null;
-    setSelectedCategoryId(next || null);
+      categoryHandleParam || location.state?.initialCategoryHandle || null;
+    setSelectedCategoryHandle(next || null);
     setFilters((prev) => ({
       ...prev,
       categories: next ? [next] : [],
     }));
     setPage(1);
-  }, [categoryIdParam, location.state?.initialCategoryId]);
+  }, [categoryHandleParam, location.state?.initialCategoryHandle]);
 
   // Fetch region
   useEffect(() => {
@@ -98,7 +101,7 @@ export default function ProductCatalog() {
     };
   }, []);
 
-  // Fetch products with price mapping + pagination + sort + category filter
+  // Fetch products with price mapping + pagination + sort + category filter (by handle)
   useEffect(() => {
     const fetchProducts = async () => {
       if (!regionId) return;
@@ -124,9 +127,9 @@ export default function ProductCatalog() {
           queryParams.order = orderParam;
         }
 
-        // Filter by category on the backend when selected
-        if (selectedCategoryId) {
-          queryParams["category_id[]"] = [selectedCategoryId];
+        // Filter by category handle on the backend when selected
+        if (selectedCategoryHandle) {
+          queryParams["category_handle[]"] = [selectedCategoryHandle];
         }
 
         const { products: productsList, count } =
@@ -134,7 +137,7 @@ export default function ProductCatalog() {
 
         setTotalCount(count || 0);
 
-        const mappedProducts = productsList.map((product) => {
+        const mappedProducts = (productsList || []).map((product) => {
           const defaultVariant = product.variants?.[0];
 
           let amount = defaultVariant?.calculated_price?.calculated_amount;
@@ -240,7 +243,7 @@ export default function ProductCatalog() {
     };
 
     fetchProducts();
-  }, [sort, regionId, page, selectedCategoryId]);
+  }, [sort, regionId, page, selectedCategoryHandle]);
 
   // Fetch collections
   useEffect(() => {
@@ -275,29 +278,59 @@ export default function ProductCatalog() {
     fetchCategories();
   }, []);
 
-  // Build category tree and helpers
+  useEffect(() => {
+  if (location.state?.applyFilter) {
+    const filterKey = location.state.applyFilter;
+    
+    setFilters((prev) => ({
+      ...prev,
+      [filterKey]: true,
+      // Reset other quick filters
+      newOnly: filterKey === 'newOnly',
+      discountedOnly: filterKey === 'discountedOnly',
+    }));
+    
+    setPage(1);
+    
+    // Clear the state so it doesn't reapply on refresh
+    window.history.replaceState({}, document.title);
+  }
+}, [location.state]);
+
+  // Build category tree and helpers (by id, but we also need lookups by handle)
   const buildCategoryTree = (categoriesArray) => {
-    const map = new Map();
+    const mapById = new Map();
+    const mapByHandle = new Map();
+
     (categoriesArray || []).forEach((c) => {
-      map.set(c.id, { ...c, children: [] });
+      const node = { ...c, children: [] };
+      mapById.set(c.id, node);
+      if (c.handle) {
+        mapByHandle.set(c.handle, node);
+      }
     });
 
     const roots = [];
-    map.forEach((cat) => {
-      if (cat.parent_category_id && map.has(cat.parent_category_id)) {
-        map.get(cat.parent_category_id).children.push(cat);
+    mapById.forEach((cat) => {
+      if (cat.parent_category_id && mapById.has(cat.parent_category_id)) {
+        mapById.get(cat.parent_category_id).children.push(cat);
       } else {
         roots.push(cat);
       }
     });
-    return { roots, byId: map };
+
+    return { roots, byId: mapById, byHandle: mapByHandle };
   };
 
-  const { roots: categoryTree, byId: categoryById } =
-    buildCategoryTree(categories);
+  const {
+    roots: categoryTree,
+    byId: categoryById,
+    byHandle: categoryByHandle,
+  } = buildCategoryTree(categories);
 
-  const selectedCategoryNode = selectedCategoryId
-    ? categoryById.get(selectedCategoryId)
+  // Selected node by handle
+  const selectedCategoryNode = selectedCategoryHandle
+    ? categoryByHandle.get(selectedCategoryHandle)
     : null;
 
   const subCategories =
@@ -347,21 +380,21 @@ export default function ProductCatalog() {
   const hasPrev = page > 1;
   const hasNext = page < totalPages;
 
-  // Helpers to navigate to category shop page
-  const goToCategory = (id) => {
-    if (!id) {
+  // Helpers to navigate to category shop page (by handle)
+  const goToCategory = (handle) => {
+    if (!handle) {
       navigate("/shop");
-      setSelectedCategoryId(null);
+      setSelectedCategoryHandle(null);
       setFilters((prev) => ({ ...prev, categories: [] }));
       setPage(1);
       return;
     }
 
-    navigate(`/shop/category/${id}`, {
-      state: { initialCategoryId: id },
+    navigate(`/shop/category/${handle}`, {
+      state: { initialCategoryHandle: handle },
     });
-    setSelectedCategoryId(id);
-    setFilters((prev) => ({ ...prev, categories: [id] }));
+    setSelectedCategoryHandle(handle);
+    setFilters((prev) => ({ ...prev, categories: [handle] }));
     setPage(1);
   };
 
@@ -411,15 +444,17 @@ export default function ProductCatalog() {
             <CategoryTab
               key={selectedCategoryNode.id}
               category={selectedCategoryNode}
-              isSelected={selectedCategoryId === selectedCategoryNode.id}
-              onClick={() => goToCategory(selectedCategoryNode.id)}
+              isSelected={
+                selectedCategoryHandle === selectedCategoryNode.handle
+              }
+              onClick={() => goToCategory(selectedCategoryNode.handle)}
             />
             {subCategories.map((category) => (
               <CategoryTab
                 key={category.id}
                 category={category}
-                isSelected={selectedCategoryId === category.id}
-                onClick={() => goToCategory(category.id)}
+                isSelected={selectedCategoryHandle === category.handle}
+                onClick={() => goToCategory(category.handle)}
               />
             ))}
           </div>
@@ -450,7 +485,7 @@ export default function ProductCatalog() {
           <main className="flex-1 min-w-0 w-full">
             <AnimatePresence mode="wait">
               <motion.div
-                key={`products-${dimensions.width}-page-${page}-sort-${sort}-cat-${selectedCategoryId}`}
+                key={`products-${dimensions.width}-page-${page}-sort-${sort}-cat-${selectedCategoryHandle}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}

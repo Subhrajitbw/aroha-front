@@ -45,6 +45,7 @@ import OAuthRelay from "./components/OAuthRelay";
 import ProtectedRoute from "./components/protectedroute";
 import SimpleWorldlinePayment from "./pages/SImpleWorldLinePayment";
 import BlogPost from "./pages/BlogPost";
+import FloatingEnquiry from "./components/FloatingEnquiry";
 
 // ✅ Loading Component
 const LoadingSpinner = () => (
@@ -381,6 +382,7 @@ useEffect(() => {
           {/* 404 Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <FloatingEnquiry/>
       </main>
 
       {/* ---------------- Global Footer with Device Awareness ---------------- */}

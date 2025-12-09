@@ -5,11 +5,13 @@ import { useSearchStore } from "../stores/searchStore";
 import { searchClient, PRODUCTS_INDEX } from "../lib/meilisearch";
 import gsap from "gsap";
 
+
 const SearchModal = () => {
   const modalRef = useRef();
   const backdropRef = useRef();
   const inputRef = useRef();
   const resultsRef = useRef();
+
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -17,8 +19,10 @@ const SearchModal = () => {
   const [error, setError] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
+
   const { isOpen, close } = useSearchStore();
   const navigate = useNavigate();
+
 
   // Entrance Animation
   useEffect(() => {
@@ -30,12 +34,14 @@ const SearchModal = () => {
         { opacity: 1, duration: 0.3, ease: "power2.out" }
       );
 
+
       // Modal scale and fade in
       gsap.fromTo(
         modalRef.current,
         { opacity: 0, scale: 0.95, y: -20 },
         { opacity: 1, scale: 1, y: 0, duration: 0.4, ease: "power3.out", delay: 0.1 }
       );
+
 
       document.body.style.overflow = "hidden";
       setTimeout(() => inputRef.current?.focus(), 200);
@@ -45,6 +51,7 @@ const SearchModal = () => {
       document.body.style.overflow = "unset";
     };
   }, [isOpen]);
+
 
   // Results animation
   useEffect(() => {
@@ -63,6 +70,7 @@ const SearchModal = () => {
       );
     }
   }, [results]);
+
 
   // Elegant close with animation
   const handleClose = useCallback(() => {
@@ -87,6 +95,7 @@ const SearchModal = () => {
     }
   }, [close]);
 
+
   // MeiliSearch Integration
   const fetchResults = useCallback(async (searchTerm) => {
     if (!searchTerm.trim()) {
@@ -94,8 +103,10 @@ const SearchModal = () => {
       return;
     }
 
+
     setLoading(true);
     setError("");
+
 
     try {
       const searchResponse = await searchClient
@@ -114,6 +125,7 @@ const SearchModal = () => {
           attributesToHighlight: ['title', 'description'],
         });
 
+
       const mappedProducts = searchResponse.hits.map(hit => ({
         id: hit.id,
         title: hit.title,
@@ -127,6 +139,7 @@ const SearchModal = () => {
           : null
       }));
 
+
       setResults(mappedProducts);
     } catch (err) {
       setError("Unable to search. Please try again.");
@@ -136,6 +149,7 @@ const SearchModal = () => {
     }
   }, []);
 
+
   // Debounced search
   useEffect(() => {
     const debounce = setTimeout(() => {
@@ -143,6 +157,7 @@ const SearchModal = () => {
     }, 300);
     return () => clearTimeout(debounce);
   }, [query, fetchResults]);
+
 
   // Keyboard navigation
   const handleKeyDown = useCallback((e) => {
@@ -167,16 +182,20 @@ const SearchModal = () => {
     }
   }, [selectedIndex, results, query, navigate, handleClose]);
 
+
   const handleProductClick = useCallback((product) => {
     navigate(`/products/${product.handle}`);
     handleClose();
   }, [navigate, handleClose]);
 
+
   useEffect(() => {
     setSelectedIndex(-1);
   }, [results]);
 
+
   if (!isOpen) return null;
+
 
   return (
     <div
@@ -232,9 +251,10 @@ const SearchModal = () => {
           </button>
         </div>
 
-        {/* Results */}
+
+        {/* Results - FIXED */}
         <div 
-          className="px-8 py-6 overflow-y-auto max-h-[520px] scrollbar-hide"
+          className="px-8 py-6 overflow-y-auto max-h-[520px] custom-scrollbar"
           role="listbox"
         >
           {!query.trim() && (
@@ -254,6 +274,7 @@ const SearchModal = () => {
             </div>
           )}
 
+
           {loading && (
             <div className="text-center py-16 space-y-4">
               <div className="relative inline-block">
@@ -264,6 +285,7 @@ const SearchModal = () => {
             </div>
           )}
 
+
           {error && (
             <div className="text-center py-16">
               <div className="inline-flex items-center gap-2 px-6 py-3 bg-red-500/10 border border-red-500/20 rounded-full">
@@ -272,6 +294,7 @@ const SearchModal = () => {
               </div>
             </div>
           )}
+
 
           {!loading && !error && query.trim() && results.length === 0 && (
             <div className="text-center py-16 space-y-4">
@@ -284,6 +307,7 @@ const SearchModal = () => {
               </div>
             </div>
           )}
+
 
           {!loading && !error && results.length > 0 && (
             <div className="space-y-6">
@@ -365,6 +389,7 @@ const SearchModal = () => {
                 ))}
               </ul>
 
+
               {/* View all results link */}
               {results.length >= 8 && (
                 <div className="pt-4 border-t border-white/5">
@@ -383,6 +408,7 @@ const SearchModal = () => {
             </div>
           )}
         </div>
+
 
         {/* Keyboard hints */}
         <div className="relative px-8 py-4 border-t border-white/5 bg-white/2">
@@ -404,17 +430,35 @@ const SearchModal = () => {
         </div>
       </div>
 
+
       <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
+        /* Custom scrollbar that preserves scroll functionality */
+        .custom-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
         }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
+        
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.3);
         }
       `}</style>
     </div>
   );
 };
+
 
 export default SearchModal;

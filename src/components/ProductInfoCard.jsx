@@ -13,6 +13,7 @@ export const ProductInfoCard = ({
   isFluid,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   const containerRef = useRef(null);
   const imageWrapperRef = useRef(null);
@@ -20,11 +21,18 @@ export const ProductInfoCard = ({
   const buttonRef = useRef(null);
   const textContainerRef = useRef(null);
 
-  const { isMobile } = useResponsive();
+  const { isMobile, isTablet, isDesktop } = useResponsive();
   const navigate = useNavigate();
 
   const finalTextColor = type === "sec" ? "#fff" : textColor || "#1a1a1a";
 
+  // Detect touch device
+  useEffect(() => {
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    setIsTouchDevice(hasTouch);
+  }, []);
+
+  // Initial animation
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -45,8 +53,9 @@ export const ProductInfoCard = ({
     return () => ctx.revert();
   }, []);
 
+  // Desktop hover animations
   useEffect(() => {
-    if (isMobile) return;
+    if (isMobile || isTouchDevice) return;
 
     const wrapper = imageWrapperRef.current;
     const image = imageRef.current;
@@ -58,7 +67,7 @@ export const ProductInfoCard = ({
 
     hoverTl
       .to(image, {
-        scale: 1.1,
+        scale: 1.08,
         duration: 0.8,
         ease: "power2.out",
       })
@@ -79,10 +88,10 @@ export const ProductInfoCard = ({
       const y = (e.clientY - top - height / 2) / height;
 
       gsap.to(wrapper, {
-        x: x * 15,
-        y: y * 15,
-        rotationX: -y * 5,
-        rotationY: x * 5,
+        x: x * 10,
+        y: y * 10,
+        rotationX: -y * 3,
+        rotationY: x * 3,
         duration: 0.5,
         ease: "power2.out",
       });
@@ -114,7 +123,42 @@ export const ProductInfoCard = ({
       wrapper.removeEventListener("mouseleave", handleMouseLeave);
       hoverTl.kill();
     };
-  }, [isMobile]);
+  }, [isMobile, isTouchDevice]);
+
+  // Touch interaction - show button on tap
+  const handleTouchStart = () => {
+    if (!isTouchDevice || !buttonRef.current) return;
+    
+    gsap.to(imageRef.current, {
+      scale: 1.05,
+      duration: 0.3,
+      ease: "power2.out",
+    });
+    
+    gsap.to(buttonRef.current, {
+      y: 0,
+      opacity: 1,
+      duration: 0.3,
+      ease: "back.out(1.7)",
+    });
+  };
+
+  const handleTouchEnd = () => {
+    if (!isTouchDevice) return;
+    
+    gsap.to(imageRef.current, {
+      scale: 1,
+      duration: 0.3,
+      ease: "power2.out",
+    });
+    
+    gsap.to(buttonRef.current, {
+      y: 10,
+      opacity: 0,
+      duration: 0.2,
+      ease: "power2.in",
+    });
+  };
 
   const handleProductClick = () => {
     if (product?.handle) {
@@ -131,46 +175,67 @@ export const ProductInfoCard = ({
     product?.thumbnail ||
     "https://placehold.co/600x800/f0f0f0/e0e0e0";
 
+  // Responsive max width
+  const getMaxWidth = () => {
+    if (isFluid) return "100%";
+    if (isMobile) return "100%";
+    if (isTablet) return cardSize === "large" ? "360px" : "280px";
+    return cardSize === "large" ? "400px" : "320px";
+  };
+
   return (
     <div
       ref={containerRef}
       className={`group relative flex flex-col w-full cursor-pointer select-none ${className}`}
       onClick={handleProductClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
       style={{
-        maxWidth: isFluid
-          ? "100%"
-          : isMobile
-          ? "100%"
-          : cardSize === "large"
-          ? "400px"
-          : "320px",
+        maxWidth: getMaxWidth(),
         perspective: "1000px",
+        WebkitTapHighlightColor: "transparent",
       }}
     >
       {/* IMAGE SECTION */}
-      <div className="relative w-full aspect-[3/4] mb-4 sm:mb-6 isolate z-10">
+      <div className="relative w-full aspect-[3/4] mb-3 xs:mb-4 sm:mb-5 md:mb-6 isolate z-10">
         <div
           ref={imageWrapperRef}
-          className="relative w-full h-full overflow-hidden rounded-[1000px] bg-[#F0F0F0] shadow-lg transition-shadow duration-500 hover:shadow-2xl"
+          className="relative w-full h-full overflow-hidden rounded-[1000px] bg-neutral-100 shadow-md sm:shadow-lg transition-shadow duration-500 hover:shadow-xl active:shadow-2xl"
           style={{ transformStyle: "preserve-3d" }}
         >
+          {/* Image with loading state */}
           <img
             ref={imageRef}
             src={productImage}
             alt={productName}
+            loading="lazy"
             onLoad={() => setImageLoaded(true)}
             className={`w-full h-full object-cover absolute inset-0 transition-all duration-1000 ease-out ${
               imageLoaded ? "opacity-100 blur-0" : "opacity-0 blur-md"
             }`}
+            style={{
+              touchAction: "none",
+            }}
           />
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          {/* Loading skeleton */}
+          {!imageLoaded && (
+            <div className="absolute inset-0 bg-gradient-to-br from-neutral-200 via-neutral-100 to-neutral-200 animate-pulse" />
+          )}
 
+          {/* Hover/active overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+          {/* Action button - larger touch target */}
           <div
             ref={buttonRef}
-            className="absolute bottom-6 sm:bottom-8 left-0 right-0 mx-auto w-10 h-10 sm:w-12 sm:h-12 bg-white rounded-full flex items-center justify-center shadow-xl translate-y-10 opacity-0 z-20"
+            className="absolute bottom-4 xs:bottom-5 sm:bottom-6 md:bottom-8 left-0 right-0 mx-auto w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-xl translate-y-10 opacity-0 z-20"
+            style={{
+              minWidth: isTouchDevice ? "48px" : "auto",
+              minHeight: isTouchDevice ? "48px" : "auto",
+            }}
           >
-            <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-black stroke-[1.5]" />
+            <ArrowUpRight className="w-5 h-5 xs:w-6 xs:h-6 sm:w-7 sm:h-7 text-black stroke-[1.5]" />
           </div>
         </div>
       </div>
@@ -178,24 +243,28 @@ export const ProductInfoCard = ({
       {/* INFO SECTION */}
       <div
         ref={textContainerRef}
-        className="flex flex-col justify-center items-center gap-0.5 sm:gap-1 px-2 sm:px-4 text-center z-0"
+        className="flex flex-col justify-center items-center gap-1 xs:gap-1.5 sm:gap-2 px-1 xs:px-2 sm:px-3 md:px-4 text-center z-0"
       >
         {/* Title with animated underline */}
         <h3
-          className="text-sm sm:text-base lg:text-lg font-normal tracking-wide leading-tight relative inline-block line-clamp-2"
-          style={{ color: finalTextColor }}
+          className="text-xs xs:text-sm sm:text-base md:text-lg font-normal tracking-wide leading-snug relative inline-block line-clamp-2 w-full"
+          style={{ 
+            color: finalTextColor,
+            wordBreak: "break-word",
+            hyphens: "auto",
+          }}
         >
           {productName}
           <span
-            className="absolute -bottom-1 left-0 w-0 h-[1px] bg-current transition-all duration-500 ease-out group-hover:w-full opacity-60"
+            className="absolute -bottom-0.5 xs:-bottom-1 left-0 w-0 h-[1px] bg-current transition-all duration-500 ease-out group-hover:w-full opacity-60"
             style={{ backgroundColor: finalTextColor }}
           />
         </h3>
 
         {/* Price Row */}
-        <div className="flex items-baseline gap-2 sm:gap-3 mt-1">
+        <div className="flex items-baseline justify-center gap-1.5 xs:gap-2 sm:gap-3 mt-0.5 xs:mt-1">
           <span
-            className="text-xs sm:text-sm lg:text-base font-medium tracking-[0.22em] sm:tracking-[0.28em] opacity-90 uppercase"
+            className="text-xs xs:text-sm sm:text-base md:text-lg font-medium tracking-[0.18em] xs:tracking-[0.22em] sm:tracking-[0.28em] opacity-90 uppercase"
             style={{ color: finalTextColor }}
           >
             {productPrice}
@@ -203,13 +272,20 @@ export const ProductInfoCard = ({
 
           {product?.originalPrice && product.discount > 0 && (
             <span
-              className="text-[10px] sm:text-xs lg:text-sm line-through font-light tracking-wide opacity-50"
+              className="text-[10px] xs:text-xs sm:text-sm md:text-base line-through font-light tracking-wide opacity-50"
               style={{ color: finalTextColor }}
             >
               {product.originalPrice}
             </span>
           )}
         </div>
+
+        {/* Optional: Discount badge for mobile */}
+        {isMobile && product?.discount > 0 && (
+          <span className="text-[10px] xs:text-xs text-emerald-600 font-medium tracking-wide mt-1">
+            {product.discount}% OFF
+          </span>
+        )}
       </div>
     </div>
   );

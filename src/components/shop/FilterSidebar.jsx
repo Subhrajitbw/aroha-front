@@ -1,7 +1,14 @@
 // components/FilterSidebar.jsx
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Filter, ChevronDown, Star, Sparkles, Crown, Diamond } from "lucide-react";
+import {
+  Filter,
+  ChevronDown,
+  Star,
+  Sparkles,
+  Crown,
+  Diamond,
+} from "lucide-react";
 import { PriceRangeSlider } from "./PricingRangeSlider";
 
 const FilterSection = ({
@@ -178,7 +185,7 @@ const LuxuryCheckbox = ({
   </motion.label>
 );
 
-// Build tree from parent_category_id
+// Build tree from parent_category_id, still keyed by id internally
 const buildCategoryTree = (categories) => {
   const map = new Map();
   (categories || []).forEach((c) => {
@@ -196,28 +203,32 @@ const buildCategoryTree = (categories) => {
   return roots;
 };
 
-const CategoryNode = ({ node, filters, onToggle }) => (
-  <div key={node.id}>
-    <LuxuryCheckbox
-      id={`cat-${node.id}`}
-      label={node.name || node.title}
-      checked={filters.categories?.includes(node.id) || false}
-      onChange={() => onToggle(node.id)}
-    />
-    {node.children?.length > 0 && (
-      <div className="ml-4 border-l border-stone-200/70 pl-3 mt-1 space-y-1">
-        {node.children.map((child) => (
-          <CategoryNode
-            key={child.id}
-            node={child}
-            filters={filters}
-            onToggle={onToggle}
-          />
-        ))}
-      </div>
-    )}
-  </div>
-);
+// NOTE: CategoryNode now toggles by HANDLE, not ID
+const CategoryNode = ({ node, filters, onToggle }) => {
+  const handle = node.handle; // Medusa handle
+  return (
+    <div key={node.id}>
+      <LuxuryCheckbox
+        id={`cat-${handle}`}
+        label={node.name || node.title}
+        checked={filters.categories?.includes(handle) || false}
+        onChange={() => onToggle(handle)}
+      />
+      {node.children?.length > 0 && (
+        <div className="ml-4 border-l border-stone-200/70 pl-3 mt-1 space-y-1">
+          {node.children.map((child) => (
+            <CategoryNode
+              key={child.id}
+              node={child}
+              filters={filters}
+              onToggle={onToggle}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const FilterSidebar = ({
   filters,
@@ -239,11 +250,12 @@ export const FilterSidebar = ({
     onFiltersChange({ ...filters, collections: next });
   };
 
-  const handleCategoryToggle = (id) => {
+  // Toggle categories by HANDLE
+  const handleCategoryToggle = (handle) => {
     const current = filters.categories || [];
-    const next = current.includes(id)
-      ? current.filter((c) => c !== id)
-      : [...current, id];
+    const next = current.includes(handle)
+      ? current.filter((c) => c !== handle)
+      : [...current, handle];
     onFiltersChange({ ...filters, categories: next });
   };
 
@@ -306,7 +318,7 @@ export const FilterSidebar = ({
               </FilterSection>
             )}
 
-            {/* Categories */}
+            {/* Categories (by handle) */}
             <FilterSection
               title="Categories"
               icon={<Diamond className="w-4 h-4" />}
@@ -377,7 +389,7 @@ export const FilterSidebar = ({
               </div>
             </FilterSection>
 
-            {/* Ratings (UI only for now) */}
+            {/* Ratings */}
             <FilterSection title="Ratings" icon={<Star className="w-4 h-4" />}>
               <div className="space-y-2">
                 {ratings.map((rating) => (

@@ -1,47 +1,23 @@
+// src/components/MobileMenu.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { gsap } from "gsap";
 import {
   X,
-  Sofa,
-  Sparkles,
-  Lightbulb,
-  Heart,
-  ShoppingCart,
   User,
   LogOut,
   ArrowRight,
-  Star,
-  Zap,
   ChevronRight,
   ArrowLeft,
   Settings,
-  Package,        // Icon for Orders (matching ProfileDropdown)
-  MapPin,         // Icon for Addresses
-  CreditCard,     // Icon for Payment Methods
-  LifeBuoy        // Icon for Help/Support
+  Package,
+  MapPin,
+  CreditCard,
+  LifeBuoy,
+  Heart,
+  Star,
+  Zap,
 } from "lucide-react";
-
-// Helper to provide the visual data (icons, colors, descriptions) for categories
-const getCategoryVisuals = (categoryName) => {
-  const visuals = {
-    "Furniture": { icon: Sofa, description: "Sofas, tables, & more", color: "from-slate-500 to-slate-600" },
-    "Décor": { icon: Sparkles, description: "Art, vases, & accessories", color: "from-stone-500 to-stone-600" },
-    "Lighting": { icon: Lightbulb, description: "Lamps & smart lights", color: "from-amber-500 to-amber-600" },
-    "Kitchenware": { icon: Star, description: "Kitchen essentials & more", color: "from-emerald-500 to-emerald-600" },
-    "Textiles": { icon: Heart, description: "Rugs, curtains, & fabrics", color: "from-rose-500 to-rose-600" },
-    "Storage": { icon: Package, description: "Organizers & containers", color: "from-blue-500 to-blue-600" },
-    "Bathroom": { icon: Sparkles, description: "Bath accessories & more", color: "from-cyan-500 to-cyan-600" },
-    "Outdoor": { icon: Star, description: "Garden & patio items", color: "from-green-500 to-green-600" }
-  };
-  
-  // Return specific visual data or fallback with generic styling
-  return visuals[categoryName] || { 
-    icon: Star, 
-    description: `Explore ${categoryName.toLowerCase()}`, 
-    color: "from-gray-500 to-gray-600" 
-  };
-};
 
 const MobileMenu = ({
   isOpen,
@@ -50,9 +26,10 @@ const MobileMenu = ({
   categories = [],
   megaMenuContent = {},
   isLoggedIn,
-  user
+  user,
+  onLogout,
 }) => {
-  const [currentView, setCurrentView] = useState('main');
+  const [currentView, setCurrentView] = useState("main");
   const [activeCategory, setActiveCategory] = useState(null);
 
   const menuRef = useRef(null);
@@ -60,74 +37,124 @@ const MobileMenu = ({
   const mainContentRef = useRef(null);
   const subContentRef = useRef(null);
 
-  // --- Link Data (matching exactly with ProfileDropdown) ---
+  // Quick access links - FIXED: Navigate to /shop with filter state
   const quickLinks = [
-    { name: "New Arrivals", href: "/new", icon: Star },
-    { name: "On Sale", href: "/sale", icon: Zap },
-  ];
-  
-  // Main account links - exactly matching ProfileDropdown
-  const mainAccountLinks = [
-    { name: "Profile", href: "/account/profile", icon: User },
-    { name: "Orders", href: "/account/orders", icon: Package },      // Using Package icon like ProfileDropdown
-    { name: "Wishlist", href: "/account/wishlist", icon: Heart },
-  ];
-
-  // Settings and Support links - exactly matching ProfileDropdown
-  const settingsLinks = [
-    { name: "Addresses", href: "/account/addresses", icon: MapPin },
-    { name: "Payment Methods", href: "/account/payment-methods", icon: CreditCard },
-    { name: "Account Settings", href: "/account/settings", icon: Settings },
-  ];
-  
-  const supportLinks = [
-    { name: "Help/Support", href: "/help", icon: LifeBuoy }
+    { 
+      name: "New Arrivals", 
+      href: "/shop", 
+      icon: Star,
+      gradient: "from-amber-500 to-amber-600",
+      filterKey: "newOnly" // Add filter identifier
+    },
+    { 
+      name: "On Sale", 
+      href: "/shop", 
+      icon: Zap,
+      gradient: "from-emerald-500 to-emerald-600",
+      filterKey: "discountedOnly" // Add filter identifier
+    },
   ];
 
-  // --- Handlers ---
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    window.location.reload();
-  };
+  // Account links organized like luxury brands
+  const accountSections = [
+    {
+      items: [
+        { name: "Profile", href: "/account/profile", icon: User },
+        { name: "Orders", href: "/account/orders", icon: Package },
+        { name: "Wishlist", href: "/account/wishlist", icon: Heart },
+      ],
+    },
+    {
+      items: [
+        { name: "Addresses", href: "/account/addresses", icon: MapPin },
+        { name: "Payment Methods", href: "/account/payment-methods", icon: CreditCard },
+        { name: "Settings", href: "/account/settings", icon: Settings },
+      ],
+    },
+    {
+      items: [{ name: "Help & Support", href: "/help", icon: LifeBuoy }],
+    },
+  ];
 
   const slideToSubMenu = (category) => {
     const subMenuData = megaMenuContent[category.href];
-    if (!subMenuData || !subMenuData.columns?.length) return;
+    if (!subMenuData || !subMenuData.columns?.length) {
+      // If no submenu, just navigate
+      window.location.href = category.href;
+      return;
+    }
 
     setActiveCategory({
       ...category,
-      ...getCategoryVisuals(category.name),
       subMenu: subMenuData,
     });
-    
-    gsap.to(mainContentRef.current, { x: "-100%", duration: 0.4, ease: "power3.inOut" });
-    gsap.fromTo(subContentRef.current, { x: "100%" }, { x: "0%", duration: 0.4, ease: "power3.out", onComplete: () => setCurrentView(category.name) });
+
+    gsap.to(mainContentRef.current, {
+      x: "-100%",
+      duration: 0.5,
+      ease: "power3.inOut",
+    });
+    gsap.fromTo(
+      subContentRef.current,
+      { x: "100%" },
+      {
+        x: "0%",
+        duration: 0.5,
+        ease: "power3.out",
+        onComplete: () => setCurrentView(category.name),
+      }
+    );
   };
 
   const slideBackToMain = () => {
-    gsap.to(subContentRef.current, { x: "100%", duration: 0.4, ease: "power3.inOut" });
-    gsap.fromTo(mainContentRef.current, { x: "-100%" }, { x: "0%", duration: 0.4, ease: "power3.out", onComplete: () => setCurrentView('main') });
+    gsap.to(subContentRef.current, {
+      x: "100%",
+      duration: 0.5,
+      ease: "power3.inOut",
+    });
+    gsap.fromTo(
+      mainContentRef.current,
+      { x: "-100%" },
+      {
+        x: "0%",
+        duration: 0.5,
+        ease: "power3.out",
+        onComplete: () => {
+          setCurrentView("main");
+          setActiveCategory(null);
+        },
+      }
+    );
   };
-  
+
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
+      document.body.style.overflow = "hidden";
       gsap.to(overlayRef.current, { autoAlpha: 1, duration: 0.4 });
-      gsap.fromTo(menuRef.current, { clipPath: "circle(0% at 100% 0%)" }, { clipPath: "circle(150% at 100% 0%)", duration: 0.6, ease: "power3.out" });
+      gsap.fromTo(
+        menuRef.current,
+        { x: "100%" },
+        {
+          x: "0%",
+          duration: 0.6,
+          ease: "power3.out",
+        }
+      );
     }
   }, [isOpen]);
 
   const handleClose = () => {
     gsap.to(overlayRef.current, { autoAlpha: 0, duration: 0.3 });
     gsap.to(menuRef.current, {
-      clipPath: "circle(0% at 100% 0%)",
+      x: "100%",
       duration: 0.5,
       ease: "power3.in",
       onComplete: () => {
-        document.body.style.overflow = 'auto';
-        setCurrentView('main');
+        document.body.style.overflow = "";
+        setCurrentView("main");
+        setActiveCategory(null);
         onClose();
-      }
+      },
     });
   };
 
@@ -135,174 +162,318 @@ const MobileMenu = ({
 
   return (
     <div className="fixed inset-0 z-[60] lg:hidden">
-      <div ref={overlayRef} className="absolute inset-0 bg-neutral-900/50 backdrop-blur-sm" onClick={handleClose} style={{ visibility: 'hidden', opacity: 0 }} />
-      <div ref={menuRef} className="absolute top-0 right-0 h-full w-full max-w-md bg-gray-100 shadow-2xl" style={{ clipPath: "circle(0% at 100% 0%)" }}>
+      {/* Backdrop */}
+      <div
+        ref={overlayRef}
+        className="absolute inset-0 bg-black/10 backdrop-blur-md"
+        onClick={handleClose}
+        style={{ visibility: "hidden", opacity: 0 }}
+      />
 
-        <div className="relative flex items-center justify-between p-4 border-b border-neutral-200/80 bg-white/80 backdrop-blur-sm">
-          {currentView !== 'main' ? (
-            <button onClick={slideBackToMain} className="flex items-center gap-2 p-2 -ml-2 rounded-lg hover:bg-neutral-100 transition-colors group">
-              <ArrowLeft size={20} className="text-neutral-600" />
-              <span className=" text-neutral-800">{activeCategory?.name}</span>
+      {/* Drawer */}
+      <div
+        ref={menuRef}
+        className="absolute top-0 right-0 h-full w-full max-w-md bg-white shadow-[0_0_60px_rgba(0,0,0,0.15)]"
+        style={{ transform: "translateX(100%)" }}
+      >
+        {/* Header */}
+        <div className="relative flex items-center justify-between px-6 py-5 border-b border-neutral-100">
+          {currentView !== "main" ? (
+            <button
+              onClick={slideBackToMain}
+              className="flex items-center gap-3 -ml-2 p-2 rounded-xl hover:bg-neutral-50 transition-colors group"
+            >
+              <ArrowLeft size={18} className="text-neutral-600 group-hover:-translate-x-1 transition-transform duration-300" />
+              <span className="text-[13px] tracking-wide text-neutral-700">
+                {activeCategory?.name}
+              </span>
             </button>
           ) : (
-            <Link to="/" onClick={handleClose} className="text-xl font-serif tracking-wider text-neutral-800">AROHA</Link>
+            <Link
+              to="/"
+              onClick={handleClose}
+              className="text-xl font-light tracking-[0.3em] text-neutral-900"
+              style={{ fontFamily: "Playfair Display, serif" }}
+            >
+              AROHA
+            </Link>
           )}
-          <button onClick={handleClose} className="p-3 rounded-full hover:bg-neutral-200/60 transition-colors group">
-            <X size={18} className="text-neutral-600 group-hover:rotate-90 transition-transform duration-300" />
+          <button
+            onClick={handleClose}
+            className="p-2.5 rounded-full hover:bg-neutral-100 transition-colors group"
+          >
+            <X
+              size={18}
+              className="text-neutral-600 group-hover:rotate-90 transition-transform duration-300"
+            />
           </button>
         </div>
 
-        <div className="relative h-[calc(100%-100px)] overflow-hidden z-99">
-          {/* --- Main Menu View --- */}
-          <div ref={mainContentRef} className="absolute inset-0 overflow-y-auto p-4 space-y-6">
-            {/* Only show Collections section if categories exist */}
-            {categories && categories.length > 0 && (
-              <>
-                <h3 className="px-2 text-sm text-neutral-600 uppercase tracking-wider">Collections</h3>
-                <div className="space-y-3">
-                  {categories.map((category) => {
-                    const visuals = getCategoryVisuals(category.name);
-                    const hasSubMenu = megaMenuContent[category.href] && megaMenuContent[category.href].columns?.length > 0;
+        {/* Content Container */}
+        <div className="relative h-[calc(100%-80px)] overflow-hidden">
+          {/* Main Menu */}
+          <div
+            ref={mainContentRef}
+            className="absolute inset-0 overflow-y-auto"
+          >
+            <div className="px-6 py-8 space-y-8">
+              {/* Quick Access - New Arrivals & On Sale - FIXED */}
+              <div className="space-y-4">
+                <h3 className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 px-2">
+                  Featured
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {quickLinks.map((link) => (
+                    <Link
+                      key={link.name}
+                      to={link.href}
+                      state={{ 
+                        applyFilter: link.filterKey // Pass filter to apply
+                      }}
+                      onClick={handleClose}
+                      className="group relative overflow-hidden rounded-2xl bg-neutral-50 hover:shadow-lg transition-all duration-300"
+                    >
+                      <div className="p-5 space-y-3">
+                        <div className={`inline-flex p-3 bg-gradient-to-br ${link.gradient} rounded-xl shadow-md`}>
+                          <link.icon size={20} strokeWidth={2} className="text-white" />
+                        </div>
+                        <div>
+                          <h4 className="text-[13px] tracking-wide text-neutral-800 leading-tight">
+                            {link.name}
+                          </h4>
+                        </div>
+                      </div>
+                      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-neutral-100/50 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+                    </Link>
+                  ))}
+                </div>
+              </div>
 
-                    return (
-                      <div key={category.name} className="bg-white rounded-2xl border border-neutral-200/60 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                        <div className="flex items-center p-4">
-                          <div className={`p-3 bg-gradient-to-br ${visuals.color} rounded-lg shadow-md mr-4`}>
-                            <visuals.icon size={22} className="text-white" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-neutral-800 font-medium">{category.name}</h4>
-                            <p className="text-xs text-neutral-500 mt-1">{visuals.description}</p>
-                          </div>
+              {/* Divider */}
+              <div className="h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent" />
+
+              {/* Categories Section */}
+              {categories && categories.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-medium tracking-[0.15em] uppercase text-neutral-500 px-2">
+                    Shop by Category
+                  </h3>
+                  <nav className="space-y-2">
+                    {categories.map((category) => {
+                      const hasSubMenu =
+                        megaMenuContent[category.href] &&
+                        megaMenuContent[category.href].columns?.length > 0;
+
+                      return (
+                        <div
+                          key={category.id}
+                          className="group"
+                        >
                           {hasSubMenu ? (
-                            <button 
+                            <button
                               onClick={() => slideToSubMenu(category)}
-                              className="ml-3 p-2 rounded-full hover:bg-neutral-100 transition-colors group"
+                              className="w-full flex items-center justify-between px-4 py-4 rounded-xl hover:bg-neutral-50 transition-all duration-300"
                             >
-                              <ChevronRight size={18} className="text-neutral-400 group-hover:text-neutral-600 group-hover:translate-x-0.5 transition-all duration-200" />
+                              <span className="text-[14px] tracking-wide text-neutral-800">
+                                {category.name}
+                              </span>
+                              <ChevronRight
+                                size={16}
+                                strokeWidth={2}
+                                className="text-neutral-400 group-hover:text-neutral-600 group-hover:translate-x-1 transition-all duration-300"
+                              />
                             </button>
                           ) : (
-                            <Link 
-                              to={category.href} 
+                            <Link
+                              to={category.href}
                               onClick={handleClose}
-                              className="ml-3 p-2 rounded-full hover:bg-neutral-100 transition-colors group"
+                              className="w-full flex items-center justify-between px-4 py-4 rounded-xl hover:bg-neutral-50 transition-all duration-300"
                             >
-                              <ChevronRight size={18} className="text-neutral-400 group-hover:text-neutral-600 group-hover:translate-x-0.5 transition-all duration-200" />
+                              <span className="text-[14px] tracking-wide text-neutral-800">
+                                {category.name}
+                              </span>
+                              <ChevronRight
+                                size={16}
+                                strokeWidth={2}
+                                className="text-neutral-400 group-hover:text-neutral-600 group-hover:translate-x-1 transition-all duration-300"
+                              />
                             </Link>
                           )}
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </nav>
                 </div>
-              </>
-            )}
-
-            <h3 className="px-2 text-sm text-neutral-600 uppercase tracking-wider pt-4">Quick Access</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {quickLinks.map((link) => (
-                <Link key={link.name} to={link.href} onClick={handleClose} className="group text-left p-4 bg-white rounded-2xl border border-neutral-200/60 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                  <div className="p-3 inline-block bg-neutral-100 rounded-lg mb-3"><link.icon size={22} className="text-neutral-600" /></div>
-                  <h4 className=" text-neutral-800">{link.name}</h4>
-                </Link>
-              ))}
-            </div>
-
-            <div className="border-t border-neutral-200/80 pt-6">
-              {isLoggedIn && user ? (
-                <div className="space-y-4">
-                  {/* Header section - exactly matching ProfileDropdown */}
-                  <div className="p-3 bg-white rounded-xl border border-neutral-200/60 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {user.name ? user.name[0].toUpperCase() : 'U'}
-                    </div>
-                    <div>
-                      <p className=" text-neutral-800 text-sm leading-tight">{user.name || "Valued Customer"}</p>
-                      <p className="text-xs text-neutral-500 truncate">{user.email || "email@example.com"}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Main account links - exactly matching ProfileDropdown */}
-                  <div className="bg-white rounded-xl border border-neutral-200/60 p-1 space-y-1">
-                    {mainAccountLinks.map((action) => (
-                      <Link key={action.name} to={action.href} onClick={handleClose} className="flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 rounded-md transition-colors">
-                        <action.icon size={16} />
-                        <span>{action.name}</span>
-                      </Link>
-                    ))}
-                  </div>
-
-                  {/* Settings and Support - exactly matching ProfileDropdown */}
-                  <div className="bg-white rounded-xl border border-neutral-200/60 p-1 space-y-1">
-                    {settingsLinks.map((action) => (
-                      <Link key={action.name} to={action.href} onClick={handleClose} className="flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 rounded-md transition-colors">
-                        <action.icon size={16} />
-                        <span>{action.name}</span>
-                      </Link>
-                    ))}
-                  </div>
-
-                  {/* Help and Logout - exactly matching ProfileDropdown */}
-                  <div className="bg-white rounded-xl border border-neutral-200/60 p-1 space-y-1">
-                    {supportLinks.map((action) => (
-                      <Link key={action.name} to={action.href} onClick={handleClose} className="flex items-center gap-3 px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-100 rounded-md transition-colors">
-                        <action.icon size={16} />
-                        <span>{action.name}</span>
-                      </Link>
-                    ))}
-                    <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md transition-colors">
-                      <LogOut size={16} />
-                      Logout
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button onClick={() => { onAuthOpen(); handleClose(); }} className="w-full flex items-center justify-center gap-3 p-4 bg-neutral-800 text-white  rounded-xl hover:bg-neutral-700 transition-colors">
-                  <User size={20} />
-                  <span>Sign In or Create Account</span>
-                </button>
               )}
+
+              {/* Divider */}
+              <div className="h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent" />
+
+              {/* Account Section */}
+              <div className="space-y-6">
+                {isLoggedIn && user ? (
+                  <>
+                    {/* User Info */}
+                    <div className="px-4 py-5 bg-neutral-50 rounded-2xl border border-neutral-100">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-neutral-900 rounded-full flex items-center justify-center text-white text-[16px] font-light tracking-wide">
+                          {user.name ? user.name[0].toUpperCase() : "U"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[14px] text-neutral-900 tracking-wide truncate">
+                            {user.name || "Valued Customer"}
+                          </p>
+                          <p className="text-[11px] text-neutral-500 tracking-wide truncate mt-0.5">
+                            {user.email || "email@example.com"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Account Links */}
+                    {accountSections.map((section, sectionIdx) => (
+                      <div key={sectionIdx} className="space-y-2">
+                        {section.items.map((item) => (
+                          <Link
+                            key={item.name}
+                            to={item.href}
+                            onClick={handleClose}
+                            className="group flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-neutral-50 transition-all duration-300"
+                          >
+                            <item.icon
+                              size={16}
+                              strokeWidth={2}
+                              className="text-neutral-400 group-hover:text-neutral-600 transition-colors"
+                            />
+                            <span className="text-[13px] tracking-wide text-neutral-700 group-hover:text-neutral-900 transition-colors">
+                              {item.name}
+                            </span>
+                            <ChevronRight
+                              size={14}
+                              strokeWidth={2}
+                              className="ml-auto text-neutral-300 group-hover:text-neutral-500 group-hover:translate-x-1 transition-all duration-300"
+                            />
+                          </Link>
+                        ))}
+                        {sectionIdx < accountSections.length - 1 && (
+                          <div className="h-px bg-neutral-100 my-2" />
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Logout */}
+                    <button
+                      onClick={() => {
+                        onLogout();
+                        handleClose();
+                      }}
+                      className="group w-full flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-red-50 transition-all duration-300"
+                    >
+                      <LogOut
+                        size={16}
+                        strokeWidth={2}
+                        className="text-red-400 group-hover:text-red-600 transition-colors"
+                      />
+                      <span className="text-[13px] tracking-wide text-red-600 group-hover:text-red-700 transition-colors">
+                        Sign Out
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      onAuthOpen();
+                      handleClose();
+                    }}
+                    className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-neutral-900 text-white rounded-xl hover:bg-neutral-800 transition-colors shadow-lg"
+                  >
+                    <User size={18} strokeWidth={2} />
+                    <span className="text-[13px] font-medium tracking-wide">
+                      Sign In
+                    </span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* --- Sub Menu View --- */}
-          <div ref={subContentRef} className="absolute inset-0 overflow-y-auto" style={{ transform: 'translateX(100%)' }}>
+          {/* Sub Menu */}
+          <div
+            ref={subContentRef}
+            className="absolute inset-0 overflow-y-auto bg-white"
+            style={{ transform: "translateX(100%)" }}
+          >
             {activeCategory && (
-                <div className="p-4 space-y-4 bg-gray-100 h-full">
-                  <div className="text-center p-6 bg-white rounded-2xl">
-                    <div className={`inline-flex p-5 bg-gradient-to-br ${activeCategory.color} rounded-2xl shadow-lg mb-4`}>
-                      <activeCategory.icon size={28} className="text-white" />
-                    </div>
-                    <h2 className="text-xl  text-neutral-800">{activeCategory.name}</h2>
-                  </div>
-                  
-                  {activeCategory.subMenu.columns.map(column => (
-                    <div key={column.title}>
-                      <h3 className="px-4 pt-4 pb-2 text-sm  text-neutral-500 uppercase tracking-wider">{column.title}</h3>
-                      <div className="space-y-1 bg-white rounded-xl border border-neutral-200/60">
-                        {column.links.map((link, index) => (
-                          <Link key={link.name} to={link.href} onClick={handleClose} className={`group flex items-center justify-between p-4 transition-all ${index < column.links.length - 1 ? 'border-b border-neutral-200/60' : ''}`}>
-                            <span className=" text-neutral-700">{link.name}</span>
-                            <ChevronRight size={18} className="text-neutral-400 group-hover:translate-x-1 transition-transform" />
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-
-                  {activeCategory.subMenu.featured && (
-                      <Link to={activeCategory.subMenu.featured.href} onClick={handleClose} className="block mt-4 p-4 rounded-lg bg-white shadow-lg border">
-                          <img src={activeCategory.subMenu.featured.imageUrl} alt={activeCategory.subMenu.featured.title} className="w-full h-32 object-cover rounded-md mb-3" />
-                          <h4 className=" text-neutral-800">{activeCategory.subMenu.featured.title}</h4>
-                          <p className="text-sm text-neutral-600">{activeCategory.subMenu.featured.description}</p>
-                      </Link>
-                  )}
-                  
-                  <Link to={activeCategory.href} onClick={handleClose} className="flex items-center justify-center gap-2 w-full p-4 mt-4 bg-neutral-800 text-white  rounded-xl">
-                      View All {activeCategory.name}
-                      <ArrowRight size={18} />
-                  </Link>
+              <div className="px-6 py-8 space-y-6">
+                {/* Category Header */}
+                <div className="text-center py-6">
+                  <h2 className="text-[16px] font-medium tracking-wide text-neutral-900">
+                    {activeCategory.name}
+                  </h2>
+                  <div className="h-px bg-gradient-to-r from-transparent via-neutral-200 to-transparent mt-4" />
                 </div>
+
+                {/* Subcategories */}
+                {activeCategory.subMenu.columns.map((column, colIdx) => (
+                  <div key={colIdx} className="space-y-3">
+                    <Link
+                      to={column.href}
+                      onClick={handleClose}
+                      className="group flex items-center justify-between px-4 py-3 rounded-xl hover:bg-neutral-50 transition-all duration-300"
+                    >
+                      <h3 className="text-[11px] font-medium tracking-[0.12em] uppercase text-neutral-700 group-hover:text-neutral-900 transition-colors">
+                        {column.title}
+                      </h3>
+                      <ChevronRight
+                        size={14}
+                        strokeWidth={2}
+                        className="text-neutral-400 group-hover:text-neutral-600 group-hover:translate-x-1 transition-all duration-300"
+                      />
+                    </Link>
+                    <div className="space-y-1 pl-4">
+                      {column.items?.slice(0, 5).map((item, itemIdx) => (
+                        <Link
+                          key={itemIdx}
+                          to={item.href}
+                          onClick={handleClose}
+                          className="group flex items-start gap-3 px-3 py-3 rounded-lg hover:bg-neutral-50 transition-all duration-300"
+                        >
+                          <span className="mt-1.5 w-[3px] h-[3px] rounded-full bg-neutral-300 group-hover:bg-neutral-700 group-hover:w-[4px] group-hover:h-[4px] transition-all duration-300 flex-shrink-0" />
+                          <span className="text-[13px] tracking-wide text-neutral-600 group-hover:text-neutral-900 transition-colors">
+                            {item.name}
+                          </span>
+                        </Link>
+                      ))}
+                      {column.items?.length > 5 && (
+                        <Link
+                          to={column.href}
+                          onClick={handleClose}
+                          className="inline-flex items-center gap-1.5 px-3 py-2 text-[11px] font-medium text-neutral-500 hover:text-neutral-900 transition-colors tracking-wide"
+                        >
+                          <span>View all</span>
+                          <ArrowRight size={11} strokeWidth={2} />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {/* View All Button */}
+                <Link
+                  to={activeCategory.href}
+                  onClick={handleClose}
+                  className="group flex items-center justify-center gap-3 w-full px-6 py-4 mt-8 bg-neutral-900 text-white rounded-xl hover:bg-neutral-800 transition-all duration-300 shadow-lg"
+                >
+                  <span className="text-[13px] font-medium tracking-wide">
+                    View All {activeCategory.name}
+                  </span>
+                  <ArrowRight
+                    size={16}
+                    strokeWidth={2}
+                    className="group-hover:translate-x-1 transition-transform duration-300"
+                  />
+                </Link>
+              </div>
             )}
           </div>
         </div>
