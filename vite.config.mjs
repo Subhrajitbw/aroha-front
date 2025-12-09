@@ -32,4 +32,8 @@ export default defineConfig({
       "55451c0ffcde.ngrok-free.app", // ✅ add your ngrok hostname here
     ],
   },
+  preview: {
+    host: true,
+    port: 5173,
+  },
 });

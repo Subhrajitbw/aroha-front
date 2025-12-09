@@ -38,3 +38,4 @@ pids
 # OS-specific
 Thumbs.db
   
+.env.production
