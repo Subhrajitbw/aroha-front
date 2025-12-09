@@ -102,14 +102,12 @@ const FloatingEnquiry = () => {
         });
       }
 
-      // Animate options in - UPDATED: now animates upward on mobile, upward on desktop
-      const isMobile = window.innerWidth < 640;
-      
+      // Animate options in
       gsap.fromTo(
         validOptions,
         {
           scale: 0,
-          y: isMobile ? -20 : 20, // Mobile: come from bottom, Desktop: come from top
+          y: 20,
           opacity: 0,
         },
         {
@@ -139,11 +137,9 @@ const FloatingEnquiry = () => {
       }
 
       // Animate options out
-      const isMobile = window.innerWidth < 640;
-      
       gsap.to(validOptions, {
         scale: 0,
-        y: isMobile ? -20 : 20,
+        y: 20,
         opacity: 0,
         duration: 0.2,
         stagger: 0.03,
@@ -178,54 +174,16 @@ const FloatingEnquiry = () => {
         onClick={() => setIsOpen(false)}
       />
 
-      {/* Main Container - UPDATED POSITIONING */}
+      {/* Main Container */}
       <div
         ref={containerRef}
-        className="fixed 
-          right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] 
-          xs:right-5 xs:bottom-[calc(5.5rem+env(safe-area-inset-bottom))]
-          sm:right-6 sm:bottom-6 
-          z-[100] 
-          flex flex-col-reverse sm:flex-col items-end gap-2 xs:gap-2.5 sm:gap-3"
+        className="fixed bottom-16 right-4 xs:bottom-5 xs:right-5 sm:bottom-6 sm:right-6 z-[100] flex flex-col items-end gap-2 xs:gap-2.5 sm:gap-3"
         style={{
           WebkitTapHighlightColor: "transparent",
         }}
       >
-        {/* Main Button - Now at bottom on mobile, stays at bottom on desktop */}
-        <button
-          ref={mainButtonRef}
-          onClick={toggleMenu}
-          className="relative w-14 h-14 xs:w-15 xs:h-15 sm:w-16 sm:h-16 bg-neutral-900 rounded-full shadow-xl hover:shadow-2xl active:scale-95 transition-all duration-300 flex items-center justify-center group overflow-hidden"
-          style={{
-            minWidth: "56px",
-            minHeight: "56px",
-          }}
-          aria-label={isOpen ? "Close contact menu" : "Open contact menu"}
-          aria-expanded={isOpen}
-        >
-          {/* Ripple effect */}
-          <div className="absolute inset-0 bg-white rounded-full scale-0 group-hover:scale-100 opacity-0 group-hover:opacity-10 transition-all duration-500 group-active:scale-110" />
-
-          {/* Icon container */}
-          <div ref={mainButtonIconRef} className="relative z-10">
-            {isOpen ? (
-              <X size={22} strokeWidth={2} className="text-white xs:w-6 xs:h-6 sm:w-6 sm:h-6" />
-            ) : (
-              <MessageCircle size={22} strokeWidth={2} className="text-white xs:w-6 xs:h-6 sm:w-6 sm:h-6" />
-            )}
-          </div>
-
-          {/* Pulse animation when closed */}
-          {!isOpen && (
-            <>
-              <div className="absolute inset-0 rounded-full bg-neutral-900 animate-ping opacity-20" />
-              <div className="absolute inset-0 rounded-full bg-neutral-900 animate-pulse opacity-30" />
-            </>
-          )}
-        </button>
-
-        {/* Options - Now appear above button on mobile */}
-        <div className="flex flex-col-reverse sm:flex-col items-end gap-2 xs:gap-2.5 sm:gap-3">
+        {/* Options */}
+        <div className="flex flex-col items-end gap-2 xs:gap-2.5 sm:gap-3">
           {options.map((option, index) => (
             <button
               key={option.id}
@@ -261,6 +219,39 @@ const FloatingEnquiry = () => {
             </button>
           ))}
         </div>
+
+        {/* Main Button */}
+        <button
+          ref={mainButtonRef}
+          onClick={toggleMenu}
+          className="relative w-14 h-14 xs:w-15 xs:h-15 sm:w-16 sm:h-16 bg-neutral-900 rounded-full shadow-xl hover:shadow-2xl active:scale-95 transition-all duration-300 flex items-center justify-center group overflow-hidden"
+          style={{
+            minWidth: "56px",
+            minHeight: "56px",
+          }}
+          aria-label={isOpen ? "Close contact menu" : "Open contact menu"}
+          aria-expanded={isOpen}
+        >
+          {/* Ripple effect */}
+          <div className="absolute inset-0 bg-white rounded-full scale-0 group-hover:scale-100 opacity-0 group-hover:opacity-10 transition-all duration-500 group-active:scale-110" />
+
+          {/* Icon container */}
+          <div ref={mainButtonIconRef} className="relative z-10">
+            {isOpen ? (
+              <X size={22} strokeWidth={2} className="text-white xs:w-6 xs:h-6 sm:w-6 sm:h-6" />
+            ) : (
+              <MessageCircle size={22} strokeWidth={2} className="text-white xs:w-6 xs:h-6 sm:w-6 sm:h-6" />
+            )}
+          </div>
+
+          {/* Pulse animation when closed */}
+          {!isOpen && (
+            <>
+              <div className="absolute inset-0 rounded-full bg-neutral-900 animate-ping opacity-20" />
+              <div className="absolute inset-0 rounded-full bg-neutral-900 animate-pulse opacity-30" />
+            </>
+          )}
+        </button>
 
         {/* Tooltip - desktop only */}
         {!isOpen && (
