@@ -1,48 +1,52 @@
-import { useState, useEffect, useCallback } from 'react';
-import { categoryService } from '../services/categoryService';
+// src/hooks/useCategoryProducts.js
+import { useState, useEffect } from "react";
+import { sdk } from "../lib/medusaClient";
+import { formatProductPrice } from "../utils/priceFormatter";
 
-// In useCategoryProducts hook
-export const useCategoryProducts = (categoryId, limit = 8) => {
+export const useCategoryProducts = (categoryId, regionId) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchProducts = useCallback(async () => {
+  useEffect(() => {
     if (!categoryId) {
       setProducts([]);
       return;
     }
 
-    try {
+    const fetchCategoryProducts = async () => {
       setLoading(true);
       setError(null);
-      
-      
-      const response = await categoryService.getProductsByCategory(categoryId, limit);
-      
-      
-      // Handle different API response structures
-      let productsData = [];
-      if (response.success && response.data && response.data.products) {
-        productsData = response.data.products;
-      } else if (Array.isArray(response.data)) {
-        productsData = response.data;
-      } else if (Array.isArray(response)) {
-        productsData = response;
+
+      try {
+        const queryParams = {
+          category_id: [categoryId],
+          limit: 10,
+          fields: "id,title,handle,thumbnail,variants.calculated_price,variants.prices.*",
+        };
+
+        if (regionId) {
+          queryParams.region_id = regionId;
+        }
+
+        const { products: rawProducts } = await sdk.store.product.list(queryParams);
+
+        const mappedProducts = rawProducts.map((product) =>
+          formatProductPrice(product)
+        );
+
+        setProducts(mappedProducts);
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+        setError(err);
+        setProducts([]);
+      } finally {
+        setLoading(false);
       }
-      
-      setProducts(productsData);
-    } catch (err) {
-      setError(err);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [categoryId, limit]);
+    };
 
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    fetchCategoryProducts();
+  }, [categoryId, regionId]);
 
-  return { products, loading, error, refetch: fetchProducts };
+  return { products, loading, error };
 };

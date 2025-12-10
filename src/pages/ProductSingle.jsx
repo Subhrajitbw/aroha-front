@@ -25,7 +25,7 @@ const ProductPage = () => {
   const [cartId, setCartId] = useState(null);
   const [activeAccordion, setActiveAccordion] = useState("details");
 
-  const WHATSAPP_NUMBER = "1234567890";
+  const WHATSAPP_NUMBER = "+919830483628";
 
   const cardWidths = useMemo(() => ({
     xs: 160,

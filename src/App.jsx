@@ -10,26 +10,17 @@ import useDevice from "./hooks/useDevice";
 
 // ✅ Pages
 import Frontpage from "./pages/Frontpage";
-import Rooms from "./pages/Rooms";
 import ProductCatelog from "./pages/ProductCatelog";
-import ShopSingle from "./pages/ShopSingle";
-import ShopSingleDetails from "./pages/ShopSingleDetails";
 import Lookbook from "./pages/Lookbook";
-import FAQ from "./pages/FAQ";
-import Contact from "./pages/Contact";
+
 import Journal from "./pages/Journal";
 import ProductPage from "./pages/ProductSingle";
-import RoomSingle1 from "./pages/RoomSingle1";
-import RoomSingle2 from "./pages/RoomSingle2";
-import RoomSingle3 from "./pages/RoomSingle3";
-import RoomSingle4 from "./pages/RoomSingle4";
+
 import Account from "./pages/Account";
 
 // ✅ Legal / Policy Pages
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfUse from "./pages/TermsOfUse";
-import ReturnRefundPolicy from "./pages/Refund";
-import ShippingPolicy from "./pages/Shipping";
+
 
 // ✅ Components
 import NavBar from "./components/NavBar";
@@ -43,7 +34,6 @@ import { useAuthModalStore } from "./stores/useAuthModalStore";
 import { useAuthStore } from "./stores/useAuthStore";
 import OAuthRelay from "./components/OAuthRelay";
 import ProtectedRoute from "./components/protectedroute";
-import SimpleWorldlinePayment from "./pages/SImpleWorldLinePayment";
 import BlogPost from "./pages/BlogPost";
 import FloatingEnquiry from "./components/FloatingEnquiry";
 
@@ -322,14 +312,9 @@ useEffect(() => {
           {/* Public Pages */}
           <Route path="/" element={<Frontpage deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
           <Route path="/home" element={<Frontpage deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-          <Route path="/rooms" element={<Rooms deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
           <Route path="/shop" element={<ProductCatelog deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
           <Route path="/shop/category/:categoryId" element={<ProductCatelog />} />
           <Route path="/lookbook" element={<Lookbook deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-          <Route path="/faq" element={<FAQ deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-          <Route path="/contact" element={<Contact deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-          <Route path="/test-pay" element={<SimpleWorldlinePayment />} />
-          <Route path="/lookbook" element={<Lookbook/>}/>
           {/* Protected Account Route */}
           <Route 
             path="/account" 
@@ -349,12 +334,7 @@ useEffect(() => {
           />
 
           {/* Product / Shop Pages */}
-          <Route path="/product/:slug" element={<ShopSingle deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-          <Route path="/product/*" element={<Navigate to="/shop" />} />
-          <Route
-            path="/shop-single-details/:slug"
-            element={<ShopSingleDetails deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />}
-          />
+          
 
           {/* Journal Pages */}
           <Route path="/blogs" element={<Journal deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
@@ -362,19 +342,9 @@ useEffect(() => {
 
           {/* Room Pages */}
           <Route path="/products/:handle"  element={<ProductPage deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-          <Route path="/room-single1" element={<RoomSingle1 deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-          <Route path="/room-single2" element={<RoomSingle2 deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-          <Route path="/room-single3" element={<RoomSingle3 deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-          <Route path="/room-single4" element={<RoomSingle4 deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-
+          
           {/* Legal Pages */}
           <Route path="/privacy-policy" element={<PrivacyPolicy deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-          <Route path="/terms-of-use" element={<TermsOfUse deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
-          <Route
-            path="/return-and-refund-policy"
-            element={<ReturnRefundPolicy deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />}
-          />
-          <Route path="/shipping-policy" element={<ShippingPolicy deviceInfo={{ isMobile, isTablet, isDesktop, deviceType, screenWidth }} />} />
           
           {/* OAuth Callback */}
           <Route path="/oauth/callback" element={<OAuthRelay />} />
