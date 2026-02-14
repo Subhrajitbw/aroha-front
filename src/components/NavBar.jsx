@@ -78,24 +78,21 @@ const NavBar = ({
   const location = useLocation();
   const navigate = useNavigate();
   const isDark = variant === "dark";
+  const shouldUseBackgroundSampling =
+    variant === "light" || location.pathname.startsWith("/products/");
 
   useNavScroll(navRef, logoRef, scrolled, isDark);
   useNavAnimations(navRef, logoRef, iconsRef);
   useKeyboardShortcuts(openSearch);
 
   // Keep navbar theme in sync with route-driven variant.
-  // Only use background sampling on light variant routes (home).
   useEffect(() => {
-    if (variant === "dark") {
-      setNavTheme("dark");
-      setSamplingActive(false);
+    setNavTheme(variant === "dark" ? "dark" : "light");
+    setSamplingActive(shouldUseBackgroundSampling);
+    if (!shouldUseBackgroundSampling) {
       setColorAnalysis(null);
-      return;
     }
-
-    setNavTheme("light");
-    setSamplingActive(true);
-  }, [variant, location.pathname]);
+  }, [variant, location.pathname, shouldUseBackgroundSampling]);
 
   useEffect(() => {
     initializeAuth();
@@ -471,7 +468,6 @@ const NavBar = ({
 
     return () => {
       active = false;
-      setSamplingActive(false);
       clearTimeout(timeoutId);
       if (rafId) cancelAnimationFrame(rafId);
       window.removeEventListener("scroll", onScroll);
@@ -480,14 +476,14 @@ const NavBar = ({
   }, [location.pathname, performBackgroundSampling]);
 
   useEffect(() => {
-    if (variant !== "light") return;
+    if (!shouldUseBackgroundSampling) return;
 
     setSamplingActive(true);
     const timer = setTimeout(() => {
       performBackgroundSampling();
     }, 200);
     return () => clearTimeout(timer);
-  }, [location.pathname, performBackgroundSampling, variant]);
+  }, [location.pathname, performBackgroundSampling, shouldUseBackgroundSampling]);
 
   const effectiveTheme = useMemo(() => navTheme, [navTheme]);
 
