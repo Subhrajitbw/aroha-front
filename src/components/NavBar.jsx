@@ -486,6 +486,7 @@ const NavBar = ({
   }, [location.pathname, performBackgroundSampling, shouldUseBackgroundSampling]);
 
   const effectiveTheme = useMemo(() => navTheme, [navTheme]);
+  console.log(effectiveTheme)
 
   const colors = useMemo(() => {
     if (scrolled) {
