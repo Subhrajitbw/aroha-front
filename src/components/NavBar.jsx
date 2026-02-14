@@ -83,6 +83,20 @@ const NavBar = ({
   useNavAnimations(navRef, logoRef, iconsRef);
   useKeyboardShortcuts(openSearch);
 
+  // Keep navbar theme in sync with route-driven variant.
+  // Only use background sampling on light variant routes (home).
+  useEffect(() => {
+    if (variant === "dark") {
+      setNavTheme("dark");
+      setSamplingActive(false);
+      setColorAnalysis(null);
+      return;
+    }
+
+    setNavTheme("light");
+    setSamplingActive(true);
+  }, [variant, location.pathname]);
+
   useEffect(() => {
     initializeAuth();
   }, [initializeAuth]);
@@ -466,12 +480,14 @@ const NavBar = ({
   }, [location.pathname, performBackgroundSampling]);
 
   useEffect(() => {
+    if (variant !== "light") return;
+
     setSamplingActive(true);
     const timer = setTimeout(() => {
       performBackgroundSampling();
     }, 200);
     return () => clearTimeout(timer);
-  }, [location.pathname, performBackgroundSampling]);
+  }, [location.pathname, performBackgroundSampling, variant]);
 
   const effectiveTheme = useMemo(() => navTheme, [navTheme]);
 

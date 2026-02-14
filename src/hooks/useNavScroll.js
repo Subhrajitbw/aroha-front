@@ -9,15 +9,17 @@ export const useNavScroll = (navRef, logoRef, scrolled, isDark) => {
     gsap.to(navRef.current, {
       backgroundColor: scrolled
         ? isDark
-          ? "rgba(255, 255, 255, 0.1)"
-          : "rgba(0, 0, 0, 0.1)"
+          ? "rgba(0, 0, 0, 0.18)"
+          : "rgba(255, 255, 255, 0.18)"
         : "transparent",
       backdropFilter: scrolled ? "blur(20px)" : "blur(0px)",
       borderRadius: scrolled ? "24px" : "0px",
       padding: scrolled ? "16px 24px" : "24px 16px",
       margin: scrolled ? "12px" : "2px",
       boxShadow: scrolled
-        ? "0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.1)"
+        ? isDark
+          ? "0 20px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.08)"
+          : "0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.1)"
         : "none",
       duration: 0.6,
       ease: "power2.out",
