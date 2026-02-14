@@ -283,7 +283,7 @@ const ProductPage = () => {
   const productDescription = sanityContent?.shortDescription || product.description;
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pt-10">
+    <div className="min-h-screen  text-stone-900 font-sans pt-10">
       <main className="max-w-[1600px] mx-auto px-6 lg:px-12 py-8 lg:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16">
 
