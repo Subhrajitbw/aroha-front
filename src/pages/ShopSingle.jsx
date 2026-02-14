@@ -476,6 +476,7 @@ export default function ShopSingle() {
           </section>
         </div>
       </div>
+      THIS IS PRODUCT PAGE
     </div>
   );
 }
