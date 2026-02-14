@@ -24,6 +24,74 @@ const normalizeImages = (product) => {
   return mapped;
 };
 
+const renderInlineMarkdown = (line = "") => {
+  const parts = String(line).split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, idx) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={`${part}-${idx}`}>{part.slice(2, -2)}</strong>
+    ) : (
+      <span key={`${part}-${idx}`}>{part}</span>
+    )
+  );
+};
+
+const renderDescription = (text = "") => {
+  const lines = String(text).split("\n");
+  const nodes = [];
+  let listItems = [];
+
+  const flushList = (key) => {
+    if (!listItems.length) return;
+    nodes.push(
+      <ul key={`${key}-ul`} className="list-disc pl-5 space-y-1.5 text-stone-700">
+        {listItems}
+      </ul>
+    );
+    listItems = [];
+  };
+
+  lines.forEach((raw, idx) => {
+    const line = raw.trim();
+    const key = `desc-${idx}`;
+
+    if (!line) {
+      flushList(key);
+      return;
+    }
+
+    if (line === "---") {
+      flushList(key);
+      nodes.push(<hr key={`${key}-hr`} className="border-stone-200 my-2" />);
+      return;
+    }
+
+    if (line.startsWith("### ")) {
+      flushList(key);
+      nodes.push(
+        <h3 key={`${key}-h3`} className="text-base sm:text-lg font-medium text-stone-900">
+          {renderInlineMarkdown(line.replace(/^###\s+/, ""))}
+        </h3>
+      );
+      return;
+    }
+
+    if (line.startsWith("* ")) {
+      listItems.push(<li key={`${key}-li`}>{renderInlineMarkdown(line.replace(/^\*\s+/, ""))}</li>);
+      return;
+    }
+
+    flushList(key);
+    nodes.push(
+      <p key={`${key}-p`} className="text-stone-600 font-light leading-relaxed text-sm md:text-base">
+        {renderInlineMarkdown(line)}
+      </p>
+    );
+  });
+
+  flushList("end");
+  return nodes;
+};
+
 const ProductPage = () => {
   const { handle } = useParams();
   const navigate = useNavigate();
@@ -93,7 +161,7 @@ useEffect(() => {
       const queryParams = {
         handle,
         fields:
-          "id,title,subtitle,description,handle,thumbnail,*images,*options,*variants.id,*variants.title,*variants.sku,*variants.manage_inventory,*variants.inventory_quantity,*variants.allow_backorder,*variants.options,*variants.calculated_price,*variants.prices,*collection,*tags,*type,material,weight,length,width,height,origin_country,*metadata,created_at",
+          "id,title,subtitle,description,handle,thumbnail,*images,*options,*variants.id,*variants.title,*variants.sku,*variants.manage_inventory,*variants.inventory_quantity,*variants.allow_backorder,*variants.options,*variants.weight,*variants.length,*variants.width,*variants.height,*variants.calculated_price,*variants.prices,*collection,*tags,*type,material,weight,length,width,height,origin_country,*metadata,created_at",
         ...(cartId ? { cart_id: cartId } : { region_id: region.id }),
       };
 
@@ -107,6 +175,8 @@ useEffect(() => {
 
       setProduct({
         ...productData,
+        subtitle: String(productData.subtitle || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
+        description: productData.description || "",
         images: normalizeImages(productData),
       });
 
@@ -278,6 +348,8 @@ useEffect(() => {
     const priceDetails = getVariantPriceDetails(item.variants?.[0]);
     return {
       ...item,
+      subtitle: String(item.subtitle || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
+      description: String(item.description || "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(),
       price: priceDetails.price,
       originalPrice: priceDetails.originalPrice,
       image: item.thumbnail || item.images?.[0]?.url,
@@ -285,6 +357,32 @@ useEffect(() => {
   };
 
   const activeVariant = selectedVariant || product?.variants?.[0];
+  const isInStock = activeVariant
+    ? activeVariant.manage_inventory === false ||
+      activeVariant.allow_backorder ||
+      (typeof activeVariant.inventory_quantity === "number"
+        ? activeVariant.inventory_quantity > 0
+        : true)
+    : false;
+
+  const medusaSpecs = useMemo(() => {
+    if (!product) return [];
+
+    const rows = [];
+    const width = activeVariant?.width ?? product.width;
+    const height = activeVariant?.height ?? product.height;
+    const depth = activeVariant?.length ?? product.length;
+    const weight = activeVariant?.weight ?? product.weight;
+
+    if (width) rows.push({ label: "Width", value: `${width}"` });
+    if (height) rows.push({ label: "Height", value: `${height}"` });
+    if (depth) rows.push({ label: "Depth", value: `${depth}"` });
+    if (weight) rows.push({ label: "Weight", value: `${weight}` });
+    if (product.origin_country) rows.push({ label: "Origin", value: String(product.origin_country).toUpperCase() });
+    if (product.material) rows.push({ label: "Material", value: product.material });
+
+    return rows;
+  }, [activeVariant, product]);
 
   // Build accordion sections from Sanity
   const accordionSections = useMemo(() => {
@@ -296,6 +394,15 @@ useEffect(() => {
       label: "Product Details",
       content: (
         <div className="space-y-4">
+          {medusaSpecs.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-stone-600">
+              {medusaSpecs.map((row) => (
+                <p key={row.label}>
+                  <strong>{row.label}:</strong> {row.value}
+                </p>
+              ))}
+            </div>
+          )}
           {sanityContent?.specifications && sanityContent.specifications.length > 0 && (
             <ul className="space-y-2 text-stone-600 list-disc pl-4">
               {sanityContent.specifications.map((spec, idx) => (
@@ -327,7 +434,7 @@ useEffect(() => {
     }
 
     return sections;
-  }, [sanityContent, activeVariant]);
+  }, [sanityContent, activeVariant, medusaSpecs]);
 
   if (loading || !region) {
     return (
@@ -341,38 +448,42 @@ useEffect(() => {
 
   const priceDetails = getVariantPriceDetails(activeVariant);
   const images = product.images?.length > 0 ? product.images : [{ url: product.thumbnail }];
-  const productDescription = sanityContent?.shortDescription || product.description;
+  const productDescription = product.description || sanityContent?.shortDescription || "";
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pt-10">
       <main className="max-w-[1600px] mx-auto px-6 lg:px-12 py-8 lg:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16">
-        {/* LEFT: Image Gallery */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
+          {/* LEFT: Image Gallery */}
           <div className="lg:col-span-7">
             {/* Mobile: Vertical Layout */}
-            <div className="lg:hidden flex flex-col gap-6">
-              <div className="relative w-full bg-white group select-none">
-                <div className="aspect-square w-full overflow-hidden relative bg-stone-100">
+            <div className="lg:hidden flex flex-col gap-5">
+              <div className="relative w-full group select-none">
+                <div className="aspect-[4/5] w-full overflow-hidden relative bg-stone-100 border border-stone-200/70">
                   <img
                     src={images[currentImageIndex]?.url}
-                    alt="Main View"
-                    className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+                    alt={product.title}
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.015]"
                   />
+                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
 
                   {images.length > 1 && (
                     <>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1); }}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-sm"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/45 hover:bg-black/60 text-white transition flex items-center justify-center"
                       >
                         <ChevronLeft className="w-5 h-5" />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === images.length - 1 ? 0 : currentImageIndex + 1); }}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-sm"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/45 hover:bg-black/60 text-white transition flex items-center justify-center"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </button>
+                      <div className="absolute bottom-3 right-3 text-[10px] tracking-[0.2em] uppercase text-white/90 bg-black/45 px-2.5 py-1">
+                        {currentImageIndex + 1} / {images.length}
+                      </div>
                     </>
                   )}
                 </div>
@@ -380,10 +491,10 @@ useEffect(() => {
 
               {images.length > 1 && (
                 <div className="relative group">
-                  <div className="flex gap-4 overflow-x-auto pb-2 snap-x scrollbar-hide scroll-smooth">
+                  <div className="flex gap-3 overflow-x-auto pb-2 snap-x scrollbar-hide scroll-smooth">
                     {images.map((img, idx) => (
                       <button
-                        key={idx}
+                        key={img.id || idx}
                         ref={(el) => (thumbnailRefs.current[idx] = el)}
                         onClick={() => handleImageChange(idx)}
                         className={`
@@ -391,10 +502,10 @@ useEffect(() => {
                           border transition-all duration-300 ease-out overflow-hidden
                           ${currentImageIndex === idx
                             ? "border-stone-900 opacity-100"
-                            : "border-transparent opacity-60 hover:opacity-100 hover:border-stone-200"}
+                            : "border-stone-200 opacity-65 hover:opacity-100"}
                         `}
                       >
-                        <img src={img.url} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                        <img src={img.url} alt={`${product.title} ${idx + 1}`} className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
@@ -405,11 +516,11 @@ useEffect(() => {
             {/* Desktop: Horizontal Layout */}
             <div className="hidden lg:flex gap-4">
               {images.length > 1 && (
-                <div className="flex flex-col gap-4 w-24 flex-shrink-0">
-                  <div className="flex flex-col gap-4 max-h-[650px] overflow-y-auto scrollbar-hide">
+                <div className="flex flex-col gap-3 w-24 flex-shrink-0">
+                  <div className="flex flex-col gap-3 max-h-[760px] overflow-y-auto scrollbar-hide">
                     {images.map((img, idx) => (
                       <button
-                        key={idx}
+                        key={img.id || idx}
                         ref={(el) => (thumbnailRefs.current[idx] = el)}
                         onClick={() => handleImageChange(idx)}
                         className={`
@@ -417,23 +528,29 @@ useEffect(() => {
                           border transition-all duration-300 ease-out overflow-hidden
                           ${currentImageIndex === idx
                             ? "border-stone-900 opacity-100"
-                            : "border-transparent opacity-60 hover:opacity-100 hover:border-stone-200"}
+                            : "border-stone-200 opacity-65 hover:opacity-100"}
                         `}
                       >
-                        <img src={img.url} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                        <img src={img.url} alt={`${product.title} ${idx + 1}`} className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="relative flex-1 bg-white group select-none">
-                <div className="aspect-square max-h-[650px] w-full overflow-hidden relative bg-stone-100">
+              <div className="relative flex-1 group select-none">
+                <div className="aspect-[4/5] max-h-[760px] w-full overflow-hidden relative bg-stone-100 border border-stone-200/70">
                   <img
                     src={images[currentImageIndex]?.url}
-                    alt="Main View"
-                    className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+                    alt={product.title}
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.015]"
                   />
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
+                  {images.length > 1 && (
+                    <div className="absolute bottom-4 right-4 text-[10px] tracking-[0.2em] uppercase text-white/90 bg-black/45 px-2.5 py-1">
+                      {currentImageIndex + 1} / {images.length}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -441,44 +558,68 @@ useEffect(() => {
 
           {/* RIGHT: Sticky Details */}
           <div className="lg:col-span-5 relative">
-            <div className="sticky top-24 space-y-8 px-2">
-
+            <div className="sticky top-24 space-y-7 px-1">
               {/* Header */}
               <div className="space-y-4 border-b border-stone-200 pb-6">
-                <div className="flex justify-between items-start">
-                  <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-stone-900 leading-none">
+                <p className="text-[10px] tracking-[0.28em] uppercase text-stone-500">
+                  Aroha House Signature
+                </p>
+                <div className="flex justify-between items-start gap-4">
+                  <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-stone-900 leading-tight">
                     {product.title}
                   </h1>
-                  <button className="p-2 hover:bg-stone-100 rounded-full transition-colors">
+                  <button className="p-2 hover:bg-stone-100 transition-colors">
                     <Heart className="w-6 h-6 text-stone-400" />
                   </button>
                 </div>
 
-                <div className="flex items-baseline gap-4">
-                  <span className="text-2xl font-light tracking-wide">{priceDetails.price}</span>
+                {product.subtitle && (
+                  <p className="text-xs md:text-sm uppercase tracking-[0.14em] text-stone-500 leading-relaxed">
+                    {String(product.subtitle).replace(/<[^>]*>/g, " ")}
+                  </p>
+                )}
+
+                <div className="flex flex-wrap items-baseline gap-3">
+                  <span className="text-2xl font-light tracking-wide text-stone-900">{priceDetails.price}</span>
                   {priceDetails.originalPrice && (
                     <span className="text-stone-400 line-through font-light">{priceDetails.originalPrice}</span>
                   )}
+                  <span
+                    className={`text-[10px] md:text-xs px-2.5 py-1 border ${
+                      isInStock
+                        ? "text-emerald-700 bg-emerald-50 border-emerald-300"
+                        : "text-rose-700 bg-rose-50 border-rose-300"
+                    }`}
+                  >
+                    {isInStock ? "In Stock" : "Out of Stock"}
+                  </span>
                 </div>
               </div>
 
               {/* Description from Sanity */}
               {productDescription && (
-                <p className="text-stone-600 font-light leading-relaxed text-sm md:text-base">
-                  {productDescription}
-                </p>
+                <div className="space-y-2 border-l-2 border-amber-300/70 pl-4">
+                  {renderDescription(productDescription)}
+                </div>
+              )}
+
+              {/* Rich Description from Sanity */}
+              {sanityContent?.richDescription && sanityContent.richDescription.length > 0 && (
+                <div className="prose prose-sm max-w-none text-stone-600 font-light leading-relaxed">
+                  <PortableText value={sanityContent.richDescription} />
+                </div>
               )}
 
               {/* Features from Sanity */}
               {sanityContent?.features && sanityContent.features.length > 0 && (
                 <div className="space-y-3">
-                  <h3 className="text-xs uppercase tracking-widest text-stone-900 font-medium">
+                  <h3 className="text-xs uppercase tracking-[0.18em] text-stone-900 font-medium">
                     Features
                   </h3>
                   <ul className="space-y-2">
                     {sanityContent.features.map((feature, idx) => (
                       <li key={idx} className="flex items-start gap-2 text-sm text-stone-600">
-                        <Check className="w-4 h-4 text-stone-400 flex-shrink-0 mt-0.5" />
+                        <Check className="w-4 h-4 text-stone-500 flex-shrink-0 mt-0.5" />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -489,12 +630,18 @@ useEffect(() => {
               {/* Variant Selectors */}
               {product.options?.map((option) => {
                 const uniqueValues = getOptionValues(option.id);
-                if (uniqueValues.length === 0) return null;
+                const normalizedTitle = (option.title || "").toLowerCase();
+                const isDefaultOnly =
+                  uniqueValues.length === 1 &&
+                  (uniqueValues[0] || "").toLowerCase().includes("default option");
+                if (uniqueValues.length === 0 || normalizedTitle === "default option" || isDefaultOnly) {
+                  return null;
+                }
 
                 return (
                   <div key={option.id} className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <label className="text-xs uppercase tracking-widest text-stone-900 font-medium">
+                      <label className="text-xs uppercase tracking-[0.18em] text-stone-900 font-medium">
                         {option.title}
                       </label>
                       <span className="text-xs text-stone-500 font-light">
@@ -502,7 +649,7 @@ useEffect(() => {
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-2">
                       {uniqueValues.map((value) => {
                         const isSelected = optionsState[option.id] === value;
                         return (
@@ -510,17 +657,13 @@ useEffect(() => {
                             key={value}
                             onClick={() => handleOptionSelect(option.id, value)}
                             className={`
-                              relative px-3 py-2 md:px-4 md:py-2.5 text-xs md:text-sm font-medium tracking-wider uppercase 
-                              transition-all duration-300 ease-out rounded-full border backdrop-blur-sm
-                              transform-gpu will-change-transform flex-shrink-0
+                              px-3 py-2 md:px-4 md:py-2.5 text-xs md:text-sm font-medium tracking-[0.08em] uppercase
+                              transition-all duration-300 ease-out border
                               ${isSelected
-                                ? "text-white bg-gradient-to-r from-amber-600 to-yellow-600 border-amber-500 shadow-lg shadow-amber-500/25 scale-105"
-                                : "text-gray-600 bg-white/90 border-gray-200 hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50/90 hover:scale-105"
+                                ? "text-white bg-gradient-to-r from-stone-900 to-stone-700 border-stone-700"
+                                : "text-stone-700 bg-white border-stone-300 hover:text-amber-700 hover:border-amber-400 hover:bg-amber-50/70"
                               }
                             `}
-                            style={{
-                              transform: isSelected ? 'scale(1.05)' : 'scale(1)',
-                            }}
                           >
                             {isSelected && <Check className="w-3 h-3 inline-block mr-1" />}
                             <span>{value}</span>
@@ -533,10 +676,10 @@ useEffect(() => {
               })}
 
               {/* Actions */}
-              <div className="pt-4 space-y-4">
+              <div className="pt-2 space-y-4">
                 <button
                   onClick={handleWhatsAppClick}
-                  className="w-full h-12 bg-stone-900 text-white hover:bg-stone-800 transition-all uppercase tracking-widest text-xs font-medium"
+                  className="w-full h-12 bg-gradient-to-r from-stone-900 to-stone-700 text-white hover:from-stone-800 hover:to-stone-600 transition-all uppercase tracking-[0.18em] text-xs font-medium shadow-lg shadow-stone-900/20"
                 >
                   <div className="flex items-center justify-center gap-2">
                     <MessageCircle className="w-4 h-4" />
@@ -553,7 +696,7 @@ useEffect(() => {
                       onClick={() => setActiveAccordion(activeAccordion === section.id ? null : section.id)}
                       className="w-full py-5 flex justify-between items-center text-left group"
                     >
-                      <span className="text-xs uppercase tracking-widest text-stone-900 font-medium group-hover:text-stone-600 transition-colors">
+                      <span className="text-xs uppercase tracking-[0.18em] text-stone-900 font-medium group-hover:text-stone-600 transition-colors">
                         {section.label}
                       </span>
                       <ChevronDown className={`w-3 h-3 text-stone-400 transition-transform duration-300 ${activeAccordion === section.id ? "rotate-180" : ""}`} />
@@ -573,15 +716,17 @@ useEffect(() => {
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <section className="py-20 bg-white border-t border-stone-200">
+        <section className="py-20 border-t border-stone-200 bg-gradient-to-b from-white/80 to-stone-50/60">
           <div className="max-w-[1600px] mx-auto px-6 lg:px-12">
-            <h2 className="font-serif text-3xl text-stone-900 mb-12">You May Also Like</h2>
+            <div className="mb-12">
+              <p className="text-[10px] tracking-[0.28em] uppercase text-stone-500 mb-3">Curated Pairings</p>
+              <h2 className="font-serif text-3xl text-stone-900">You May Also Like</h2>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
               {relatedProducts.map((item, idx) => (
                 <div
                   key={`${item.id}-${idx}`}
-                  className="flex-shrink-0"
-                  style={{ width: `${currentCardWidth}px` }}
+                  className="flex-shrink-0 w-full"
                 >
                   <ProductInfoCard
                     product={transformProductForCard(item)}
