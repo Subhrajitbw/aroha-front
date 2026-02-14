@@ -6,6 +6,103 @@ import { sanityClient } from "../lib/sanityClient"; // Import Sanity client
 import { PortableText } from '@portabletext/react'; // For rich text
 import { ProductInfoCard } from "../components/ProductInfoCard";
 
+const stripHtml = (value = "") =>
+  String(value).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
+const normalizeImages = (product) => {
+  const sorted = [...(product?.images || [])].sort(
+    (a, b) => (a?.rank ?? Number.MAX_SAFE_INTEGER) - (b?.rank ?? Number.MAX_SAFE_INTEGER)
+  );
+  const mapped = sorted
+    .map((img) => ({ id: img?.id || img?.url, url: img?.url }))
+    .filter((img) => img.url);
+
+  if (product?.thumbnail && !mapped.some((img) => img.url === product.thumbnail)) {
+    mapped.unshift({
+      id: `thumb-${product.id || "product"}`,
+      url: product.thumbnail,
+    });
+  }
+
+  return mapped;
+};
+
+const isVariantInStock = (variant) => {
+  if (!variant) return false;
+  if (variant.manage_inventory === false) return true;
+  if (variant.allow_backorder) return true;
+  if (typeof variant.inventory_quantity === "number") return variant.inventory_quantity > 0;
+  return true;
+};
+
+const renderMarkdownLike = (text = "") => {
+  const lines = String(text).split("\n");
+  const nodes = [];
+  let list = [];
+
+  const renderInline = (line = "") => {
+    const parts = line.split(/(\*\*[^*]+\*\*)/g);
+    return parts.map((part, idx) =>
+      part.startsWith("**") && part.endsWith("**") ? (
+        <strong key={`${part}-${idx}`}>{part.slice(2, -2)}</strong>
+      ) : (
+        <span key={`${part}-${idx}`}>{part}</span>
+      )
+    );
+  };
+
+  const flushList = (key) => {
+    if (!list.length) return;
+    nodes.push(
+      <ul key={`${key}-ul`} className="list-disc pl-5 space-y-1.5 text-stone-700">
+        {list}
+      </ul>
+    );
+    list = [];
+  };
+
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    const key = `line-${idx}`;
+
+    if (!trimmed) {
+      flushList(key);
+      return;
+    }
+
+    if (trimmed === "---") {
+      flushList(key);
+      nodes.push(<hr key={`${key}-hr`} className="border-stone-200 my-2" />);
+      return;
+    }
+
+    if (trimmed.startsWith("### ")) {
+      flushList(key);
+      nodes.push(
+        <h3 key={`${key}-h3`} className="text-base sm:text-lg font-medium text-stone-900">
+          {renderInline(trimmed.replace(/^###\s+/, ""))}
+        </h3>
+      );
+      return;
+    }
+
+    if (trimmed.startsWith("* ")) {
+      list.push(<li key={`${key}-li`}>{renderInline(trimmed.replace(/^\*\s+/, ""))}</li>);
+      return;
+    }
+
+    flushList(key);
+    nodes.push(
+      <p key={`${key}-p`} className="text-stone-700 leading-relaxed">
+        {renderInline(trimmed)}
+      </p>
+    );
+  });
+
+  flushList("end");
+  return nodes;
+};
+
 const ProductPage = () => {
   const { handle } = useParams();
   const navigate = useNavigate();
@@ -73,7 +170,8 @@ const ProductPage = () => {
       try {
         const queryParams = {
           handle,
-          fields: "*variants.calculated_price,*variants.prices,*images,*options,*collection,*tags,*type,*material,*weight,*origin_country,*metadata",
+          fields:
+            "id,title,subtitle,description,handle,thumbnail,*images,*options,*variants.id,*variants.title,*variants.sku,*variants.manage_inventory,*variants.inventory_quantity,*variants.allow_backorder,*variants.options,*variants.calculated_price,*variants.prices,*collection,*tags,*type,material,weight,length,width,height,origin_country,created_at,*metadata",
           ...(cartId ? { cart_id: cartId } : { region_id: region.id }),
         };
 
@@ -85,7 +183,12 @@ const ProductPage = () => {
           return;
         }
 
-        setProduct(productData);
+        setProduct({
+          ...productData,
+          subtitle: stripHtml(productData.subtitle || ""),
+          description: productData.description || "",
+          images: normalizeImages(productData),
+        });
 
         // Initialize Options State
         if (productData.variants && productData.variants.length > 0) {
@@ -138,11 +241,16 @@ const ProductPage = () => {
         if (productData.collection_id) {
           const { products: relatedList } = await sdk.store.product.list({
             collection_id: [productData.collection_id],
-            fields: "*variants.calculated_price,*images",
+            fields: "id,title,subtitle,description,handle,thumbnail,*images,*variants.calculated_price,*variants.prices",
             ...(cartId ? { cart_id: cartId } : { region_id: region.id }),
             limit: 4,
           });
-          setRelatedProducts(relatedList?.filter((p) => p.id !== productData.id).slice(0, 3) || []);
+          setRelatedProducts(
+            relatedList
+              ?.filter((p) => p.id !== productData.id)
+              .slice(0, 3)
+              .map((p) => ({ ...p, images: normalizeImages(p), subtitle: stripHtml(p.subtitle || "") })) || []
+          );
         }
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -168,7 +276,7 @@ const ProductPage = () => {
     const newOptions = { ...optionsState, [optionId]: value };
     setOptionsState(newOptions);
 
-    const matchingVariant = product.variants.find((variant) => {
+    const matchingVariant = product?.variants?.find((variant) => {
       return variant.options.every((opt) => newOptions[opt.option_id] === opt.value);
     });
 
@@ -186,14 +294,20 @@ const ProductPage = () => {
 
   const getVariantPriceDetails = (variant) => {
     if (!variant) return { price: "—" };
-    if (variant.calculated_price?.calculated_amount) {
+    if (
+      variant.calculated_price?.calculated_amount !== undefined &&
+      variant.calculated_price?.calculated_amount !== null
+    ) {
       const calc = variant.calculated_price;
       return {
         price: formatPrice(calc.calculated_amount, calc.currency_code),
         originalPrice: calc.original_amount > calc.calculated_amount ? formatPrice(calc.original_amount, calc.currency_code) : null,
       };
     }
-    return { price: formatPrice(variant.unit_price || 0, region?.currency_code) };
+    const priceInRegion =
+      variant.prices?.find((price) => price.currency_code === region?.currency_code) ||
+      variant.prices?.[0];
+    return { price: formatPrice(priceInRegion?.amount || 0, priceInRegion?.currency_code || region?.currency_code) };
   };
 
   const handleImageChange = (index) => {
@@ -217,11 +331,35 @@ const ProductPage = () => {
     const priceDetails = getVariantPriceDetails(item.variants?.[0]);
     return {
       ...item,
+      subtitle: item.subtitle,
+      description: stripHtml(item.description || ""),
       price: priceDetails.price,
       originalPrice: priceDetails.originalPrice,
-      image: item.thumbnail,
+      image: item.thumbnail || item.images?.[0]?.url || item.images?.[0],
     };
   };
+
+  const activeVariant = selectedVariant || product?.variants?.[0];
+  const inStock = isVariantInStock(activeVariant);
+
+  const medusaSpecs = useMemo(() => {
+    if (!product) return [];
+    const rows = [];
+    const width = activeVariant?.width ?? product.width;
+    const height = activeVariant?.height ?? product.height;
+    const depth = activeVariant?.length ?? product.length;
+    const weight = activeVariant?.weight ?? product.weight;
+
+    if (width) rows.push({ label: "Width", value: `${width}"` });
+    if (height) rows.push({ label: "Height", value: `${height}"` });
+    if (depth) rows.push({ label: "Depth", value: `${depth}"` });
+    if (weight) rows.push({ label: "Weight", value: `${weight}` });
+    if (product.origin_country) rows.push({ label: "Origin", value: String(product.origin_country).toUpperCase() });
+    if (product.material) rows.push({ label: "Material", value: product.material });
+    if (product.type?.value) rows.push({ label: "Type", value: product.type.value });
+
+    return rows;
+  }, [activeVariant, product]);
 
   // Build accordion sections from Sanity
   const accordionSections = useMemo(() => {
@@ -240,8 +378,15 @@ const ProductPage = () => {
               ))}
             </ul>
           )}
-          {selectedVariant?.sku && (
-            <p className="text-sm text-stone-500">SKU: {selectedVariant.sku}</p>
+          {activeVariant?.sku && <p className="text-sm text-stone-500">SKU: {activeVariant.sku}</p>}
+          {medusaSpecs.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-stone-600">
+              {medusaSpecs.map((row) => (
+                <p key={row.label}>
+                  <strong>{row.label}:</strong> {row.value}
+                </p>
+              ))}
+            </div>
           )}
         </div>
       ),
@@ -264,7 +409,7 @@ const ProductPage = () => {
     }
 
     return sections;
-  }, [sanityContent, selectedVariant]);
+  }, [sanityContent, activeVariant, medusaSpecs]);
 
   if (loading || !region) {
     return (
@@ -276,7 +421,7 @@ const ProductPage = () => {
 
   if (!product) return null;
 
-  const priceDetails = getVariantPriceDetails(selectedVariant);
+  const priceDetails = getVariantPriceDetails(activeVariant);
   const images = product.images?.length > 0 ? product.images : [{ url: product.thumbnail }];
 
   // Use Sanity description if available, fallback to Medusa
@@ -291,25 +436,25 @@ const ProductPage = () => {
           <div className="lg:col-span-7">
             {/* Mobile: Vertical Layout */}
             <div className="lg:hidden flex flex-col gap-6">
-              <div className="relative w-full bg-white group select-none">
-                <div className="aspect-square w-full overflow-hidden relative bg-stone-100">
+              <div className="relative w-full group select-none">
+                <div className="aspect-[4/5] w-full overflow-hidden relative bg-stone-100/80">
                   <img
                     src={images[currentImageIndex]?.url}
-                    alt="Main View"
-                    className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+                    alt={product.title}
+                    className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.01]"
                   />
 
                   {images.length > 1 && (
                     <>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1); }}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-sm"
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/45 hover:bg-black/60 text-white transition flex items-center justify-center"
                       >
                         <ChevronLeft className="w-5 h-5" />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === images.length - 1 ? 0 : currentImageIndex + 1); }}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-sm"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/45 hover:bg-black/60 text-white transition flex items-center justify-center"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </button>
@@ -323,7 +468,7 @@ const ProductPage = () => {
                   <div className="flex gap-4 overflow-x-auto pb-2 snap-x scrollbar-hide scroll-smooth">
                     {images.map((img, idx) => (
                       <button
-                        key={idx}
+                        key={img.id || idx}
                         ref={(el) => (thumbnailRefs.current[idx] = el)}
                         onClick={() => handleImageChange(idx)}
                         className={`
@@ -331,10 +476,10 @@ const ProductPage = () => {
                           border transition-all duration-300 ease-out overflow-hidden
                           ${currentImageIndex === idx
                             ? "border-stone-900 opacity-100"
-                            : "border-transparent opacity-60 hover:opacity-100 hover:border-stone-200"}
+                            : "border-stone-200 opacity-60 hover:opacity-100"}
                         `}
                       >
-                        <img src={img.url} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                        <img src={img.url} alt={`${product.title} ${idx + 1}`} className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
@@ -349,7 +494,7 @@ const ProductPage = () => {
                   <div className="flex flex-col gap-4 max-h-[650px] overflow-y-auto scrollbar-hide">
                     {images.map((img, idx) => (
                       <button
-                        key={idx}
+                        key={img.id || idx}
                         ref={(el) => (thumbnailRefs.current[idx] = el)}
                         onClick={() => handleImageChange(idx)}
                         className={`
@@ -357,22 +502,22 @@ const ProductPage = () => {
                           border transition-all duration-300 ease-out overflow-hidden
                           ${currentImageIndex === idx
                             ? "border-stone-900 opacity-100"
-                            : "border-transparent opacity-60 hover:opacity-100 hover:border-stone-200"}
+                            : "border-stone-200 opacity-60 hover:opacity-100"}
                         `}
                       >
-                        <img src={img.url} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                        <img src={img.url} alt={`${product.title} ${idx + 1}`} className="w-full h-full object-cover" />
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="relative flex-1 bg-white group select-none">
-                <div className="aspect-square max-h-[650px] w-full overflow-hidden relative bg-stone-100">
+              <div className="relative flex-1 group select-none">
+                <div className="aspect-[4/5] max-h-[720px] w-full overflow-hidden relative bg-stone-100/80">
                   <img
                     src={images[currentImageIndex]?.url}
-                    alt="Main View"
-                    className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.02]"
+                    alt={product.title}
+                    className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.01]"
                   />
                 </div>
               </div>
@@ -386,7 +531,7 @@ const ProductPage = () => {
               {/* Header */}
               <div className="space-y-4 border-b border-stone-200 pb-6">
                 <div className="flex justify-between items-start">
-                  <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-stone-900 leading-none">
+                  <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-stone-900 leading-tight">
                     {product.title}
                   </h1>
                   <button className="p-2 hover:bg-stone-100 rounded-full transition-colors">
@@ -394,19 +539,34 @@ const ProductPage = () => {
                   </button>
                 </div>
 
+                {product.subtitle && (
+                  <p className="text-xs md:text-sm uppercase tracking-[0.14em] text-stone-500 leading-relaxed">
+                    {product.subtitle}
+                  </p>
+                )}
+
                 <div className="flex items-baseline gap-4">
                   <span className="text-2xl font-light tracking-wide">{priceDetails.price}</span>
                   {priceDetails.originalPrice && (
                     <span className="text-stone-400 line-through font-light">{priceDetails.originalPrice}</span>
                   )}
+                  <span
+                    className={`text-[10px] md:text-xs px-2.5 py-1 rounded-full border ${
+                      inStock
+                        ? "text-emerald-700 bg-emerald-50 border-emerald-300"
+                        : "text-rose-700 bg-rose-50 border-rose-300"
+                    }`}
+                  >
+                    {inStock ? "In Stock" : "Out of Stock"}
+                  </span>
                 </div>
               </div>
 
               {/* Description from Sanity */}
               {productDescription && (
-                <p className="text-stone-600 font-light leading-relaxed text-sm md:text-base">
-                  {productDescription}
-                </p>
+                <div className="space-y-2 text-sm md:text-base">
+                  {renderMarkdownLike(productDescription)}
+                </div>
               )}
 
               {/* Features from Sanity */}
@@ -429,6 +589,12 @@ const ProductPage = () => {
               {/* Variant Selectors */}
               {product.options?.map((option) => {
                 const uniqueValues = getOptionValues(option.id);
+                const normalizedTitle = (option.title || "").toLowerCase();
+                const onlyDefaultOption =
+                  uniqueValues.length === 1 &&
+                  (uniqueValues[0] || "").toLowerCase().includes("default option");
+
+                if (normalizedTitle === "default option" || onlyDefaultOption) return null;
                 if (uniqueValues.length === 0) return null;
 
                 return (
