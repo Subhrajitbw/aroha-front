@@ -6,6 +6,24 @@ import { sanityClient } from "../lib/sanityClient";
 import { PortableText } from '@portabletext/react';
 import { ProductInfoCard } from "../components/ProductInfoCard";
 
+const normalizeImages = (product) => {
+  const sorted = [...(product?.images || [])].sort(
+    (a, b) => (a?.rank ?? Number.MAX_SAFE_INTEGER) - (b?.rank ?? Number.MAX_SAFE_INTEGER)
+  );
+  const mapped = sorted
+    .map((img) => ({ id: img?.id || img?.url, url: img?.url }))
+    .filter((img) => img.url);
+
+  if (product?.thumbnail && !mapped.some((img) => img.url === product.thumbnail)) {
+    mapped.unshift({
+      id: `thumb-${product.id || "product"}`,
+      url: product.thumbnail,
+    });
+  }
+
+  return mapped;
+};
+
 const ProductPage = () => {
   const { handle } = useParams();
   const navigate = useNavigate();
@@ -74,7 +92,8 @@ useEffect(() => {
     try {
       const queryParams = {
         handle,
-        fields: "*variants.calculated_price,*variants.prices,*images,*options,*collection,*tags,*type,*material,*weight,*origin_country,*metadata",
+        fields:
+          "id,title,subtitle,description,handle,thumbnail,*images,*options,*variants.id,*variants.title,*variants.sku,*variants.manage_inventory,*variants.inventory_quantity,*variants.allow_backorder,*variants.options,*variants.calculated_price,*variants.prices,*collection,*tags,*type,material,weight,length,width,height,origin_country,*metadata,created_at",
         ...(cartId ? { cart_id: cartId } : { region_id: region.id }),
       };
 
@@ -86,7 +105,10 @@ useEffect(() => {
         return;
       }
 
-      setProduct(productData);
+      setProduct({
+        ...productData,
+        images: normalizeImages(productData),
+      });
 
       // Initialize Options State
       if (productData.variants && productData.variants.length > 0) {
@@ -145,20 +167,31 @@ useEffect(() => {
         if (medusaIds.length > 0) {
           const { products: relatedList } = await sdk.store.product.list({
             id: medusaIds,
-            fields: "*variants.calculated_price,*images",
+            fields:
+              "id,title,subtitle,description,handle,thumbnail,*images,*variants.calculated_price,*variants.prices",
             ...(cartId ? { cart_id: cartId } : { region_id: region.id }),
           });
-          setRelatedProducts(relatedList || []);
+          setRelatedProducts(
+            (relatedList || [])
+              .filter((item) => item.id !== productData.id)
+              .map((item) => ({ ...item, images: normalizeImages(item) }))
+          );
         }
       } else if (productData.collection_id) {
         // Fallback to collection-based related products
         const { products: relatedList } = await sdk.store.product.list({
           collection_id: [productData.collection_id],
-          fields: "*variants.calculated_price,*images",
+          fields:
+            "id,title,subtitle,description,handle,thumbnail,*images,*variants.calculated_price,*variants.prices",
           ...(cartId ? { cart_id: cartId } : { region_id: region.id }),
           limit: 4,
         });
-        setRelatedProducts(relatedList?.filter((p) => p.id !== productData.id).slice(0, 3) || []);
+        setRelatedProducts(
+          relatedList
+            ?.filter((p) => p.id !== productData.id)
+            .slice(0, 3)
+            .map((item) => ({ ...item, images: normalizeImages(item) })) || []
+        );
       }
     } catch (error) {
       console.error("Error fetching product:", error);
@@ -174,7 +207,7 @@ useEffect(() => {
     if (!product?.variants) return [];
     const values = new Set();
     product.variants.forEach((variant) => {
-      const opt = variant.options.find((o) => o.option_id === optionId);
+      const opt = variant.options?.find((o) => o.option_id === optionId);
       if (opt) values.add(opt.value);
     });
     return Array.from(values);
@@ -184,8 +217,8 @@ useEffect(() => {
     const newOptions = { ...optionsState, [optionId]: value };
     setOptionsState(newOptions);
 
-    const matchingVariant = product.variants.find((variant) => {
-      return variant.options.every((opt) => newOptions[opt.option_id] === opt.value);
+    const matchingVariant = product?.variants?.find((variant) => {
+      return variant.options?.every((opt) => newOptions[opt.option_id] === opt.value);
     });
 
     setSelectedVariant(matchingVariant || null);
@@ -202,14 +235,25 @@ useEffect(() => {
 
   const getVariantPriceDetails = (variant) => {
     if (!variant) return { price: "—" };
-    if (variant.calculated_price?.calculated_amount) {
+    if (
+      variant.calculated_price?.calculated_amount !== undefined &&
+      variant.calculated_price?.calculated_amount !== null
+    ) {
       const calc = variant.calculated_price;
       return {
         price: formatPrice(calc.calculated_amount, calc.currency_code),
         originalPrice: calc.original_amount > calc.calculated_amount ? formatPrice(calc.original_amount, calc.currency_code) : null,
       };
     }
-    return { price: formatPrice(variant.unit_price || 0, region?.currency_code) };
+    const priceInRegion =
+      variant.prices?.find((price) => price.currency_code === region?.currency_code) ||
+      variant.prices?.[0];
+    return {
+      price: formatPrice(
+        priceInRegion?.amount || 0,
+        priceInRegion?.currency_code || region?.currency_code
+      ),
+    };
   };
 
   const handleImageChange = (index) => {
@@ -224,7 +268,8 @@ useEffect(() => {
   };
 
   const handleWhatsAppClick = () => {
-    const message = `Hi, I'm interested in ${product?.title}${selectedVariant ? ` (${Object.values(optionsState).join(', ')})` : ''}`;
+    const variantForMessage = selectedVariant || product?.variants?.[0];
+    const message = `Hi, I'm interested in ${product?.title}${variantForMessage ? ` (${Object.values(optionsState).join(', ')})` : ''}`;
     const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank');
   };
@@ -235,9 +280,11 @@ useEffect(() => {
       ...item,
       price: priceDetails.price,
       originalPrice: priceDetails.originalPrice,
-      image: item.thumbnail,
+      image: item.thumbnail || item.images?.[0]?.url,
     };
   };
+
+  const activeVariant = selectedVariant || product?.variants?.[0];
 
   // Build accordion sections from Sanity
   const accordionSections = useMemo(() => {
@@ -256,8 +303,8 @@ useEffect(() => {
               ))}
             </ul>
           )}
-          {selectedVariant?.sku && (
-            <p className="text-sm text-stone-500">SKU: {selectedVariant.sku}</p>
+          {activeVariant?.sku && (
+            <p className="text-sm text-stone-500">SKU: {activeVariant.sku}</p>
           )}
         </div>
       ),
@@ -280,7 +327,7 @@ useEffect(() => {
     }
 
     return sections;
-  }, [sanityContent, selectedVariant]);
+  }, [sanityContent, activeVariant]);
 
   if (loading || !region) {
     return (
@@ -292,12 +339,14 @@ useEffect(() => {
 
   if (!product) return null;
 
-  const priceDetails = getVariantPriceDetails(selectedVariant);
+  const priceDetails = getVariantPriceDetails(activeVariant);
   const images = product.images?.length > 0 ? product.images : [{ url: product.thumbnail }];
+  const productDescription = sanityContent?.shortDescription || product.description;
 
   return (
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pt-10">
       <main className="max-w-[1600px] mx-auto px-6 lg:px-12 py-8 lg:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16">
         {/* LEFT: Image Gallery */}
           <div className="lg:col-span-7">
             {/* Mobile: Vertical Layout */}
@@ -519,7 +568,7 @@ useEffect(() => {
               </div>
             </div>
           </div>
-        
+        </div>
       </main>
 
       {/* Related Products */}
