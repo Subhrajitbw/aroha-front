@@ -451,6 +451,7 @@ useEffect(() => {
   const productDescription = product.description || sanityContent?.shortDescription || "";
 
   return (
+        <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pt-10">
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(201,168,110,0.14),_transparent_45%),linear-gradient(180deg,rgba(250,250,249,0.98),rgba(245,245,244,0.92))] text-stone-900 font-sans pt-8 sm:pt-10">
       <main className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 py-6 sm:py-8 lg:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-14 items-start">
@@ -755,6 +756,7 @@ useEffect(() => {
             </div>
           </div>
         </div>
+        
       </main>
 
       {/* Related Products */}
@@ -787,6 +789,7 @@ useEffect(() => {
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
+    </div>
     </div>
   );
 };
