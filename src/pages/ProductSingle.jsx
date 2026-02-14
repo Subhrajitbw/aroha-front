@@ -451,156 +451,199 @@ useEffect(() => {
   const productDescription = product.description || sanityContent?.shortDescription || "";
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pt-10">
-      <main className="max-w-[1600px] mx-auto px-6 lg:px-12 py-8 lg:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(201,168,110,0.14),_transparent_45%),linear-gradient(180deg,rgba(250,250,249,0.98),rgba(245,245,244,0.92))] text-stone-900 font-sans pt-8 sm:pt-10">
+      <main className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 py-6 sm:py-8 lg:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-14 items-start">
           {/* LEFT: Image Gallery */}
           <div className="lg:col-span-7">
             {/* Mobile: Vertical Layout */}
-            <div className="lg:hidden flex flex-col gap-5">
-              <div className="relative w-full group select-none">
-                <div className="aspect-[4/5] w-full overflow-hidden relative bg-stone-100 border border-stone-200/70">
+            <div className="lg:hidden space-y-3">
+              <div className="relative overflow-hidden rounded-[28px] border border-stone-200/80 bg-stone-100/80 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.55)]">
+                <div className="aspect-[4/5]">
                   <img
                     src={images[currentImageIndex]?.url}
                     alt={product.title}
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.015]"
+                    className="w-full h-full object-cover transition-transform duration-700 ease-out hover:scale-[1.015]"
                   />
-                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
+                </div>
+                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1); }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/45 text-white hover:bg-black/60 transition flex items-center justify-center"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === images.length - 1 ? 0 : currentImageIndex + 1); }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/45 text-white hover:bg-black/60 transition flex items-center justify-center"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                    <div className="absolute bottom-3 right-3 text-[10px] tracking-[0.2em] uppercase text-white/90 bg-black/45 px-2.5 py-1 rounded-full">
+                      {currentImageIndex + 1} / {images.length}
+                    </div>
+                  </>
+                )}
+              </div>
 
+              {images.length > 1 && (
+                <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
+                  {images.map((img, idx) => (
+                    <button
+                      key={img.id || idx}
+                      ref={(el) => (thumbnailRefs.current[idx] = el)}
+                      onClick={() => handleImageChange(idx)}
+                      className={`
+                        relative w-[86px] h-[104px] flex-shrink-0 rounded-2xl overflow-hidden border transition-all duration-300
+                        ${currentImageIndex === idx
+                          ? "border-stone-900 ring-2 ring-stone-900/10 shadow-[0_16px_30px_-24px_rgba(15,23,42,0.75)]"
+                          : "border-stone-200/85 opacity-70 hover:opacity-100 hover:-translate-y-0.5"}
+                      `}
+                    >
+                      <img src={img.url} alt={`${product.title} ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Desktop: Balanced Layout */}
+            <div className="hidden lg:grid lg:grid-cols-[104px_minmax(0,1fr)] gap-5 xl:gap-7">
+              {images.length > 1 && (
+                <div className="max-h-[760px] overflow-y-auto scrollbar-hide space-y-3 pr-1">
+                  {images.map((img, idx) => (
+                    <button
+                      key={img.id || idx}
+                      ref={(el) => (thumbnailRefs.current[idx] = el)}
+                      onClick={() => handleImageChange(idx)}
+                      className={`
+                        relative w-[96px] h-[118px] rounded-2xl overflow-hidden border transition-all duration-300
+                        ${currentImageIndex === idx
+                          ? "border-stone-900 ring-2 ring-stone-900/10 shadow-[0_16px_32px_-24px_rgba(15,23,42,0.8)]"
+                          : "border-stone-200/85 opacity-65 hover:opacity-100 hover:-translate-y-0.5"}
+                      `}
+                    >
+                      <img src={img.url} alt={`${product.title} ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="relative overflow-hidden rounded-[34px] border border-stone-200/80 bg-stone-100/80 shadow-[0_32px_80px_-48px_rgba(15,23,42,0.75)]">
+                  <div className="aspect-[4/5]">
+                    <img
+                      src={images[currentImageIndex]?.url}
+                      alt={product.title}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out hover:scale-[1.012]"
+                    />
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
                   {images.length > 1 && (
                     <>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1); }}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/45 hover:bg-black/60 text-white transition flex items-center justify-center"
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/45 text-white hover:bg-black/60 transition flex items-center justify-center"
                       >
                         <ChevronLeft className="w-5 h-5" />
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === images.length - 1 ? 0 : currentImageIndex + 1); }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/45 hover:bg-black/60 text-white transition flex items-center justify-center"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/45 text-white hover:bg-black/60 transition flex items-center justify-center"
                       >
                         <ChevronRight className="w-5 h-5" />
                       </button>
-                      <div className="absolute bottom-3 right-3 text-[10px] tracking-[0.2em] uppercase text-white/90 bg-black/45 px-2.5 py-1">
+                      <div className="absolute bottom-4 right-4 text-[10px] tracking-[0.2em] uppercase text-white/90 bg-black/45 px-2.5 py-1 rounded-full">
                         {currentImageIndex + 1} / {images.length}
                       </div>
                     </>
                   )}
                 </div>
-              </div>
 
-              {images.length > 1 && (
-                <div className="relative group">
-                  <div className="flex gap-3 overflow-x-auto pb-2 snap-x scrollbar-hide scroll-smooth">
-                    {images.map((img, idx) => (
+                {images.length > 3 && (
+                  <div className="grid grid-cols-3 gap-3">
+                    {images.slice(0, 3).map((img, idx) => (
                       <button
-                        key={img.id || idx}
-                        ref={(el) => (thumbnailRefs.current[idx] = el)}
+                        key={`preview-${img.id || idx}`}
                         onClick={() => handleImageChange(idx)}
-                        className={`
-                          flex-shrink-0 relative w-20 h-20 snap-start
-                          border transition-all duration-300 ease-out overflow-hidden
-                          ${currentImageIndex === idx
-                            ? "border-stone-900 opacity-100"
-                            : "border-stone-200 opacity-65 hover:opacity-100"}
-                        `}
+                        className="relative overflow-hidden rounded-2xl border border-stone-200/75 bg-stone-100/80 aspect-[4/3]"
                       >
-                        <img src={img.url} alt={`${product.title} ${idx + 1}`} className="w-full h-full object-cover" />
+                        <img src={img.url} alt={`${product.title} preview ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.03]" />
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
-            </div>
-
-            {/* Desktop: Horizontal Layout */}
-            <div className="hidden lg:flex gap-4">
-              {images.length > 1 && (
-                <div className="flex flex-col gap-3 w-24 flex-shrink-0">
-                  <div className="flex flex-col gap-3 max-h-[760px] overflow-y-auto scrollbar-hide">
-                    {images.map((img, idx) => (
-                      <button
-                        key={img.id || idx}
-                        ref={(el) => (thumbnailRefs.current[idx] = el)}
-                        onClick={() => handleImageChange(idx)}
-                        className={`
-                          relative w-24 h-24 flex-shrink-0
-                          border transition-all duration-300 ease-out overflow-hidden
-                          ${currentImageIndex === idx
-                            ? "border-stone-900 opacity-100"
-                            : "border-stone-200 opacity-65 hover:opacity-100"}
-                        `}
-                      >
-                        <img src={img.url} alt={`${product.title} ${idx + 1}`} className="w-full h-full object-cover" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="relative flex-1 group select-none">
-                <div className="aspect-[4/5] max-h-[760px] w-full overflow-hidden relative bg-stone-100 border border-stone-200/70">
-                  <img
-                    src={images[currentImageIndex]?.url}
-                    alt={product.title}
-                    className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.015]"
-                  />
-                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
-                  {images.length > 1 && (
-                    <div className="absolute bottom-4 right-4 text-[10px] tracking-[0.2em] uppercase text-white/90 bg-black/45 px-2.5 py-1">
-                      {currentImageIndex + 1} / {images.length}
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* RIGHT: Sticky Details */}
-          <div className="lg:col-span-5 relative">
-            <div className="sticky top-24 space-y-7 px-1">
+          <div className="lg:col-span-5">
+            <div className="sticky top-24 space-y-7 lg:space-y-8">
               {/* Header */}
-              <div className="space-y-4 border-b border-stone-200 pb-6">
+              <div className="space-y-5 pb-7 border-b border-stone-200/80">
                 <p className="text-[10px] tracking-[0.28em] uppercase text-stone-500">
                   Aroha House Signature
                 </p>
+
                 <div className="flex justify-between items-start gap-4">
-                  <h1 className="font-serif text-3xl md:text-4xl lg:text-5xl text-stone-900 leading-tight">
+                  <h1 className="font-serif text-3xl md:text-4xl xl:text-5xl text-stone-900 leading-[1.06]">
                     {product.title}
                   </h1>
-                  <button className="p-2 hover:bg-stone-100 transition-colors">
-                    <Heart className="w-6 h-6 text-stone-400" />
+                  <button className="p-2.5 rounded-full border border-stone-200/80 hover:border-stone-300 hover:bg-white/50 transition-colors">
+                    <Heart className="w-5 h-5 text-stone-500" />
                   </button>
                 </div>
 
                 {product.subtitle && (
-                  <p className="text-xs md:text-sm uppercase tracking-[0.14em] text-stone-500 leading-relaxed">
-                    {String(product.subtitle).replace(/<[^>]*>/g, " ")}
+                  <p className="text-[11px] sm:text-xs md:text-sm uppercase tracking-[0.14em] text-stone-500 leading-relaxed">
+                    {String(product.subtitle).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}
                   </p>
                 )}
 
                 <div className="flex flex-wrap items-baseline gap-3">
-                  <span className="text-2xl font-light tracking-wide text-stone-900">{priceDetails.price}</span>
+                  <span className="text-2xl sm:text-3xl xl:text-[2.05rem] font-light tracking-wide text-stone-900">
+                    {priceDetails.price}
+                  </span>
                   {priceDetails.originalPrice && (
-                    <span className="text-stone-400 line-through font-light">{priceDetails.originalPrice}</span>
+                    <span className="text-stone-400 line-through font-light text-lg">{priceDetails.originalPrice}</span>
                   )}
                   <span
-                    className={`text-[10px] md:text-xs px-2.5 py-1 border ${
+                    className={`text-[10px] md:text-xs px-2.5 py-1 rounded-full border ${
                       isInStock
-                        ? "text-emerald-700 bg-emerald-50 border-emerald-300"
-                        : "text-rose-700 bg-rose-50 border-rose-300"
+                        ? "text-emerald-700 bg-emerald-50/70 border-emerald-300"
+                        : "text-rose-700 bg-rose-50/70 border-rose-300"
                     }`}
                   >
                     {isInStock ? "In Stock" : "Out of Stock"}
                   </span>
                 </div>
+
+                {medusaSpecs.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-0.5">
+                    {medusaSpecs.slice(0, 6).map((row) => (
+                      <div key={row.label} className="rounded-xl border border-stone-200/70 bg-white/45 px-3 py-2.5">
+                        <p className="text-[10px] uppercase tracking-[0.16em] text-stone-500">{row.label}</p>
+                        <p className="text-sm text-stone-800 mt-1">{row.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              {/* Description from Sanity */}
+              {/* Description */}
               {productDescription && (
-                <div className="space-y-2 border-l-2 border-amber-300/70 pl-4">
-                  {renderDescription(productDescription)}
-                </div>
+                <section className="space-y-3">
+                  <h2 className="text-xs uppercase tracking-[0.2em] text-stone-900 font-medium">Craft & Narrative</h2>
+                  <div className="relative">
+                    <div className="absolute left-0 top-0 h-full w-px bg-gradient-to-b from-amber-500/40 via-stone-300 to-transparent" />
+                    <div className="pl-4 sm:pl-5 pr-1 max-h-[360px] overflow-y-auto scrollbar-hide space-y-2.5">
+                      {renderDescription(productDescription)}
+                    </div>
+                  </div>
+                </section>
               )}
 
               {/* Rich Description from Sanity */}
@@ -616,9 +659,9 @@ useEffect(() => {
                   <h3 className="text-xs uppercase tracking-[0.18em] text-stone-900 font-medium">
                     Features
                   </h3>
-                  <ul className="space-y-2">
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     {sanityContent.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-start gap-2 text-sm text-stone-600">
+                      <li key={idx} className="flex items-start gap-2 rounded-xl border border-stone-200/60 bg-white/35 px-3 py-2 text-sm text-stone-700">
                         <Check className="w-4 h-4 text-stone-500 flex-shrink-0 mt-0.5" />
                         <span>{feature}</span>
                       </li>
@@ -657,11 +700,11 @@ useEffect(() => {
                             key={value}
                             onClick={() => handleOptionSelect(option.id, value)}
                             className={`
-                              px-3 py-2 md:px-4 md:py-2.5 text-xs md:text-sm font-medium tracking-[0.08em] uppercase
+                              px-3 py-2 md:px-4 md:py-2.5 text-xs md:text-sm font-medium tracking-[0.08em] uppercase rounded-full
                               transition-all duration-300 ease-out border
                               ${isSelected
-                                ? "text-white bg-gradient-to-r from-stone-900 to-stone-700 border-stone-700"
-                                : "text-stone-700 bg-white border-stone-300 hover:text-amber-700 hover:border-amber-400 hover:bg-amber-50/70"
+                                ? "text-white bg-gradient-to-r from-stone-900 to-stone-700 border-stone-700 shadow-lg shadow-stone-900/20"
+                                : "text-stone-700 bg-white/80 border-stone-300 hover:text-amber-700 hover:border-amber-400 hover:bg-amber-50/70"
                               }
                             `}
                           >
@@ -676,10 +719,10 @@ useEffect(() => {
               })}
 
               {/* Actions */}
-              <div className="pt-2 space-y-4">
+              <div className="pt-1 space-y-4">
                 <button
                   onClick={handleWhatsAppClick}
-                  className="w-full h-12 bg-gradient-to-r from-stone-900 to-stone-700 text-white hover:from-stone-800 hover:to-stone-600 transition-all uppercase tracking-[0.18em] text-xs font-medium shadow-lg shadow-stone-900/20"
+                  className="w-full h-12 rounded-full bg-gradient-to-r from-stone-900 via-stone-800 to-stone-700 text-white hover:from-stone-800 hover:to-stone-600 transition-all uppercase tracking-[0.18em] text-xs font-medium shadow-[0_22px_38px_-26px_rgba(15,23,42,0.95)]"
                 >
                   <div className="flex items-center justify-center gap-2">
                     <MessageCircle className="w-4 h-4" />
@@ -689,19 +732,19 @@ useEffect(() => {
               </div>
 
               {/* Accordions from Sanity */}
-              <div className="border-t border-stone-200 pt-4">
+              <div className="border-t border-stone-200 pt-3">
                 {accordionSections.map((section) => (
                   <div key={section.id} className="border-b border-stone-100">
                     <button
                       onClick={() => setActiveAccordion(activeAccordion === section.id ? null : section.id)}
-                      className="w-full py-5 flex justify-between items-center text-left group"
+                      className="w-full py-4 flex justify-between items-center text-left group"
                     >
                       <span className="text-xs uppercase tracking-[0.18em] text-stone-900 font-medium group-hover:text-stone-600 transition-colors">
                         {section.label}
                       </span>
                       <ChevronDown className={`w-3 h-3 text-stone-400 transition-transform duration-300 ${activeAccordion === section.id ? "rotate-180" : ""}`} />
                     </button>
-                    <div className={`overflow-hidden transition-all duration-500 ease-in-out ${activeAccordion === section.id ? "max-h-96 opacity-100 pb-6" : "max-h-0 opacity-0"}`}>
+                    <div className={`overflow-hidden transition-all duration-500 ease-in-out ${activeAccordion === section.id ? "max-h-96 opacity-100 pb-5" : "max-h-0 opacity-0"}`}>
                       <div className="text-sm font-light text-stone-600 leading-relaxed">
                         {section.content}
                       </div>
@@ -716,13 +759,13 @@ useEffect(() => {
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
-        <section className="py-20 border-t border-stone-200 bg-gradient-to-b from-white/80 to-stone-50/60">
-          <div className="max-w-[1600px] mx-auto px-6 lg:px-12">
-            <div className="mb-12">
+        <section className="py-16 sm:py-20 border-t border-stone-200 bg-gradient-to-b from-white/80 to-stone-50/60">
+          <div className="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14">
+            <div className="mb-10 sm:mb-12">
               <p className="text-[10px] tracking-[0.28em] uppercase text-stone-500 mb-3">Curated Pairings</p>
               <h2 className="font-serif text-3xl text-stone-900">You May Also Like</h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
               {relatedProducts.map((item, idx) => (
                 <div
                   key={`${item.id}-${idx}`}
