@@ -10,6 +10,78 @@ const PRODUCT_FIELDS =
 const stripHtml = (value = "") =>
   String(value).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
+const formatInlineMarkdown = (text = "") => {
+  const segments = String(text).split(/(\*\*[^*]+\*\*)/g);
+  return segments.map((segment, idx) => {
+    if (segment.startsWith("**") && segment.endsWith("**")) {
+      return <strong key={`${segment}-${idx}`}>{segment.slice(2, -2)}</strong>;
+    }
+    return <span key={`${segment}-${idx}`}>{segment}</span>;
+  });
+};
+
+const renderMarkdown = (text = "") => {
+  const lines = String(text).split("\n");
+  const nodes = [];
+  let listItems = [];
+
+  const flushList = (keyPrefix) => {
+    if (listItems.length > 0) {
+      nodes.push(
+        <ul key={`${keyPrefix}-list`} className="list-disc pl-5 space-y-1.5">
+          {listItems}
+        </ul>
+      );
+      listItems = [];
+    }
+  };
+
+  lines.forEach((line, index) => {
+    const trimmed = line.trim();
+    const key = `line-${index}`;
+
+    if (!trimmed) {
+      flushList(key);
+      return;
+    }
+
+    if (trimmed === "---") {
+      flushList(key);
+      nodes.push(<hr key={`${key}-hr`} className="border-stone-200 my-2" />);
+      return;
+    }
+
+    if (trimmed.startsWith("### ")) {
+      flushList(key);
+      nodes.push(
+        <h3 key={`${key}-h3`} className="text-base sm:text-lg font-medium text-stone-900 mt-3">
+          {formatInlineMarkdown(trimmed.replace(/^###\s+/, ""))}
+        </h3>
+      );
+      return;
+    }
+
+    if (trimmed.startsWith("* ")) {
+      listItems.push(
+        <li key={`${key}-li`} className="text-stone-700 leading-relaxed">
+          {formatInlineMarkdown(trimmed.replace(/^\*\s+/, ""))}
+        </li>
+      );
+      return;
+    }
+
+    flushList(key);
+    nodes.push(
+      <p key={`${key}-p`} className="text-stone-700 leading-relaxed">
+        {formatInlineMarkdown(trimmed)}
+      </p>
+    );
+  });
+
+  flushList("final");
+  return nodes;
+};
+
 const formatPrice = (amount, currencyCode = "USD") =>
   new Intl.NumberFormat(undefined, {
     style: "currency",
@@ -138,7 +210,10 @@ export default function ShopSingle() {
 
   const images = useMemo(() => {
     if (!product) return [];
-    const media = (product.images || []).map((img) => img?.url).filter(Boolean);
+    const rankedImages = [...(product.images || [])].sort(
+      (a, b) => (a?.rank ?? Number.MAX_SAFE_INTEGER) - (b?.rank ?? Number.MAX_SAFE_INTEGER)
+    );
+    const media = rankedImages.map((img) => img?.url).filter(Boolean);
     if (product.thumbnail && !media.includes(product.thumbnail)) {
       media.unshift(product.thumbnail);
     }
@@ -150,7 +225,8 @@ export default function ShopSingle() {
   const optionGroups = useMemo(() => {
     if (!product?.options?.length) return [];
 
-    return product.options.map((option) => {
+    return product.options
+      .map((option) => {
       const values = Array.from(
         new Set(
           (product.variants || [])
@@ -162,8 +238,17 @@ export default function ShopSingle() {
       );
 
       return { ...option, values };
-    });
+    })
+      .filter((group) => {
+        const normalizedTitle = (group.title || "").toLowerCase();
+        const onlyDefaultValue =
+          group.values.length === 1 &&
+          (group.values[0] || "").toLowerCase().includes("default option");
+        return normalizedTitle !== "default option" && !onlyDefaultValue;
+      });
   }, [product]);
+
+  const activeVariant = selectedVariant || product?.variants?.[0];
 
   const onOptionSelect = (optionId, value) => {
     const nextOptions = { ...optionsState, [optionId]: value };
@@ -175,9 +260,35 @@ export default function ShopSingle() {
     setSelectedVariant(match || null);
   };
 
-  const priceDetails = getVariantPrice(selectedVariant || product?.variants?.[0]);
+  const priceDetails = getVariantPrice(activeVariant);
   const discounted = priceDetails.originalAmount > priceDetails.amount;
-  const inStock = isVariantInStock(selectedVariant || product?.variants?.[0]);
+  const inStock = isVariantInStock(activeVariant);
+
+  const specRows = useMemo(() => {
+    if (!product) return [];
+
+    const rows = [];
+    const dimensionUnit = '"';
+    const width = activeVariant?.width ?? product.width;
+    const height = activeVariant?.height ?? product.height;
+    const length = activeVariant?.length ?? product.length;
+    const weight = activeVariant?.weight ?? product.weight;
+
+    if (width) rows.push({ label: "Width", value: `${width}${dimensionUnit}` });
+    if (height) rows.push({ label: "Height", value: `${height}${dimensionUnit}` });
+    if (length) rows.push({ label: "Depth", value: `${length}${dimensionUnit}` });
+    if (weight) rows.push({ label: "Weight", value: `${weight}` });
+    if (product.origin_country) {
+      rows.push({
+        label: "Origin",
+        value: String(product.origin_country).toUpperCase(),
+      });
+    }
+    if (product.material) rows.push({ label: "Material", value: product.material });
+    if (product.type?.value) rows.push({ label: "Type", value: product.type.value });
+
+    return rows;
+  }, [activeVariant, product]);
 
   if (loading) return <LoadingOverlay />;
 
@@ -251,12 +362,12 @@ export default function ShopSingle() {
 
           <section className="flex flex-col">
             <div className="space-y-3">
-              <h1 className="text-3xl sm:text-4xl font-light text-stone-900 tracking-tight">
+              <h1 className="text-3xl sm:text-4xl font-light text-stone-900 tracking-tight leading-tight">
                 {product.title}
               </h1>
 
               {product.subtitle && (
-                <p className="text-sm uppercase tracking-[0.18em] text-stone-500">
+                <p className="text-xs sm:text-sm uppercase tracking-[0.15em] text-stone-500 leading-relaxed">
                   {stripHtml(product.subtitle)}
                 </p>
               )}
@@ -286,9 +397,9 @@ export default function ShopSingle() {
                   {inStock ? "In stock" : "Out of stock"}
                 </span>
 
-                {selectedVariant?.sku && (
+                {activeVariant?.sku && (
                   <span className="px-2.5 py-1 rounded-full border border-stone-200 text-stone-600">
-                    SKU: {selectedVariant.sku}
+                    SKU: {activeVariant.sku}
                   </span>
                 )}
 
@@ -333,19 +444,20 @@ export default function ShopSingle() {
 
             <div className="mt-7 border-t border-stone-200 pt-6 space-y-4">
               {product.description && (
-                <p className="text-stone-700 leading-relaxed text-sm sm:text-base">
-                  {stripHtml(product.description)}
-                </p>
+                <div className="space-y-2 text-sm sm:text-base">
+                  {renderMarkdown(product.description)}
+                </div>
               )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-stone-600">
-                {product.type?.value && <p>Type: {product.type.value}</p>}
-                {product.material && <p>Material: {product.material}</p>}
-                {product.origin_country && (
-                  <p>Origin: {product.origin_country.toUpperCase()}</p>
-                )}
-                {product.weight && <p>Weight: {product.weight}</p>}
-              </div>
+              {specRows.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-stone-600">
+                  {specRows.map((row) => (
+                    <p key={row.label}>
+                      {row.label}: {row.value}
+                    </p>
+                  ))}
+                </div>
+              )}
 
               {product.tags?.length > 0 && (
                 <div className="flex flex-wrap gap-2">
