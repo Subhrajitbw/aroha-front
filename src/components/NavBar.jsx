@@ -486,7 +486,6 @@ const NavBar = ({
   }, [location.pathname, performBackgroundSampling, shouldUseBackgroundSampling]);
 
   const effectiveTheme = useMemo(() => navTheme, [navTheme]);
-  console.log(effectiveTheme)
 
   const colors = useMemo(() => {
     if (scrolled) {
@@ -664,14 +663,26 @@ const NavBar = ({
 
           {/* Right: Search */}
           <div className="flex-1 flex justify-end items-center">
-            <NavIcon
-              onClick={openSearch}
-              className={`${colors.navTextColor} ${colors.navHoverColor}`}
-              iconRef={(el) => (iconsRef.current[1] = el)}
-            >
-              <SearchIcon size={18} />
-            </NavIcon>
-          </div>
+  <NavIcon
+    onClick={openSearch}
+    className={`
+      ${colors.navTextColor} 
+      ${colors.navHoverColor}
+      bg-white/10 
+      backdrop-blur-md 
+      border border-white/20 
+      shadow-lg
+      rounded-full 
+      p-2
+      transition-all duration-300
+      hover:bg-white/20
+    `}
+    iconRef={(el) => (iconsRef.current[1] = el)}
+  >
+    <SearchIcon size={18} />
+  </NavIcon>
+</div>
+
         </div>
 
         {/* Single aggregated mega menu with parent-child structure */}
