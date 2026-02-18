@@ -215,7 +215,7 @@ const ProductPage = () => {
       <main className="min-h-screen lg:min-h-screen max-w-[1800px] mx-auto flex flex-col lg:flex-row">
 
         {/* LEFT: IMAGE GALLERY - Optimized for overlap prevention and responsiveness */}
-        <div className="lg:w-7/12 relative lg:h-full overflow-hidden flex items-center justify-center lg:p-[6rem] pt-16 px-4">
+        <div className="lg:w-7/12 relative lg:h-full overflow-hidden flex items-center justify-center lg:p-[6rem] pt-24 px-4">
           <div className="relative h-full w-full lg:h-[85%] lg:w-[85%] rounded-[24px] lg:rounded-[48px] overflow-hidden ">
             <img src={images[currentImageIndex]?.url} className="w-full h-full object-cover animate-in fade-in duration-700" alt={product.title} />
           </div>
