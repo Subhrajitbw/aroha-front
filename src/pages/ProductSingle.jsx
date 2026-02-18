@@ -1,26 +1,15 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  Heart,
-  ChevronLeft,
-  ChevronRight,
-  Check,
-  MessageCircle,
-  ChevronDown,
-} from "lucide-react";
+import { Heart, ChevronLeft, ChevronRight, Check, MessageCircle, ChevronDown } from "lucide-react";
 import { sdk } from "../lib/medusaClient";
 import { sanityClient } from "../lib/sanityClient";
 import { PortableText } from "@portabletext/react";
 import { ProductInfoCard } from "../components/ProductInfoCard";
-import { generateProductSchema } from "../lib/structured-data/productSchema";
 
-const WHATSAPP_NUMBER = "1234567890";
-
-/* ---------------------------- Utility Functions ---------------------------- */
-
+/* -------------------- IMAGE NORMALIZER -------------------- */
 const normalizeImages = (product) => {
   const sorted = [...(product?.images || [])].sort(
-    (a, b) => (a?.rank ?? 9999) - (b?.rank ?? 9999)
+    (a, b) => (a?.rank ?? Number.MAX_SAFE_INTEGER) - (b?.rank ?? Number.MAX_SAFE_INTEGER)
   );
 
   const mapped = sorted
@@ -29,16 +18,13 @@ const normalizeImages = (product) => {
 
   if (product?.thumbnail && !mapped.some((img) => img.url === product.thumbnail)) {
     mapped.unshift({
-      id: `thumb-${product.id}`,
+      id: `thumb-${product.id || "product"}`,
       url: product.thumbnail,
     });
   }
 
   return mapped;
 };
-
-const cleanText = (text = "") =>
-  String(text).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 
 const ProductPage = () => {
   const { handle } = useParams();
@@ -53,81 +39,106 @@ const ProductPage = () => {
   const [loading, setLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [region, setRegion] = useState(null);
+  const [cartId, setCartId] = useState(null);
+  const [activeAccordion, setActiveAccordion] = useState("details");
 
-  /* ---------------------------- Region Init ---------------------------- */
+  const WHATSAPP_NUMBER = "1234567890";
 
+  /* -------------------- INIT REGION -------------------- */
   useEffect(() => {
-    const initRegion = async () => {
-      const { regions } = await sdk.store.region.list();
-      if (regions?.length) setRegion(regions[0]);
+    const initialize = async () => {
+      try {
+        const { regions } = await sdk.store.region.list();
+        if (regions?.length) setRegion(regions[0]);
+      } catch (err) {
+        console.error(err);
+      }
     };
-    initRegion();
+    initialize();
   }, []);
 
-  /* ---------------------------- Fetch Product ---------------------------- */
-
+  /* -------------------- FETCH PRODUCT -------------------- */
   useEffect(() => {
     if (!region) return;
 
     const fetchData = async () => {
       setLoading(true);
       try {
+        /* ---------- MEDUSA ---------- */
         const { products } = await sdk.store.product.list({
           handle,
           region_id: region.id,
           fields:
-            "id,title,subtitle,description,handle,thumbnail,*images,*options,*variants,*collection,material,origin_country",
+            "id,title,subtitle,description,handle,thumbnail,*images,*options,*variants.id,*variants.title,*variants.sku,*variants.manage_inventory,*variants.inventory_quantity,*variants.allow_backorder,*variants.options,*variants.weight,*variants.length,*variants.width,*variants.height,*variants.calculated_price,*variants.prices,material,weight,length,width,height,origin_country",
         });
 
         const productData = products?.[0];
-        if (!productData) return navigate("/");
+        if (!productData) return navigate("/404");
 
-        const normalized = {
+        setProduct({
           ...productData,
-          subtitle: cleanText(productData.subtitle),
-          description: productData.description || "",
           images: normalizeImages(productData),
-        };
+        });
 
-        setProduct(normalized);
-
-        if (normalized.variants?.length) {
-          const first = normalized.variants[0];
+        if (productData.variants?.length) {
+          const firstVariant = productData.variants[0];
           const initialOptions = {};
-          first.options?.forEach((opt) => {
+          firstVariant.options.forEach((opt) => {
             initialOptions[opt.option_id] = opt.value;
           });
-          setSelectedVariant(first);
           setOptionsState(initialOptions);
+          setSelectedVariant(firstVariant);
         }
 
+        /* ---------- SANITY ---------- */
         const sanityData = await sanityClient.fetch(
-          `*[_type == "product" && handle == $handle][0]`,
+          `*[_type == "product" && handle == $handle][0]{
+            shortIntro,
+            richDescription,
+            whyChoose,
+            additionalSpecs,
+            extraSections[]{
+              title,
+              icon,
+              content
+            },
+            relatedProducts[]->{
+              medusaId,
+              title,
+              handle,
+              thumbnailR2{url}
+            }
+          }`,
           { handle }
         );
 
         setSanityContent(sanityData);
 
-        /* ---------- Related ---------- */
-        if (normalized.collection_id) {
-          const { products: related } = await sdk.store.product.list({
-            collection_id: [normalized.collection_id],
-            region_id: region.id,
-            limit: 4,
-          });
+        /* ---------- RELATED ---------- */
+        if (sanityData?.relatedProducts?.length) {
+          const ids = sanityData.relatedProducts
+            .map((p) => p.medusaId)
+            .filter(Boolean);
 
-          setRelatedProducts(
-            related
-              ?.filter((p) => p.id !== normalized.id)
-              .map((item) => ({
+          if (ids.length) {
+            const { products: related } = await sdk.store.product.list({
+              id: ids,
+              region_id: region.id,
+              fields:
+                "id,title,subtitle,description,handle,thumbnail,*images,*variants.calculated_price,*variants.prices",
+            });
+
+            setRelatedProducts(
+              related?.map((item) => ({
                 ...item,
                 images: normalizeImages(item),
               })) || []
-          );
+            );
+          }
         }
       } catch (err) {
         console.error(err);
-        navigate("/");
+        navigate("/404");
       } finally {
         setLoading(false);
       }
@@ -136,204 +147,449 @@ const ProductPage = () => {
     fetchData();
   }, [handle, region, navigate]);
 
-  /* ---------------------------- Variant Logic ---------------------------- */
+  /* -------------------- VARIANT HELPERS -------------------- */
+  const activeVariant = selectedVariant || product?.variants?.[0];
 
-  const handleOptionSelect = (optionId, value) => {
-    const updated = { ...optionsState, [optionId]: value };
-    setOptionsState(updated);
-
-    const match = product?.variants?.find((variant) =>
-      variant.options?.every(
-        (opt) => updated[opt.option_id] === opt.value
-      )
-    );
-
-    setSelectedVariant(match || null);
-  };
-
-  const formatPrice = (amount) =>
-    new Intl.NumberFormat("en-IN", {
+  const formatPrice = (amount, currency) =>
+    new Intl.NumberFormat(undefined, {
       style: "currency",
-      currency: (region?.currency_code || "INR").toUpperCase(),
+      currency: currency?.toUpperCase() || "USD",
       minimumFractionDigits: 0,
     }).format(amount || 0);
 
-  const activeVariant = selectedVariant || product?.variants?.[0];
+  const getVariantPriceDetails = (variant) => {
+    if (!variant) return { price: "—" };
 
-  const price =
-    activeVariant?.calculated_price?.calculated_amount ||
-    activeVariant?.prices?.[0]?.amount ||
-    0;
-
-  const isInStock =
-    activeVariant?.manage_inventory === false ||
-    activeVariant?.allow_backorder ||
-    activeVariant?.inventory_quantity > 0;
-
-  /* ---------------------------- SEO + JSON-LD ---------------------------- */
-
-  useEffect(() => {
-    if (!product) return;
-
-    const description =
-      sanityContent?.seo?.aiSummary ||
-      sanityContent?.shortDescription ||
-      product.description;
-
-    document.title = `${product.title} | Aroha House`;
-
-    let meta = document.querySelector('meta[name="description"]');
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.name = "description";
-      document.head.appendChild(meta);
+    const calc = variant.calculated_price;
+    if (calc?.calculated_amount != null) {
+      return {
+        price: formatPrice(calc.calculated_amount, calc.currency_code),
+        originalPrice:
+          calc.original_amount > calc.calculated_amount
+            ? formatPrice(calc.original_amount, calc.currency_code)
+            : null,
+      };
     }
-    meta.content = cleanText(description);
 
-    const schema = generateProductSchema({
-      product,
-      sanity: sanityContent,
-      price,
-      inStock: isInStock,
-      url: window.location.href,
+    const price = variant.prices?.[0];
+    return {
+      price: formatPrice(price?.amount, price?.currency_code),
+    };
+  };
+
+  const priceDetails = getVariantPriceDetails(activeVariant);
+
+  /* -------------------- SPECS MERGE -------------------- */
+  const medusaSpecs = useMemo(() => {
+    if (!product) return [];
+
+    const rows = [];
+    if (product.width) rows.push({ label: "Width", value: product.width });
+    if (product.height) rows.push({ label: "Height", value: product.height });
+    if (product.length) rows.push({ label: "Depth", value: product.length });
+    if (product.weight) rows.push({ label: "Weight", value: product.weight });
+    if (product.material) rows.push({ label: "Material", value: product.material });
+    if (product.origin_country)
+      rows.push({ label: "Origin", value: product.origin_country });
+
+    return rows;
+  }, [product]);
+
+  const accordionSections = useMemo(() => {
+    const sections = [];
+
+    sections.push({
+      id: "details",
+      label: "Product Details",
+      content: (
+        <div className="space-y-4">
+          {medusaSpecs.map((row) => (
+            <p key={row.label}>
+              <strong>{row.label}:</strong> {row.value}
+            </p>
+          ))}
+
+          {sanityContent?.additionalSpecs?.map((spec, i) => (
+            <p key={i}>
+              <strong>{spec.label}:</strong> {spec.value}
+            </p>
+          ))}
+        </div>
+      ),
     });
 
-    const old = document.getElementById("product-schema");
-    if (old) old.remove();
+    if (sanityContent?.extraSections) {
+      sanityContent.extraSections.forEach((section) => {
+        sections.push({
+          id: section.title,
+          label: section.title,
+          content: (
+            <PortableText value={section.content} />
+          ),
+        });
+      });
+    }
 
-    const script = document.createElement("script");
-    script.type = "application/ld+json";
-    script.id = "product-schema";
-    script.innerHTML = JSON.stringify(schema);
-    document.head.appendChild(script);
-  }, [product, sanityContent, price, isInStock]);
+    return sections;
+  }, [sanityContent, medusaSpecs]);
 
-  /* ---------------------------- Render ---------------------------- */
-
-  if (loading || !product)
+  if (loading || !product) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 border-t-2 border-stone-900 rounded-full animate-spin" />
+        Loading...
       </div>
     );
+  }
 
   const images =
     product.images?.length > 0
       ? product.images
       : [{ url: product.thumbnail }];
 
+  const productDescription =
+    sanityContent?.shortIntro ||
+    product.description ||
+    "";
+
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900 pt-12">
-      <main className="max-w-[1600px] mx-auto px-6 lg:px-12 py-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-          {/* -------- LEFT IMAGES -------- */}
-          <div className="lg:col-span-7 space-y-6">
-            <div className="relative rounded-[32px] overflow-hidden shadow-xl">
-              <img
-                src={images[currentImageIndex]?.url}
-                alt={product.title}
-                className="w-full h-auto object-cover"
-              />
-            </div>
-          </div>
+    <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pt-10">
+      <div className="min-h-screen  text-stone-900 font-sans pt-8 sm:pt-10">
+        <main className="max-w-[1700px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14 py-6 sm:py-8 lg:py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-14 items-start">
+            {/* LEFT: Image Gallery */}
+            <div className="lg:col-span-7">
+              {/* Mobile: Vertical Layout */}
+              <div className="lg:hidden space-y-3">
+                <div className="relative overflow-hidden rounded-[28px] border border-stone-200/80 bg-stone-100/80 shadow-[0_18px_40px_-30px_rgba(15,23,42,0.55)]">
+                  <div className="aspect-[4/5]">
+                    <img
+                      src={images[currentImageIndex]?.url}
+                      alt={product.title}
+                      className="w-full h-full object-cover transition-transform duration-700 ease-out hover:scale-[1.015]"
+                    />
+                  </div>
+                  <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
+                  {images.length > 1 && (
+                    <>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1); }}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/45 text-white hover:bg-black/60 transition flex items-center justify-center"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === images.length - 1 ? 0 : currentImageIndex + 1); }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/45 text-white hover:bg-black/60 transition flex items-center justify-center"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                      <div className="absolute bottom-3 right-3 text-[10px] tracking-[0.2em] uppercase text-white/90 bg-black/45 px-2.5 py-1 rounded-full">
+                        {currentImageIndex + 1} / {images.length}
+                      </div>
+                    </>
+                  )}
+                </div>
 
-          {/* -------- RIGHT DETAILS -------- */}
-          <div className="lg:col-span-5 space-y-8 sticky top-24">
-            <div>
-              <p className="text-[11px] tracking-[0.35em] uppercase text-amber-700">
-                Aroha House Atelier
-              </p>
-              <h1 className="font-serif text-4xl mt-4">
-                {product.title}
-              </h1>
+                {images.length > 1 && (
+                  <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide scroll-smooth">
+                    {images.map((img, idx) => (
+                      <button
+                        key={img.id || idx}
+                        ref={(el) => (thumbnailRefs.current[idx] = el)}
+                        onClick={() => handleImageChange(idx)}
+                        className={`
+                        relative w-[86px] h-[104px] flex-shrink-0 rounded-2xl overflow-hidden border transition-all duration-300
+                        ${currentImageIndex === idx
+                            ? "border-stone-900 ring-2 ring-stone-900/10 shadow-[0_16px_30px_-24px_rgba(15,23,42,0.75)]"
+                            : "border-stone-200/85 opacity-70 hover:opacity-100 hover:-translate-y-0.5"}
+                      `}
+                      >
+                        <img src={img.url} alt={`${product.title} ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
-              {product.subtitle && (
-                <p className="mt-3 text-sm text-stone-600 uppercase tracking-wide">
-                  {product.subtitle}
-                </p>
-              )}
+              {/* Desktop: Balanced Layout */}
+              <div className="hidden lg:grid lg:grid-cols-[104px_minmax(0,1fr)] gap-5 xl:gap-7">
+                {images.length > 1 && (
+                  <div className="max-h-[760px] overflow-y-auto scrollbar-hide space-y-3 pr-1">
+                    {images.map((img, idx) => (
+                      <button
+                        key={img.id || idx}
+                        ref={(el) => (thumbnailRefs.current[idx] = el)}
+                        onClick={() => handleImageChange(idx)}
+                        className={`
+                        relative w-[96px] h-[118px] rounded-2xl overflow-hidden border transition-all duration-300
+                        ${currentImageIndex === idx
+                            ? "border-stone-900 ring-2 ring-stone-900/10 shadow-[0_16px_32px_-24px_rgba(15,23,42,0.8)]"
+                            : "border-stone-200/85 opacity-65 hover:opacity-100 hover:-translate-y-0.5"}
+                      `}
+                      >
+                        <img src={img.url} alt={`${product.title} ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-              <div className="mt-6 flex items-center gap-4">
-                <span className="text-3xl font-light">
-                  {formatPrice(price)}
-                </span>
-                <span
-                  className={`text-xs px-3 py-1 rounded-full ${
-                    isInStock
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-rose-50 text-rose-700"
-                  }`}
-                >
-                  {isInStock ? "In Stock" : "Out of Stock"}
-                </span>
+                <div className="space-y-4">
+                  <div className="relative overflow-hidden rounded-[34px] border border-stone-200/80 bg-stone-100/80 shadow-[0_32px_80px_-48px_rgba(15,23,42,0.75)]">
+                    <div className="aspect-[4/5]">
+                      <img
+                        src={images[currentImageIndex]?.url}
+                        alt={product.title}
+                        className="w-full h-full object-cover transition-transform duration-700 ease-out hover:scale-[1.012]"
+                      />
+                    </div>
+                    <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                    {images.length > 1 && (
+                      <>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1); }}
+                          className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/45 text-white hover:bg-black/60 transition flex items-center justify-center"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleImageChange(currentImageIndex === images.length - 1 ? 0 : currentImageIndex + 1); }}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-black/45 text-white hover:bg-black/60 transition flex items-center justify-center"
+                        >
+                          <ChevronRight className="w-5 h-5" />
+                        </button>
+                        <div className="absolute bottom-4 right-4 text-[10px] tracking-[0.2em] uppercase text-white/90 bg-black/45 px-2.5 py-1 rounded-full">
+                          {currentImageIndex + 1} / {images.length}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {images.length > 3 && (
+                    <div className="grid grid-cols-3 gap-3">
+                      {images.slice(0, 3).map((img, idx) => (
+                        <button
+                          key={`preview-${img.id || idx}`}
+                          onClick={() => handleImageChange(idx)}
+                          className="relative overflow-hidden rounded-2xl border border-stone-200/75 bg-stone-100/80 aspect-[4/3]"
+                        >
+                          <img src={img.url} alt={`${product.title} preview ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-500 hover:scale-[1.03]" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* -------- Options -------- */}
-            {product.options?.map((option) => (
-              <div key={option.id}>
-                <h4 className="text-xs uppercase tracking-wide mb-3">
-                  {option.title}
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {option.values?.map((value) => (
-                    <button
-                      key={value.value}
-                      onClick={() =>
-                        handleOptionSelect(option.id, value.value)
-                      }
-                      className={`px-4 py-2 rounded-full border text-sm ${
-                        optionsState[option.id] === value.value
-                          ? "bg-stone-900 text-white"
-                          : "bg-white border-stone-300"
-                      }`}
-                    >
-                      {value.value}
+            {/* RIGHT: Sticky Details */}
+            <div className="lg:col-span-5">
+              <div className="sticky top-24 space-y-7 lg:space-y-8">
+                {/* Header */}
+                <div className="space-y-5 pb-7 border-b border-stone-200/80">
+                  <p className="text-[10px] tracking-[0.28em] uppercase text-stone-500">
+                    Aroha House Signature
+                  </p>
+
+                  <div className="flex justify-between items-start gap-4">
+                    <h1 className="font-serif text-3xl md:text-4xl xl:text-5xl text-stone-900 leading-[1.06]">
+                      {product.title}
+                    </h1>
+                    <button className="p-2.5 rounded-full border border-stone-200/80 hover:border-stone-300 hover:bg-white/50 transition-colors">
+                      <Heart className="w-5 h-5 text-stone-500" />
                     </button>
+                  </div>
+
+                  {product.subtitle && (
+                    <p className="text-[11px] sm:text-xs md:text-sm uppercase tracking-[0.14em] text-stone-500 leading-relaxed">
+                      {String(product.subtitle).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim()}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap items-baseline gap-3">
+                    <span className="text-2xl sm:text-3xl xl:text-[2.05rem] font-light tracking-wide text-stone-900">
+                      {priceDetails.price}
+                    </span>
+                    {priceDetails.originalPrice && (
+                      <span className="text-stone-400 line-through font-light text-lg">{priceDetails.originalPrice}</span>
+                    )}
+                    <span
+                      className={`text-[10px] md:text-xs px-2.5 py-1 rounded-full border ${isInStock
+                          ? "text-emerald-700 bg-emerald-50/70 border-emerald-300"
+                          : "text-rose-700 bg-rose-50/70 border-rose-300"
+                        }`}
+                    >
+                      {isInStock ? "In Stock" : "Out of Stock"}
+                    </span>
+                  </div>
+
+                  {medusaSpecs.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-0.5">
+                      {medusaSpecs.slice(0, 6).map((row) => (
+                        <div key={row.label} className="rounded-xl border border-stone-200/70 bg-white/45 px-3 py-2.5">
+                          <p className="text-[10px] uppercase tracking-[0.16em] text-stone-500">{row.label}</p>
+                          <p className="text-sm text-stone-800 mt-1">{row.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Description */}
+                {productDescription && (
+                  <section className="space-y-3">
+                    <h2 className="text-xs uppercase tracking-[0.2em] text-stone-900 font-medium">Craft & Narrative</h2>
+                    <div className="relative">
+                      <div className="absolute left-0 top-0 h-full w-px bg-gradient-to-b from-amber-500/40 via-stone-300 to-transparent" />
+                      <div className="pl-4 sm:pl-5 pr-1 max-h-[360px] overflow-y-auto scrollbar-hide space-y-2.5">
+                        {renderDescription(productDescription)}
+                      </div>
+                    </div>
+                  </section>
+                )}
+
+                {/* Rich Description from Sanity */}
+                {sanityContent?.richDescription && sanityContent.richDescription.length > 0 && (
+                  <div className="prose prose-sm max-w-none text-stone-600 font-light leading-relaxed">
+                    <PortableText value={sanityContent.richDescription} />
+                  </div>
+                )}
+
+                {/* Features from Sanity */}
+                {sanityContent?.features && sanityContent.features.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-xs uppercase tracking-[0.18em] text-stone-900 font-medium">
+                      Features
+                    </h3>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {sanityContent.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-2 rounded-xl border border-stone-200/60 bg-white/35 px-3 py-2 text-sm text-stone-700">
+                          <Check className="w-4 h-4 text-stone-500 flex-shrink-0 mt-0.5" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Variant Selectors */}
+                {product.options?.map((option) => {
+                  const uniqueValues = getOptionValues(option.id);
+                  const normalizedTitle = (option.title || "").toLowerCase();
+                  const isDefaultOnly =
+                    uniqueValues.length === 1 &&
+                    (uniqueValues[0] || "").toLowerCase().includes("default option");
+                  if (uniqueValues.length === 0 || normalizedTitle === "default option" || isDefaultOnly) {
+                    return null;
+                  }
+
+                  return (
+                    <div key={option.id} className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs uppercase tracking-[0.18em] text-stone-900 font-medium">
+                          {option.title}
+                        </label>
+                        <span className="text-xs text-stone-500 font-light">
+                          {optionsState[option.id]}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {uniqueValues.map((value) => {
+                          const isSelected = optionsState[option.id] === value;
+                          return (
+                            <button
+                              key={value}
+                              onClick={() => handleOptionSelect(option.id, value)}
+                              className={`
+                              px-3 py-2 md:px-4 md:py-2.5 text-xs md:text-sm font-medium tracking-[0.08em] uppercase rounded-full
+                              transition-all duration-300 ease-out border
+                              ${isSelected
+                                  ? "text-white bg-gradient-to-r from-stone-900 to-stone-700 border-stone-700 shadow-lg shadow-stone-900/20"
+                                  : "text-stone-700 bg-white/80 border-stone-300 hover:text-amber-700 hover:border-amber-400 hover:bg-amber-50/70"
+                                }
+                            `}
+                            >
+                              {isSelected && <Check className="w-3 h-3 inline-block mr-1" />}
+                              <span>{value}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Actions */}
+                <div className="pt-1 space-y-4">
+                  <button
+                    onClick={handleWhatsAppClick}
+                    className="w-full h-12 rounded-full bg-gradient-to-r from-stone-900 via-stone-800 to-stone-700 text-white hover:from-stone-800 hover:to-stone-600 transition-all uppercase tracking-[0.18em] text-xs font-medium shadow-[0_22px_38px_-26px_rgba(15,23,42,0.95)]"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Enquire Now</span>
+                    </div>
+                  </button>
+                </div>
+
+                {/* Accordions from Sanity */}
+                <div className="border-t border-stone-200 pt-3">
+                  {accordionSections.map((section) => (
+                    <div key={section.id} className="border-b border-stone-100">
+                      <button
+                        onClick={() => setActiveAccordion(activeAccordion === section.id ? null : section.id)}
+                        className="w-full py-4 flex justify-between items-center text-left group"
+                      >
+                        <span className="text-xs uppercase tracking-[0.18em] text-stone-900 font-medium group-hover:text-stone-600 transition-colors">
+                          {section.label}
+                        </span>
+                        <ChevronDown className={`w-3 h-3 text-stone-400 transition-transform duration-300 ${activeAccordion === section.id ? "rotate-180" : ""}`} />
+                      </button>
+                      <div className={`overflow-hidden transition-all duration-500 ease-in-out ${activeAccordion === section.id ? "max-h-96 opacity-100 pb-5" : "max-h-0 opacity-0"}`}>
+                        <div className="text-sm font-light text-stone-600 leading-relaxed">
+                          {section.content}
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
-            ))}
-
-            {/* -------- WhatsApp -------- */}
-            <button
-              onClick={() =>
-                window.open(
-                  `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-                    `Hi, I'm interested in ${product.title}`
-                  )}`
-                )
-              }
-              className="w-full h-12 rounded-full bg-stone-900 text-white uppercase tracking-wide"
-            >
-              Enquire Now
-            </button>
+            </div>
           </div>
-        </div>
 
-        {/* -------- RELATED -------- */}
+        </main>
+
+        {/* Related Products */}
         {relatedProducts.length > 0 && (
-          <section className="mt-24">
-            <h2 className="font-serif text-3xl mb-10">
-              Designed to Belong Together
-            </h2>
-            <div className="grid md:grid-cols-3 gap-8">
-              {relatedProducts.map((item) => (
-                <ProductInfoCard
-                  key={item.id}
-                  product={{
-                    ...item,
-                    image: item.thumbnail,
-                    price: formatPrice(
-                      item.variants?.[0]?.prices?.[0]?.amount
-                    ),
-                  }}
-                />
-              ))}
+          <section className="py-16 sm:py-20 border-t border-stone-200 bg-gradient-to-b from-white/80 to-stone-50/60">
+            <div className="max-w-[1680px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-14">
+              <div className="mb-10 sm:mb-12">
+                <p className="text-[10px] tracking-[0.28em] uppercase text-stone-500 mb-3">Curated Pairings</p>
+                <h2 className="font-serif text-3xl text-stone-900">You May Also Like</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 xl:gap-8">
+                {relatedProducts.map((item, idx) => (
+                  <div
+                    key={`${item.id}-${idx}`}
+                    className="flex-shrink-0 w-full"
+                  >
+                    <ProductInfoCard
+                      product={transformProductForCard(item)}
+                      cardSize={cardSize}
+                      isFluid={true}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         )}
-      </main>
+
+        <style jsx>{`
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+      </div>
     </div>
   );
 };
