@@ -518,7 +518,7 @@ const ProductPage = () => {
                     ? `\n\nCustomizations:\n${Object.entries(customizations).map(([k, v]) => `• ${k}: ${v}`).join('\n')}`
                     : '';
                   const msg = `Hi! I'm interested in the ${product.title}.${customizationText}`;
-                  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+                  window.open(`https://wa.me/${sanityContent.supportContact}?text=${encodeURIComponent(msg)}`, '_blank');
                 }}
                 className="w-full h-14 sm:h-16 bg-stone-900 text-white rounded-xl sm:rounded-[20px] flex items-center justify-between px-6 sm:px-10 hover:bg-stone-800 transition-all active:scale-[0.98] shadow-2xl group"
               >
