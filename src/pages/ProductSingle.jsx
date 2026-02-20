@@ -25,7 +25,7 @@ const ProductPage = () => {
   const [cartId, setCartId] = useState(null);
   const [activeAccordion, setActiveAccordion] = useState("specs");
 
-  const WHATSAPP_NUMBER = "919903073628";
+  const WHATSAPP_NUMBER = "919830483628";
 
   // Initialize Region/Cart
   useEffect(() => {
@@ -374,62 +374,60 @@ const ProductPage = () => {
     <div className="min-h-screen text-stone-900 font-sans">
       <main className="min-h-screen max-w-[1920px] mx-auto flex flex-col lg:flex-row">
         {/* LEFT: IMAGE GALLERY - Refined squarish sticky layout */}
-<div className="w-full lg:w-7/12 relative flex flex-col items-center justify-center 
+        <div className="w-full lg:w-7/12 relative flex flex-col items-center justify-center 
   pt-16 sm:pt-24 lg:pt-0 
   px-4 sm:px-8 lg:px-12 xl:px-24
   min-h-[50vh] sm:min-h-[60vh] lg:h-screen lg:sticky lg:top-0 bg-white"
->
-  {/* Main Image Container - Squarish and slightly smaller on desktop for 'Gallery' feel */}
-  <div className="relative w-full max-w-[500px] xl:max-w-[650px] 
+        >
+          {/* Main Image Container - Squarish and slightly smaller on desktop for 'Gallery' feel */}
+          <div className="relative w-full max-w-[500px] xl:max-w-[650px] 
     aspect-square lg:aspect-[1/1]
     rounded-2xl sm:rounded-3xl xl:rounded-[40px] overflow-hidden 
     shadow-sm border border-stone-100/50"
-  >
-    <img
-      src={images[currentImageIndex]?.url}
-      className="w-full h-full object-cover transition-all duration-700 ease-out animate-in fade-in"
-      alt={product.title}
-    />
-    
-    {/* Optional: Subtle Overlay for Depth */}
-    <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-stone-900/5 pointer-events-none" />
-  </div>
+          >
+            <img
+              src={images[currentImageIndex]?.url}
+              className="w-full h-full object-cover transition-all duration-700 ease-out animate-in fade-in"
+              alt={product.title}
+            />
 
-  {/* Desktop Thumbnails - Side Pinned with refined spacing */}
-  <div className="hidden lg:flex absolute left-6 xl:left-12 top-1/2 -translate-y-1/2 flex-col gap-4 max-h-[70%] overflow-y-auto scrollbar-hide z-10 py-4">
-    {images.map((img, idx) => (
-      <button
-        key={idx}
-        ref={el => thumbnailRefs.current[idx] = el}
-        onClick={() => handleImageChange(idx)}
-        className={`w-14 h-14 xl:w-16 xl:h-16 rounded-xl overflow-hidden border-2 transition-all duration-500 shrink-0 ${
-          currentImageIndex === idx 
-            ? "border-stone-900 scale-110 shadow-lg" 
-            : "border-transparent opacity-30 hover:opacity-100 hover:scale-105"
-        }`}
-      >
-        <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
-      </button>
-    ))}
-  </div>
+            {/* Optional: Subtle Overlay for Depth */}
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-stone-900/5 pointer-events-none" />
+          </div>
 
-  {/* Mobile/Tablet Thumbnail Strip - Horizontal scroll below image */}
-  <div className="lg:hidden w-full flex justify-center gap-3 mt-8 pb-4 overflow-x-auto scrollbar-hide px-4">
-    {images.map((img, idx) => (
-      <button
-        key={idx}
-        onClick={() => handleImageChange(idx)}
-        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${
-          currentImageIndex === idx 
-            ? "border-stone-900 scale-110 shadow-md" 
-            : "border-stone-100 opacity-60"
-        }`}
-      >
-        <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
-      </button>
-    ))}
-  </div>
-</div>
+          {/* Desktop Thumbnails - Side Pinned with refined spacing */}
+          <div className="hidden lg:flex absolute left-6 xl:left-12 top-1/2 -translate-y-1/2 flex-col gap-4 max-h-[70%] overflow-y-auto scrollbar-hide z-10 py-4">
+            {images.map((img, idx) => (
+              <button
+                key={idx}
+                ref={el => thumbnailRefs.current[idx] = el}
+                onClick={() => handleImageChange(idx)}
+                className={`w-14 h-14 xl:w-16 xl:h-16 rounded-xl overflow-hidden border-2 transition-all duration-500 shrink-0 ${currentImageIndex === idx
+                    ? "border-stone-900 scale-110 shadow-lg"
+                    : "border-transparent opacity-30 hover:opacity-100 hover:scale-105"
+                  }`}
+              >
+                <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile/Tablet Thumbnail Strip - Horizontal scroll below image */}
+          <div className="lg:hidden w-full flex justify-center gap-3 mt-8 pb-4 overflow-x-auto scrollbar-hide px-4">
+            {images.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleImageChange(idx)}
+                className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${currentImageIndex === idx
+                    ? "border-stone-900 scale-110 shadow-md"
+                    : "border-stone-100 opacity-60"
+                  }`}
+              >
+                <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* RIGHT: SCROLLABLE DETAILS - Responsive spacing and font scaling */}
         <div className="w-full lg:w-5/12 bg-stone-50 px-5 sm:px-10 lg:px-12 xl:px-16 py-10 lg:py-20 xl:py-24 border-l border-stone-200/50">
@@ -518,7 +516,10 @@ const ProductPage = () => {
                     ? `\n\nCustomizations:\n${Object.entries(customizations).map(([k, v]) => `• ${k}: ${v}`).join('\n')}`
                     : '';
                   const msg = `Hi! I'm interested in the ${product.title}.${customizationText}`;
-                  window.open(`https://wa.me/${sanityContent.supportContact}?text=${encodeURIComponent(msg)}`, '_blank');
+                  const rawNumber = sanityContent.afterSales?.supportContact?.phone || WHATSAPP_NUMBER;
+                  const cleanNumber = rawNumber.replace(/\D/g, '');
+
+                  window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(msg)}`, '_blank');
                 }}
                 className="w-full h-14 sm:h-16 bg-stone-900 text-white rounded-xl sm:rounded-[20px] flex items-center justify-between px-6 sm:px-10 hover:bg-stone-800 transition-all active:scale-[0.98] shadow-2xl group"
               >
