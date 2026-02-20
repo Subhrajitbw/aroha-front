@@ -24,6 +24,7 @@ const ProductPage = () => {
   const [region, setRegion] = useState(null);
   const [cartId, setCartId] = useState(null);
   const [activeAccordion, setActiveAccordion] = useState("specs");
+  const mobileGalleryRef = useRef(null);
 
   const WHATSAPP_NUMBER = "919830483628";
 
@@ -128,11 +129,21 @@ const ProductPage = () => {
         label: "Specifications & Care",
         content: (
           <div className="spce-y-6">
-            <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-3">
-              Technical Specs
-            </p>
+            
+            {sanityContent.dimensions && (
+              <>
+                <span className="text-sm font-medium text-stone-500 break-words">
+                  Dimensions
+                </span>
 
-            <div className="divide-y divide-stone-100">
+
+                <div className="flex items-center gap-4 p-3 bg-stone-100/50 rounded-xl border border-stone-200/50">
+                  <Ruler className="w-4 h-4 text-stone-400" />
+                  <p className="text-sm tracking-tight">{sanityContent.dimensions.width}W x {sanityContent.dimensions.height}H x {sanityContent.dimensions.depth}D {sanityContent.dimensions.unit}</p>
+                </div>
+              </>
+            )}
+            <div className="divide-y divide-stone-100 pb-4">
               {sanityContent.additionalSpecs?.map((spec, i) => (
                 <div
                   key={i}
@@ -142,12 +153,20 @@ const ProductPage = () => {
                     {spec.label}
                   </span>
 
-                  <span className="text-sm text-stone-900 md:text-right break-words">
+                  <span className="text-xs text-stone-600 font-light md:text-right break-words">
                     {spec.value}
                   </span>
                 </div>
               ))}
             </div>
+            {sanityContent.careInstructions && (
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400">Maintenance</p>
+                <ul className="list-disc pl-4 space-y-1 text-xs text-stone-600 font-light">
+                  {sanityContent.careInstructions.map((item, i) => <li key={i}>{item}</li>)}
+                </ul>
+              </div>
+            )}
           </div>
         )
       });
@@ -332,6 +351,21 @@ const ProductPage = () => {
       });
     }
 
+    if (sanityContent?.faqs) {
+      sections.push({
+        id: "faq", label: "FAQs", content: (
+          <div className="space-y-4">
+            {sanityContent.faqs.map((faq, i) => (
+              <div key={i} className="text-sm">
+                <p className="font-medium text-stone-900">Q: {faq.question}</p>
+                <p className="mt-1 text-stone-500">{faq.answer}</p>
+              </div>
+            ))}
+          </div>
+        )
+      });
+    }
+
     if (sanityContent?.testimonials) {
       sections.push({
         id: "social",
@@ -348,20 +382,7 @@ const ProductPage = () => {
       });
     }
 
-    if (sanityContent?.faqs) {
-      sections.push({
-        id: "faq", label: "FAQs", content: (
-          <div className="space-y-4">
-            {sanityContent.faqs.map((faq, i) => (
-              <div key={i} className="text-sm">
-                <p className="font-medium text-stone-900">Q: {faq.question}</p>
-                <p className="mt-1 text-stone-500">{faq.answer}</p>
-              </div>
-            ))}
-          </div>
-        )
-      });
-    }
+    
 
     return sections;
   }, [sanityContent]);
@@ -373,16 +394,46 @@ const ProductPage = () => {
   return (
     <div className="min-h-screen text-stone-900 font-sans">
       <main className="min-h-screen max-w-[1920px] mx-auto flex flex-col lg:flex-row">
-        {/* LEFT: IMAGE GALLERY - Refined squarish sticky layout */}
+        {/* LEFT: IMAGE GALLERY - Premium Mobile Swiping + Fixed Thumbnails */}
         <div className="w-full lg:w-7/12 relative flex flex-col items-center justify-center 
-  pt-16 sm:pt-24 lg:pt-0 
-  px-4 sm:px-8 lg:px-12 xl:px-24
+  pt-24 sm:pt-24 lg:pt-0 
+  px-0 lg:px-12 xl:px-24
   min-h-[50vh] sm:min-h-[60vh] lg:h-screen lg:sticky lg:top-0 bg-white"
         >
-          {/* Main Image Container - Squarish and slightly smaller on desktop for 'Gallery' feel */}
-          <div className="relative w-full max-w-[500px] xl:max-w-[650px] 
-    aspect-square lg:aspect-[1/1]
-    rounded-2xl sm:rounded-3xl xl:rounded-[40px] overflow-hidden 
+          {/* MOBILE SWIPE GALLERY - One image at a time logic */}
+          <div className="lg:hidden w-full px-4 sm:px-10">
+            <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-sm border border-stone-100/50">
+              <div
+                ref={mobileGalleryRef}
+                className="flex h-full overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+                onScroll={(e) => {
+                  const container = e.currentTarget;
+                  const slideWidth = container.clientWidth;
+                  const index = Math.round(container.scrollLeft / slideWidth);
+                  if (index !== currentImageIndex) {
+                    setCurrentImageIndex(index);
+                  }
+                }}
+              >
+                {images.map((img, idx) => (
+                  <div
+                    key={idx}
+                    className="w-full h-full flex-shrink-0 snap-center"
+                  >
+                    <img
+                      src={img.url}
+                      className="w-full h-full object-cover"
+                      alt={`${product.title} ${idx + 1}`}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* DESKTOP SINGLE IMAGE */}
+          <div className="hidden lg:block relative w-full max-w-[500px] xl:max-w-[650px] 
+    aspect-square rounded-2xl sm:rounded-3xl xl:rounded-[40px] overflow-hidden 
     shadow-sm border border-stone-100/50"
           >
             <img
@@ -390,12 +441,9 @@ const ProductPage = () => {
               className="w-full h-full object-cover transition-all duration-700 ease-out animate-in fade-in"
               alt={product.title}
             />
-
-            {/* Optional: Subtle Overlay for Depth */}
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-stone-900/5 pointer-events-none" />
           </div>
 
-          {/* Desktop Thumbnails - Side Pinned with refined spacing */}
+          {/* Desktop Thumbnails - Side Pinned */}
           <div className="hidden lg:flex absolute left-6 xl:left-12 top-1/2 -translate-y-1/2 flex-col gap-4 max-h-[70%] overflow-y-auto scrollbar-hide z-10 py-4">
             {images.map((img, idx) => (
               <button
@@ -412,23 +460,33 @@ const ProductPage = () => {
             ))}
           </div>
 
-          {/* Mobile/Tablet Thumbnail Strip - Horizontal scroll below image */}
-          <div className="lg:hidden w-full flex justify-center gap-3 mt-8 pb-4 overflow-x-auto scrollbar-hide px-4">
+          {/* Mobile/Tablet Thumbnail Strip - Fixed clipping with padding */}
+          <div className="lg:hidden w-full flex justify-start gap-4 mt-8 pb-6 overflow-x-auto scrollbar-hide px-6">
             {images.map((img, idx) => (
               <button
                 key={idx}
-                onClick={() => handleImageChange(idx)}
-                className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ${currentImageIndex === idx
-                    ? "border-stone-900 scale-110 shadow-md"
+                onClick={() => {
+                  setCurrentImageIndex(idx);
+                  if (mobileGalleryRef.current) {
+                    const slideWidth = mobileGalleryRef.current.clientWidth;
+                    mobileGalleryRef.current.scrollTo({
+                      left: slideWidth * idx,
+                      behavior: "smooth"
+                    });
+                  }
+                }}
+                className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all duration-300 ${currentImageIndex === idx
+                    ? "border-stone-900 scale-105 shadow-md"
                     : "border-stone-100 opacity-60"
                   }`}
               >
-                <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
+                <img src={img.url} className="w-full h-full object-cover" alt={`thumb ${idx}`} />
               </button>
             ))}
+            {/* Transparent spacer to prevent clipping on the right end */}
+            <div className="w-6 shrink-0" />
           </div>
         </div>
-
         {/* RIGHT: SCROLLABLE DETAILS - Responsive spacing and font scaling */}
         <div className="w-full lg:w-5/12 bg-stone-50 px-5 sm:px-10 lg:px-12 xl:px-16 py-10 lg:py-20 xl:py-24 border-l border-stone-200/50">
           <div className="max-w-xl mx-auto space-y-8 sm:space-y-10 lg:space-y-12 pb-20">
@@ -448,7 +506,7 @@ const ProductPage = () => {
               </div>
             </header>
 
-            {/* CUSTOMIZATION GRID */}
+            {/* CUSTOMIZATION DROPDOWN */}
             <div className="space-y-8 lg:space-y-10">
               {sanityContent.customizationAttributes?.map((attr) => (
                 <CustomDropdown
@@ -494,7 +552,7 @@ const ProductPage = () => {
             {/* ACCORDIONS */}
             <div className="border-t border-stone-200">
               {accordionSections.map(section => (
-                <div key={section.id} className="border-b border-stone-100">
+                <div key={section.id} className="border-b border-stone-200">
                   <button onClick={() => setActiveAccordion(activeAccordion === section.id ? null : section.id)} className="w-full py-5 sm:py-7 flex justify-between items-center group transition-all">
                     <span className={`text-[10px] sm:text-[11px] uppercase tracking-[0.2em] font-bold ${activeAccordion === section.id ? "text-stone-900" : "text-stone-400 hover:text-stone-600"}`}>{section.label}</span>
                     <ChevronDown className={`w-4 h-4 transition-transform duration-500 ${activeAccordion === section.id ? "rotate-180 text-stone-900" : "text-stone-300"}`} />
