@@ -1,183 +1,275 @@
-import React, { useState, useEffect, useRef } from "react";
-import { sanityClient, urlFor } from "../lib/sanityClient"; 
-import gsap from "gsap";
-import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react"
+import { sanityClient } from "../lib/sanityClient"
+import gsap from "gsap"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
 const HeroSection = () => {
-  const [slides, setSlides] = useState([]);
-  const [current, setCurrent] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [isPaused, setIsPaused] = useState(false);
+  const [slides, setSlides] = useState([])
+  const [current, setCurrent] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [isPaused, setIsPaused] = useState(false)
 
-  const imageRef = useRef(null);
-  const textContainerRef = useRef(null);
-  const progressBarRef = useRef(null);
+  const imageRef = useRef(null)
+  const textContainerRef = useRef(null)
+  const progressBarRef = useRef(null)
+  const autoplayRef = useRef(null)
 
   // ---------------------------------------------------------
-  // 1. Fetch Data
+  // 1️⃣ Fetch Slides from Sanity
   // ---------------------------------------------------------
   useEffect(() => {
     const fetchSlides = async () => {
       try {
         const query = `*[_type == "heroSlider"][0]{
           slides[]{
+            backgroundType,
             heading,
             subheading,
-            ctaText,
-            ctaLink,
+            badge,
+            alignment,
+            overlayStrength,
+            autoPlayDuration,
             image,
-            "videoUrl": video.asset->url 
+            videoUrl,
+            ctaPrimary,
+            ctaSecondary
           }
-        }`;
-        const data = await sanityClient.fetch(query);
-        if (data?.slides) setSlides(data.slides);
-      } catch (err) { console.error(err); } finally { setLoading(false); }
-    };
-    fetchSlides();
-  }, []);
+        }`
+
+        const data = await sanityClient.fetch(query)
+        if (data?.slides) setSlides(data.slides)
+      } catch (err) {
+        console.error("Hero fetch error:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchSlides()
+  }, [])
 
   // ---------------------------------------------------------
-  // 2. GSAP Animation (Centered Float-up)
+  // 2️⃣ GSAP Animation
   // ---------------------------------------------------------
   useEffect(() => {
-    if (!slides.length) return;
+    if (!slides.length) return
 
     const ctx = gsap.context(() => {
-      const tl = gsap.timeline();
+      const tl = gsap.timeline()
 
-      gsap.set(imageRef.current, { scale: 1.2, opacity: 0 }); 
-      gsap.set(".hero-text-item", { y: 50, opacity: 0 });
-      // Removed the border animation since we are centering
+      gsap.set(imageRef.current, { scale: 1.2, opacity: 0 })
+      gsap.set(".hero-text-item", { y: 50, opacity: 0 })
+      gsap.set(progressBarRef.current, { scaleX: 0 })
 
       tl.to(imageRef.current, {
         opacity: 1,
         scale: 1,
-        duration: 1.8,
+        duration: 1.6,
         ease: "power2.out"
       })
-      .to(".hero-text-item", {
-        y: 0,
-        opacity: 1,
-        duration: 1,
-        stagger: 0.15,
-        ease: "power3.out"
-      }, "-=1.2");
+        .to(
+          ".hero-text-item",
+          {
+            y: 0,
+            opacity: 1,
+            duration: 1,
+            stagger: 0.15,
+            ease: "power3.out"
+          },
+          "-=1.1"
+        )
+        .to(
+          progressBarRef.current,
+          {
+            scaleX: 1,
+            duration:
+              slides[current]?.autoPlayDuration
+                ? slides[current].autoPlayDuration / 1000
+                : 6,
+            ease: "linear"
+          },
+          "-=0.8"
+        )
+    }, textContainerRef)
 
-      gsap.fromTo(progressBarRef.current, 
-        { scaleX: 0 }, 
-        { scaleX: 1, duration: 6, ease: "linear", paused: isPaused }
-      );
-
-    }, textContainerRef);
-
-    return () => ctx.revert();
-  }, [current, slides.length, isPaused]);
+    return () => ctx.revert()
+  }, [current, slides])
 
   // ---------------------------------------------------------
-  // 3. Auto-play
+  // 3️⃣ Auto Play (Duration from CMS)
   // ---------------------------------------------------------
   useEffect(() => {
-    if (slides.length <= 1 || isPaused) return;
-    const timer = setInterval(nextSlide, 6000);
-    return () => clearInterval(timer);
-  }, [current, slides.length, isPaused]);
+    if (!slides.length || isPaused) return
 
-  const nextSlide = () => setCurrent(c => (c + 1) % slides.length);
-  const prevSlide = () => setCurrent(c => (c === 0 ? slides.length - 1 : c - 1));
+    const duration =
+      slides[current]?.autoPlayDuration || 6000
 
-  if (loading) return <div className="h-screen w-full bg-black" />;
-  if (!slides.length) return null;
+    autoplayRef.current = setTimeout(() => {
+      nextSlide()
+    }, duration)
 
-  const slide = slides[current];
+    return () => clearTimeout(autoplayRef.current)
+  }, [current, slides, isPaused])
+
+  const nextSlide = useCallback(() => {
+    setCurrent((c) => (c + 1) % slides.length)
+  }, [slides.length])
+
+  const prevSlide = useCallback(() => {
+    setCurrent((c) =>
+      c === 0 ? slides.length - 1 : c - 1
+    )
+  }, [slides.length])
+
+  if (loading)
+    return <div className="h-screen w-full bg-black" />
+
+  if (!slides.length) return null
+
+  const slide = slides[current]
+
+  // Alignment Classes
+  const alignmentClasses = {
+    center:
+      "justify-center items-center text-center",
+    left:
+      "justify-start items-center text-left pl-12 md:pl-24",
+    right:
+      "justify-end items-center text-right pr-12 md:pr-24"
+  }
 
   return (
-    <section className="relative h-screen w-full bg-black overflow-hidden text-white select-none">
-      
-      {/* === BACKGROUND === */}
-      <div className="absolute inset-0 w-full h-full overflow-hidden">
+    <section className="relative h-screen w-full bg-black overflow-hidden text-white">
+
+      {/* ================= Background ================= */}
+      <div className="absolute inset-0 w-full h-full">
         <div ref={imageRef} className="w-full h-full relative">
-          {slide.videoUrl ? (
+
+          {slide.backgroundType === "video" ? (
             <video
               src={slide.videoUrl}
-              autoPlay muted loop playsInline
+              autoPlay
+              muted
+              loop
+              playsInline
               className="w-full h-full object-cover opacity-70"
             />
           ) : (
             <img
-              src={slide.image ? urlFor(slide.image).width(2400).quality(90).url() : ""}
+              src={slide.image?.url}
               alt={slide.heading}
               className="w-full h-full object-cover opacity-70"
             />
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/80" />
+
+          {/* Dynamic Overlay */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(
+                to bottom,
+                rgba(0,0,0,${
+                  (slide.overlayStrength || 60) / 200
+                }),
+                transparent,
+                rgba(0,0,0,${
+                  (slide.overlayStrength || 60) / 100
+                })
+              )`
+            }}
+          />
         </div>
       </div>
 
-      {/* === CONTENT (Centered) === */}
-      <div ref={textContainerRef} className="absolute inset-0 flex flex-col justify-center items-center text-center px-6">
-        
-        {/* Max-width container forces nice line breaks */}
-        <div className="max-w-5xl mx-auto flex flex-col items-center gap-8">
-          
+      {/* ================= Content ================= */}
+      <div
+        ref={textContainerRef}
+        className={`absolute inset-0 flex px-6 ${
+          alignmentClasses[slide.alignment || "center"]
+        }`}
+      >
+        <div className="max-w-5xl flex flex-col gap-8">
+
+          {/* Badge */}
+          {slide.badge && (
+            <div className="hero-text-item">
+              <span className="px-4 py-1 text-xs uppercase tracking-widest border border-white/40 bg-white/10 backdrop-blur-sm">
+                {slide.badge}
+              </span>
+            </div>
+          )}
+
           {/* Heading */}
-          <h1 className="hero-text-item text-5xl md:text-7xl lg:text-9xl font-light tracking-tighter leading-[1.1] text-white">
+          <h1 className="hero-text-item text-5xl md:text-7xl lg:text-9xl font-light tracking-tight leading-[1.1]">
             {slide.heading}
           </h1>
 
           {/* Subheading */}
           {slide.subheading && (
-            <p className="hero-text-item text-lg md:text-xl text-white/90 font-light max-w-2xl leading-relaxed">
+            <p className="hero-text-item text-lg md:text-xl text-white/90 max-w-2xl">
               {slide.subheading}
             </p>
           )}
 
-          {/* CTA */}
-          {slide.ctaText && (
-            <div className="hero-text-item pt-4">
-              <a
-                href={slide.ctaLink || "#"}
-                className="
-                  group relative inline-flex items-center gap-3 px-10 py-4 
-                  border border-white/30 hover:border-white
-                  rounded-full backdrop-blur-sm bg-white/5 hover:bg-white/10
-                  text-sm uppercase tracking-[0.2em] 
-                  transition-all duration-300 ease-out
-                "
-              >
-                <span>{slide.ctaText}</span>
-                <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
-              </a>
+          {/* CTA Buttons */}
+          {(slide.ctaPrimary?.text ||
+            slide.ctaSecondary?.text) && (
+            <div className="hero-text-item flex gap-4 flex-wrap pt-4">
+
+              {slide.ctaPrimary?.text && (
+                <a
+                  href={slide.ctaPrimary.link}
+                  className="px-8 py-4 border border-white rounded-full bg-white/10 hover:bg-white/20 transition-all uppercase text-sm tracking-widest"
+                >
+                  {slide.ctaPrimary.text}
+                </a>
+              )}
+
+              {slide.ctaSecondary?.text && (
+                <a
+                  href={slide.ctaSecondary.link}
+                  className="px-8 py-4 border border-white/30 rounded-full hover:border-white transition-all uppercase text-sm tracking-widest opacity-80"
+                >
+                  {slide.ctaSecondary.text}
+                </a>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* === CONTROLS === */}
+      {/* ================= Progress Bar ================= */}
       <div className="absolute bottom-0 left-0 w-full h-1 bg-white/10">
-        <div ref={progressBarRef} className="h-full bg-white origin-left" />
+        <div
+          ref={progressBarRef}
+          className="h-full bg-white origin-left"
+        />
       </div>
 
+      {/* ================= Controls ================= */}
       <div className="absolute bottom-12 w-full flex justify-center items-center gap-8 z-20">
-         {/* Prev */}
-         <button onClick={prevSlide} className="p-3 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white">
-            <ChevronLeft size={28} strokeWidth={1} />
-          </button>
 
-         {/* Slide Counter */}
-         <div className="text-sm font-mono tracking-widest text-white/50">
-            <span className="text-white">{String(current + 1).padStart(2, '0')}</span>
-            <span className="mx-2">/</span>
-            {String(slides.length).padStart(2, '0')}
-          </div>
+        <button
+          onClick={prevSlide}
+          className="p-3 hover:bg-white/10 rounded-full transition"
+        >
+          <ChevronLeft size={28} />
+        </button>
 
-         {/* Next */}
-         <button onClick={nextSlide} className="p-3 hover:bg-white/10 rounded-full transition-colors text-white/70 hover:text-white">
-            <ChevronRight size={28} strokeWidth={1} />
-          </button>
+        <div className="text-sm tracking-widest">
+          {String(current + 1).padStart(2, "0")} /
+          {String(slides.length).padStart(2, "0")}
+        </div>
+
+        <button
+          onClick={nextSlide}
+          className="p-3 hover:bg-white/10 rounded-full transition"
+        >
+          <ChevronRight size={28} />
+        </button>
       </div>
-
     </section>
-  );
-};
+  )
+}
 
-export default HeroSection;
+export default HeroSection
