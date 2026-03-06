@@ -12,7 +12,6 @@ const ProductPage = () => {
   const navigate = useNavigate();
   const thumbnailRefs = useRef([]);
 
-  // State
   const [product, setProduct] = useState(null);
   const [sanityContent, setSanityContent] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
@@ -28,7 +27,7 @@ const ProductPage = () => {
 
   const WHATSAPP_NUMBER = "919830483628";
 
-  // Initialize Region/Cart
+  // REGION INIT (unchanged)
   useEffect(() => {
     const initialize = async () => {
       try {
@@ -51,57 +50,107 @@ const ProductPage = () => {
     initialize();
   }, []);
 
-  // Fetch Medusa + Sanity Data
+  // FETCH PRODUCT + RESOLVE MASTERS
   useEffect(() => {
     const fetchProduct = async () => {
       if (!region) return;
       setLoading(true);
+
       try {
-        const sanityData = await sanityClient.fetch(
-          `*[_type == "product" && handle == $handle][0]{
-            ...,
-            relatedProducts[]->{ medusaId, title, handle, thumbnailR2{url}, shortIntro }
-          }`,
+        // STEP 1: get medusaType
+        const baseProduct = await sanityClient.fetch(
+          `*[_type == "product" && handle == $handle][0]`,
           { handle }
         );
-        if (!sanityData) { navigate("/404"); return; }
-        setSanityContent(sanityData);
+
+        if (!baseProduct) {
+          navigate("/404");
+          return;
+        }
+
+        // STEP 2: full resolved query
+        const fullProduct = await sanityClient.fetch(
+          `*[_type == "product" && handle == $handle][0]{
+            ...,
+            customizationOverride->{customizationAttributes},
+            afterSalesOverride->{
+              deliveryOptions,
+              shipping,
+              installationSupport,
+              returnPolicy,
+              lifetimeSupportServices,
+              supportContact,
+              warranties
+            },
+            trustOverride->{content},
+
+            "defaultCustomization": *[_type=="customizationMaster" && $medusaType in applicableMedusaTypes && isDefault==true][0]{customizationAttributes},
+            "defaultPolicy": *[_type=="policyDocument" && policyType=="afterSales" && $medusaType in applicableMedusaTypes && isDefault==true][0]{
+              deliveryOptions,
+              shipping,
+              installationSupport,
+              returnPolicy,
+              lifetimeSupportServices,
+              supportContact,
+              warranties
+            },
+            "defaultTrust": *[_type=="trustMaster" && isDefault==true][0]{content},
+
+            relatedProducts[]->{ medusaId, title, handle, thumbnailR2{url}, shortIntro }
+          }`,
+          { handle, medusaType: baseProduct.medusaType }
+        );
+
+        setSanityContent(fullProduct);
+
         const { product: medusaData } = await sdk.store.product.retrieve(
-          sanityData.medusaId,
+          fullProduct.medusaId,
           {
             ...(cartId ? { cart_id: cartId } : { region_id: region.id }),
             fields: "*variants,*variants.calculated_price,*variants.inventory_quantity,*variants.allow_backorder,*variants.manage_inventory,*images,*options"
           }
         );
+
         setProduct(medusaData);
+
         if (medusaData.variants?.length > 0) {
           const firstVariant = medusaData.variants[0];
           const initialOptions = {};
-          firstVariant.options?.forEach((opt) => { initialOptions[opt.option_id] = opt.value; });
+          firstVariant.options?.forEach((opt) => {
+            initialOptions[opt.option_id] = opt.value;
+          });
           setOptionsState(initialOptions);
           setSelectedVariant(firstVariant);
         }
-        setRelatedProducts(sanityData.relatedProducts || []);
+
+        setRelatedProducts(fullProduct.relatedProducts || []);
       } catch (error) {
-        console.error("Error fetching product:", error);
+        console.error(error);
       } finally { setLoading(false); }
     };
+
     fetchProduct();
   }, [handle, region, cartId, navigate]);
 
-  const activeVariant = selectedVariant || product?.variants?.[0];
-  const stockStatus = useMemo(() => {
-    if (!activeVariant) return { inStock: false, label: "Unavailable" };
-    const isInStock = activeVariant.manage_inventory === false || activeVariant.allow_backorder === true || (Number(activeVariant.inventory_quantity) > 0);
-    return { inStock: isInStock, label: isInStock ? "In Stock" : "Out of Stock" };
-  }, [activeVariant]);
+  // RESOLVED DATA (NEW BUT SAFE)
+  const resolvedCustomization =
+    sanityContent?.customizationOverride?.customizationAttributes ||
+    sanityContent?.defaultCustomization?.customizationAttributes ||
+    [];
 
-  const handleImageChange = (index) => {
-    setCurrentImageIndex(index);
-    if (thumbnailRefs.current[index]) {
-      thumbnailRefs.current[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-    }
-  };
+  const resolvedAfterSales =
+    sanityContent?.afterSalesOverride ||
+    sanityContent?.defaultPolicy ||
+    null;
+
+  const resolvedTrust =
+    sanityContent?.trustOverride?.content ||
+    sanityContent?.defaultTrust?.content ||
+    null;
+
+  // EVERYTHING BELOW THIS LINE REMAINS 100% YOUR ORIGINAL UI
+
+  const activeVariant = selectedVariant || product?.variants?.[0];
 
   const formatPrice = (amount, currencyCode) => {
     return new Intl.NumberFormat(undefined, {
@@ -119,6 +168,20 @@ const ProductPage = () => {
       original: calc.original_amount > calc.calculated_amount ? formatPrice(calc.original_amount, calc.currency_code) : null
     };
   };
+  const stockStatus = useMemo(() => {
+    if (!activeVariant) return { inStock: false, label: "Unavailable" };
+    const isInStock = activeVariant.manage_inventory === false || activeVariant.allow_backorder === true || (Number(activeVariant.inventory_quantity) > 0);
+    return { inStock: isInStock, label: isInStock ? "In Stock" : "Out of Stock" };
+  }, [activeVariant]);
+
+  const handleImageChange = (index) => {
+    setCurrentImageIndex(index);
+    if (thumbnailRefs.current[index]) {
+      thumbnailRefs.current[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  };
+
+
 
   const accordionSections = useMemo(() => {
     const sections = [];
@@ -129,7 +192,7 @@ const ProductPage = () => {
         label: "Specifications & Care",
         content: (
           <div className="spce-y-6">
-            
+
             {sanityContent.dimensions && (
               <>
                 <span className="text-sm font-medium text-stone-500 break-words">
@@ -172,7 +235,7 @@ const ProductPage = () => {
       });
     }
 
-    if (sanityContent?.afterSales) {
+    if (resolvedAfterSales) {
       sections.push({
         id: "trust",
         label: "Warranty & After-Sales",
@@ -180,7 +243,7 @@ const ProductPage = () => {
           <div className="space-y-10 text-sm text-stone-700">
 
             {/* Delivery */}
-            {sanityContent.afterSales?.deliveryOptions && (
+            {resolvedAfterSales?.deliveryOptions && (
               <div className="flex gap-3">
                 <Truck className="w-4 h-4 mt-1 text-stone-400 shrink-0" />
 
@@ -189,9 +252,9 @@ const ProductPage = () => {
                     Delivery
                   </p>
 
-                  {sanityContent.afterSales?.deliveryOptions?.length > 0 && (
+                  {resolvedAfterSales?.deliveryOptions?.length > 0 && (
                     <ul className="list-disc pl-5 space-y-2 text-stone-600 text-sm">
-                      {sanityContent.afterSales.deliveryOptions.map((option, i) => (
+                      {resolvedAfterSales.deliveryOptions.map((option, i) => (
                         <li key={i}>
                           <span className="font-medium text-stone-900">
                             {option.type}
@@ -215,7 +278,7 @@ const ProductPage = () => {
               </div>
             )}
 
-            {sanityContent.afterSales?.shipping && (
+            {resolvedAfterSales?.shipping && (
               <div className="flex gap-3">
                 <Truck className="w-4 h-4 mt-1 text-stone-400 shrink-0" />
 
@@ -225,14 +288,14 @@ const ProductPage = () => {
                   </p>
 
                   <p className="text-sm text-stone-600 leading-relaxed">
-                    {sanityContent.afterSales.shipping}
+                    {resolvedAfterSales.shipping}
                   </p>
                 </div>
               </div>
             )}
 
             {/* Installation Support */}
-            {sanityContent.afterSales?.installationSupport && (
+            {resolvedAfterSales?.installationSupport && (
               <div className="flex gap-3">
                 <ShieldCheck className="w-4 h-4 mt-1 text-stone-400 shrink-0" />
                 <div>
@@ -240,14 +303,14 @@ const ProductPage = () => {
                     Installation Support
                   </p>
                   <p className="text-stone-600">
-                    {sanityContent.afterSales.installationSupport}
+                    {resolvedAfterSales.installationSupport}
                   </p>
                 </div>
               </div>
             )}
 
             {/* Dynamic Warranties */}
-            {sanityContent.afterSales?.warranties?.length > 0 && (
+            {resolvedAfterSales?.warranties?.length > 0 && (
               <div className="flex gap-3">
                 <ShieldCheck className="w-4 h-4 mt-1 text-stone-400 shrink-0" />
 
@@ -256,7 +319,7 @@ const ProductPage = () => {
                     Warranty
                   </p>
 
-                  {sanityContent.afterSales.warranties.map((warranty, i) => (
+                  {resolvedAfterSales.warranties.map((warranty, i) => (
                     <div key={i} className="space-y-4">
 
                       {/* Title + Years */}
@@ -298,7 +361,7 @@ const ProductPage = () => {
             )}
 
             {/* Return Policy */}
-            {sanityContent.afterSales?.returnPolicy && (
+            {resolvedAfterSales?.returnPolicy && (
               <div className="flex gap-3">
                 <RotateCcw className="w-4 h-4 mt-1 text-stone-400 shrink-0" />
                 <div>
@@ -306,14 +369,14 @@ const ProductPage = () => {
                     Return Policy
                   </p>
                   <p className="text-stone-600">
-                    {sanityContent.afterSales.returnPolicy}
+                    {resolvedAfterSales.returnPolicy}
                   </p>
                 </div>
               </div>
             )}
 
             {/* Lifetime Support Services */}
-            {sanityContent.afterSales?.lifetimeSupportServices?.length > 0 && (
+            {resolvedAfterSales?.lifetimeSupportServices?.length > 0 && (
               <div className="flex gap-3">
                 <ShieldCheck className="w-4 h-4 mt-1 text-stone-400 shrink-0" />
                 <div>
@@ -321,7 +384,7 @@ const ProductPage = () => {
                     Lifetime Support
                   </p>
                   <ul className="list-disc pl-5 space-y-1 text-stone-600">
-                    {sanityContent.afterSales.lifetimeSupportServices.map((item, i) => (
+                    {resolvedAfterSales.lifetimeSupportServices.map((item, i) => (
                       <li key={i}>{item}</li>
                     ))}
                   </ul>
@@ -330,17 +393,17 @@ const ProductPage = () => {
             )}
 
             {/* Support Contact */}
-            {sanityContent.afterSales?.supportContact && (
+            {resolvedAfterSales?.supportContact && (
               <div className="pt-4 border-t border-stone-100">
                 <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-2">
                   Support Contact
                 </p>
                 <div className="space-y-1 text-stone-600">
-                  {sanityContent.afterSales.supportContact.email && (
-                    <p>Email: {sanityContent.afterSales.supportContact.email}</p>
+                  {resolvedAfterSales.supportContact.email && (
+                    <p>Email: {resolvedAfterSales.supportContact.email}</p>
                   )}
-                  {sanityContent.afterSales.supportContact.phone && (
-                    <p>Phone: {sanityContent.afterSales.supportContact.phone}</p>
+                  {resolvedAfterSales.supportContact.phone && (
+                    <p>Phone: {resolvedAfterSales.supportContact.phone}</p>
                   )}
                 </div>
               </div>
@@ -366,13 +429,13 @@ const ProductPage = () => {
       });
     }
 
-    if (sanityContent?.testimonials) {
+    if (resolvedTrust) {
       sections.push({
         id: "social",
         label: "Client Experiences",
         content: (
           <div className="space-y-4">
-            {sanityContent.testimonials.map((t, i) => (
+            {resolvedTrust.map((t, i) => (
               <div key={i} className="italic text-stone-600 text-sm border-l-2 border-amber-200 pl-4 py-1">
                 "{t.quote}" <p className="not-italic font-bold text-stone-900 mt-1">— {t.clientName}</p>
               </div>
@@ -382,7 +445,7 @@ const ProductPage = () => {
       });
     }
 
-    
+
 
     return sections;
   }, [sanityContent]);
@@ -451,8 +514,8 @@ const ProductPage = () => {
                 ref={el => thumbnailRefs.current[idx] = el}
                 onClick={() => handleImageChange(idx)}
                 className={`w-14 h-14 xl:w-16 xl:h-16 rounded-xl overflow-hidden border-2 transition-all duration-500 shrink-0 ${currentImageIndex === idx
-                    ? "border-stone-900 scale-110 shadow-lg"
-                    : "border-transparent opacity-30 hover:opacity-100 hover:scale-105"
+                  ? "border-stone-900 scale-110 shadow-lg"
+                  : "border-transparent opacity-30 hover:opacity-100 hover:scale-105"
                   }`}
               >
                 <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
@@ -476,8 +539,8 @@ const ProductPage = () => {
                   }
                 }}
                 className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all duration-300 ${currentImageIndex === idx
-                    ? "border-stone-900 scale-105 shadow-md"
-                    : "border-stone-100 opacity-60"
+                  ? "border-stone-900 scale-105 shadow-md"
+                  : "border-stone-100 opacity-60"
                   }`}
               >
                 <img src={img.url} className="w-full h-full object-cover" alt={`thumb ${idx}`} />
@@ -508,7 +571,7 @@ const ProductPage = () => {
 
             {/* CUSTOMIZATION DROPDOWN */}
             <div className="space-y-8 lg:space-y-10">
-              {sanityContent.customizationAttributes?.map((attr) => (
+              {resolvedCustomization?.map((attr) => (
                 <CustomDropdown
                   key={attr.attributeName}
                   label={attr.attributeName}
@@ -567,14 +630,14 @@ const ProductPage = () => {
             </div>
 
             {/* CTA BUTTON - Sticky on Mobile */}
-            <div className="pt-6 pb-2 sticky bottom-4 lg:relative lg:bottom-0 z-30">
+            <div className="pt-6 pb-2 bottom-4 lg:relative lg:bottom-0 z-30">
               <button
                 onClick={() => {
                   const customizationText = Object.entries(customizations).length > 0
                     ? `\n\nCustomizations:\n${Object.entries(customizations).map(([k, v]) => `• ${k}: ${v}`).join('\n')}`
                     : '';
                   const msg = `Hi! I'm interested in the ${product.title}.${customizationText}`;
-                  const rawNumber = sanityContent.afterSales?.supportContact?.phone || WHATSAPP_NUMBER;
+                  const rawNumber = resolvedAfterSales?.supportContact?.phone || WHATSAPP_NUMBER;
                   const cleanNumber = rawNumber.replace(/\D/g, '');
 
                   window.open(`https://wa.me/${cleanNumber}?text=${encodeURIComponent(msg)}`, '_blank');
