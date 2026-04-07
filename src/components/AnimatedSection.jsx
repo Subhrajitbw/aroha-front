@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { animated } from "@react-spring/web";
 import { motion } from "framer-motion";
-import { sdk } from "../lib/medusaClient"; // Ensure this is your initialized SDK
 import { useResponsive } from "../hooks/useResponsive";
 import { useBackgroundSpring } from "../hooks/useBackgroundSpring";
 import { useContentAnimation } from "../hooks/useContentAnimation";
+import { useQuery } from "@tanstack/react-query";
+import { medusaApi, medusa, prefetchImage } from "../lib/react-query";
 
 // Sub-components
 import SliderColumn from "./sections/SliderColumn";
@@ -14,22 +15,17 @@ import TextColumn from "./sections/TextColumns";
 const AnimatedSection = ({
   // You can pass a specific collection handle if you want this section to be static
   // Or let it auto-fetch the first one
-  collectionHandle, 
+  collectionHandle,
   desktopViewMode = "normal",
   defaultBackground,
 }) => {
   // ---------------------------------------------------------
   // 1. STATE & REFS
   // ---------------------------------------------------------
-  const [collection, setCollection] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [regionId, setRegionId] = useState(null);
-
   const sectionRef = useRef(null);
   const contentRef = useRef(null);
   const { ref: textRef, inView } = useInView({ threshold: 0.2 });
-  
+
   const isDesktop = useResponsive();
   const bgSpring = useBackgroundSpring(sectionRef);
   const {
@@ -46,128 +42,105 @@ const AnimatedSection = ({
   // 2. DATA FETCHING
   // ---------------------------------------------------------
 
-  // A. Fetch Region (Crucial for accurate pricing)
-  useEffect(() => {
-    const initRegion = async () => {
-      try {
-        const { regions } = await sdk.store.region.list({ limit: 1 });
-        if (regions?.length > 0) setRegionId(regions[0].id);
-      } catch (e) {
-        console.warn("Region fetch failed", e);
-      }
-    };
-    initRegion();
-  }, []);
+  // ---------------------------------------------------------
+  // 2. DATA FETCHING (TANSTACK QUERY)
+  // ---------------------------------------------------------
+
+  // A. Fetch Region
+  const { data: regionId } = useQuery({
+    queryKey: ['region'],
+    queryFn: async () => {
+      const { regions } = await medusa.region.list({ limit: 1 });
+      return regions?.[0]?.id || null;
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
 
   // B. Fetch Collection & Products
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        let targetCollection = null;
+  const { data: sectionData, isLoading: loading } = useQuery({
+    queryKey: ['animated-section', collectionHandle, regionId],
+    queryFn: async () => {
+      let targetCollection = null;
 
-        // 1. Get Collection info
-        if (collectionHandle) {
-            // Fetch specific collection by handle
-            const { collections } = await sdk.store.collection.list({ handle: collectionHandle, limit: 1 });
-            if (collections.length > 0) targetCollection = collections[0];
-        } else {
-            // Fetch the first available collection as default
-            const { collections } = await sdk.store.collection.list({ limit: 1 });
-            if (collections.length > 0) targetCollection = collections[0];
-        }
-
-        if (!targetCollection) {
-            setLoading(false);
-            return;
-        }
-
-        setCollection(targetCollection);
-
-        // 2. Fetch Products for this Collection
-        // Note: Medusa v2 filters by 'collection_id' array
-        const queryParams = {
-            collection_id: [targetCollection.id],
-            limit: 10,
-            fields: "id,title,handle,thumbnail,variants.calculated_price,variants.prices.*",
-        };
-        if (regionId) queryParams.region_id = regionId;
-
-        const { products: rawProducts } = await sdk.store.product.list(queryParams);
-
-        // 3. Map Products (Robust Pricing Logic)
-        const mappedProducts = rawProducts.map(product => {
-            const defaultVariant = product.variants?.[0];
-            
-            // Price Logic
-            let amount = defaultVariant?.calculated_price?.calculated_amount;
-            let originalAmount = defaultVariant?.calculated_price?.original_amount;
-            let currencyCode = defaultVariant?.calculated_price?.currency_code;
-
-            // Fallback to raw prices if calculated is missing
-            if (amount === undefined || amount === null) {
-                const prices = defaultVariant?.prices || [];
-                // Prefer INR, then USD, then first
-                let priceObj = prices.find(p => p.currency_code?.toLowerCase() === 'inr');
-                if (!priceObj) priceObj = prices.find(p => p.currency_code?.toLowerCase() === 'usd');
-                if (!priceObj) priceObj = prices[0];
-
-                if (priceObj) {
-                    amount = priceObj.amount;
-                    originalAmount = priceObj.amount;
-                    currencyCode = priceObj.currency_code;
-                }
-            }
-
-            amount = amount || 0;
-            originalAmount = originalAmount || 0;
-            currencyCode = (currencyCode || "INR").toUpperCase();
-
-            // Discount
-            let discount = 0;
-            if (originalAmount > amount) {
-                discount = Math.round(((originalAmount - amount) / originalAmount) * 100);
-            }
-
-            // Formatter
-            const formatPrice = (val) => new Intl.NumberFormat('en-IN', {
-                style: 'currency',
-                currency: currencyCode,
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0,
-            }).format(val);
-
-            const isSale = discount > 0;
-
-            return {
-                id: product.id,
-                title: product.title,
-                handle: product.handle,
-                image: product.thumbnail || product.images?.[0]?.url || "https://placehold.co/600x800/f5f5f5/e0e0e0",
-                price: formatPrice(amount),
-                originalPrice: isSale ? formatPrice(originalAmount) : null,
-                discount: discount,
-                status: isSale ? "sale" : "new",
-                collection: targetCollection.title
-            };
-        });
-
-        setProducts(mappedProducts);
-
-      } catch (error) {
-        console.error("Error fetching animated section data:", error);
-      } finally {
-        setLoading(false);
+      // 1. Get Collection
+      if (collectionHandle) {
+        const { collections } = await medusa.collection.list({ handle: collectionHandle, limit: 1 });
+        if (collections?.length > 0) targetCollection = collections[0];
+      } else {
+        const { collections } = await medusa.collection.list({ limit: 1 });
+        if (collections?.length > 0) targetCollection = collections[0];
       }
-    };
 
-    fetchData();
-  }, [collectionHandle, regionId]);
+      if (!targetCollection) return { collection: null, products: [] };
+
+      // 2. Fetch Products
+      const params = {
+        collection_id: [targetCollection.id],
+        limit: 10,
+        fields: "id,title,handle,thumbnail,variants.calculated_price,variants.prices.*",
+      };
+      if (regionId) params.region_id = regionId;
+
+      const { products: rawProducts } = await medusa.product.list(params);
+
+      // 3. Map Products
+      const mapped = rawProducts.map(product => {
+        const defaultVariant = product.variants?.[0];
+        const priceObj = defaultVariant?.calculated_price;
+
+        const amount = priceObj?.calculated_amount || 0;
+        const originalAmount = priceObj?.original_amount || 0;
+        const currencyCode = (priceObj?.currency_code || "INR").toUpperCase();
+
+        let discount = 0;
+        if (originalAmount > amount) {
+          discount = Math.round(((originalAmount - amount) / originalAmount) * 100);
+        }
+
+        const formatPrice = (val) => new Intl.NumberFormat('en-IN', {
+          style: 'currency',
+          currency: currencyCode,
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(val);
+
+        const isSale = discount > 0;
+
+        const productData = {
+          id: product.id,
+          title: product.title,
+          handle: product.handle,
+          image: product.thumbnail || "https://placehold.co/600x800",
+          price: formatPrice(amount),
+          originalPrice: isSale ? formatPrice(originalAmount) : null,
+          discount,
+          status: isSale ? "sale" : "new",
+          collection: targetCollection.title
+        };
+
+        // Prefetch product image
+        prefetchImage(productData.image);
+        return productData;
+      });
+
+      // Prefetch collection background image
+      if (targetCollection.metadata?.image) {
+        prefetchImage(targetCollection.metadata.image);
+      }
+
+      return { collection: targetCollection, products: mapped };
+    },
+    enabled: !!regionId || regionId === null,
+    staleTime: 1000 * 60 * 10,
+  });
+
+  const collection = sectionData?.collection;
+  const products = sectionData?.products || [];
 
   // ---------------------------------------------------------
   // 3. RENDER
   // ---------------------------------------------------------
-  
+
   // Helper props for child components
   const sharedProps = {
     products,
@@ -184,7 +157,7 @@ const AnimatedSection = ({
   };
 
   // Loading State (Optional: skeleton or null)
-  if (loading) return null; 
+  if (loading) return null;
 
   return (
     <animated.div

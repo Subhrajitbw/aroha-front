@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Heart, ChevronLeft, ChevronRight, Check, MessageCircle, ChevronDown } from "lucide-react";
-import { sdk } from "../lib/medusaClient";
-import { sanityClient } from "../lib/sanityClient"; // Import Sanity client
-import { PortableText } from '@portabletext/react'; // For rich text
+import { PortableText } from '@portabletext/react';
 import { ProductInfoCard } from "../components/ProductInfoCard";
+import { useQuery } from "@tanstack/react-query";
+import { medusaApi, medusa, sanity, sanityUrlFor, prefetchImage } from "../lib/react-query";
 
 const stripHtml = (value = "") =>
   String(value).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -109,18 +109,10 @@ const ProductPage = () => {
   const thumbnailRefs = useRef([]);
 
   // State
-  const [product, setProduct] = useState(null);
-  const [sanityContent, setSanityContent] = useState(null); // Sanity content
-  const [selectedVariant, setSelectedVariant] = useState(null);
-  const [optionsState, setOptionsState] = useState({});
-
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [relatedProducts, setRelatedProducts] = useState([]);
-  const [region, setRegion] = useState(null);
-  const [cartId, setCartId] = useState(null);
   const [activeAccordion, setActiveAccordion] = useState("details");
+  const [optionsState, setOptionsState] = useState({});
+  const [selectedVariant, setSelectedVariant] = useState(null);
 
   const WHATSAPP_NUMBER = "1234567890";
 
@@ -135,132 +127,113 @@ const ProductPage = () => {
   const cardSize = "md"; // Define cardSize
   const currentCardWidth = cardWidths[cardSize] || cardWidths.md;
 
-  // Initialize
-  useEffect(() => {
-    const initialize = async () => {
-      try {
-        let existingCartId = localStorage.getItem("cart_id");
-        if (existingCartId) {
-          try {
-            const { cart } = await sdk.store.cart.retrieve(existingCartId);
-            setCartId(cart.id);
-            setRegion(cart.region);
-            return;
-          } catch {
-            localStorage.removeItem("cart_id");
-          }
+  // --- TANSTACK QUERY: INITIALIZE REGION/CART ---
+  const { data: config = {} } = useQuery({
+    queryKey: ['cart-config'],
+    queryFn: async () => {
+      let existingCartId = localStorage.getItem("cart_id");
+      let cart = null;
+      let region = null;
+
+      if (existingCartId) {
+        try {
+          const res = await medusaApi.get(`/store/carts/${existingCartId}`);
+          cart = res.data.cart;
+          region = cart.region;
+        } catch {
+          localStorage.removeItem("cart_id");
         }
-        const { regions } = await sdk.store.region.list();
-        if (regions && regions.length > 0) {
-          setRegion(regions[0]);
-          localStorage.setItem("region_id", regions[0].id);
-        }
-      } catch (error) {
-        console.error(error);
       }
-    };
-    initialize();
-  }, []);
 
-  // Fetch Data from Medusa and Sanity
-  useEffect(() => {
-    const fetchProduct = async () => {
-      if (!region) return;
-      setLoading(true);
-      try {
-        const queryParams = {
-          handle,
-          fields:
-            "id,title,subtitle,description,handle,thumbnail,*images,*options,*variants.id,*variants.title,*variants.sku,*variants.manage_inventory,*variants.inventory_quantity,*variants.allow_backorder,*variants.options,*variants.calculated_price,*variants.prices,*collection,*tags,*type,material,weight,length,width,height,origin_country,created_at,*metadata",
-          ...(cartId ? { cart_id: cartId } : { region_id: region.id }),
-        };
+      if (!region) {
+        const res = await medusaApi.get('/store/regions');
+        region = res.data.regions?.[0];
+      }
+      return { cartId: cart?.id, region };
+    },
+    staleTime: Infinity,
+  });
 
-        const { products } = await sdk.store.product.list(queryParams);
-        const productData = products?.[0];
+  const { region, cartId } = config;
 
-        if (!productData) {
-          navigate("/404");
-          return;
-        }
+  // --- TANSTACK QUERY: PRODUCT & SANITY DATA ---
+  const { data: pageData, isLoading: loading } = useQuery({
+    queryKey: ['product-page', handle, region?.id, cartId],
+    queryFn: async () => {
+      if (!region) return null;
 
-        setProduct({
-          ...productData,
-          subtitle: stripHtml(productData.subtitle || ""),
-          description: productData.description || "",
-          images: normalizeImages(productData),
-        });
-
-        // Initialize Options State
-        if (productData.variants && productData.variants.length > 0) {
-          const firstVariant = productData.variants[0];
-          const initialOptions = {};
-          firstVariant.options.forEach(opt => {
-            initialOptions[opt.option_id] = opt.value;
-          });
-          setOptionsState(initialOptions);
-          setSelectedVariant(firstVariant);
-        }
-
-        // Fetch Sanity Content
-        const sanityData = await sanityClient.fetch(
+      // 1. Fetch Medusa Product and Sanity Content in parallel
+      const [medusaRes, sanityData] = await Promise.all([
+        medusaApi.get('/store/products', {
+          params: {
+            handle,
+            fields: "id,title,subtitle,description,handle,thumbnail,*images,*options,*variants.id,*variants.title,*variants.sku,*variants.manage_inventory,*variants.inventory_quantity,*variants.allow_backorder,*variants.options,*variants.calculated_price,*variants.prices,*collection,*tags,*type,material,weight,length,width,height,origin_country,created_at,*metadata",
+            ...(cartId ? { cart_id: cartId } : { region_id: region.id }),
+          }
+        }),
+        sanity.fetch(
           `*[_type == "product" && handle == $handle][0]{
-            shortDescription,
-            richDescription,
-            features,
-            specifications,
-            extraSections[]{
-              title,
-              icon,
-              content
-            },
-            relatedProducts[]->{
-              medusaId,
-              title,
-              handle,
-              thumbnailR2
-            },
-            upsellProducts[]->{
-              medusaId,
-              title,
-              handle,
-              thumbnailR2
-            },
-            crosssellProducts[]->{
-              medusaId,
-              title,
-              handle,
-              thumbnailR2
-            }
+            shortDescription, richDescription, features, specifications,
+            extraSections[]{ title, icon, content },
+            relatedProducts[]->{ medusaId, title, handle, thumbnailR2 }
           }`,
           { handle }
-        );
+        )
+      ]);
 
-        setSanityContent(sanityData);
+      const productRaw = medusaRes.data.products?.[0];
+      if (!productRaw) throw new Error("Product not found");
 
-        // Fetch related products from Medusa
-        if (productData.collection_id) {
-          const { products: relatedList } = await sdk.store.product.list({
-            collection_id: [productData.collection_id],
+      const product = {
+        ...productRaw,
+        subtitle: stripHtml(productRaw.subtitle || ""),
+        description: productRaw.description || "",
+        images: normalizeImages(productRaw),
+      };
+
+      // Prefetch main images
+      product.images.forEach(img => prefetchImage(img.url));
+
+      // 2. Fetch Related Products
+      let relatedProducts = [];
+      if (product.collection_id) {
+        const { data: relatedRes } = await medusaApi.get('/store/products', {
+          params: {
+            collection_id: [product.collection_id],
             fields: "id,title,subtitle,description,handle,thumbnail,*images,*variants.calculated_price,*variants.prices",
             ...(cartId ? { cart_id: cartId } : { region_id: region.id }),
             limit: 4,
+          }
+        });
+        relatedProducts = (relatedRes.products || [])
+          .filter(p => p.id !== product.id)
+          .slice(0, 3)
+          .map(p => {
+            const mapped = { ...p, images: normalizeImages(p), subtitle: stripHtml(p.subtitle || "") };
+            prefetchImage(mapped.thumbnail);
+            return mapped;
           });
-          setRelatedProducts(
-            relatedList
-              ?.filter((p) => p.id !== productData.id)
-              .slice(0, 3)
-              .map((p) => ({ ...p, images: normalizeImages(p), subtitle: stripHtml(p.subtitle || "") })) || []
-          );
-        }
-      } catch (error) {
-        console.error("Error fetching product:", error);
-        navigate("/404");
-      } finally {
-        setLoading(false);
       }
-    };
-    fetchProduct();
-  }, [handle, region, cartId, navigate]);
+
+      return { product, sanityContent: sanityData, relatedProducts };
+    },
+    enabled: !!region,
+  });
+
+  const { product, sanityContent, relatedProducts = [] } = pageData || {};
+
+  // Sync Options State on data load
+  useEffect(() => {
+    if (product?.variants?.length > 0 && Object.keys(optionsState).length === 0) {
+      const firstVariant = product.variants[0];
+      const initialOptions = {};
+      firstVariant.options.forEach(opt => {
+        initialOptions[opt.option_id] = opt.value;
+      });
+      setOptionsState(initialOptions);
+      setSelectedVariant(firstVariant);
+    }
+  }, [product, optionsState]);
 
   const getOptionValues = (optionId) => {
     if (!product?.variants) return [];
@@ -551,11 +524,10 @@ const ProductPage = () => {
                     <span className="text-stone-400 line-through font-light">{priceDetails.originalPrice}</span>
                   )}
                   <span
-                    className={`text-[10px] md:text-xs px-2.5 py-1 rounded-full border ${
-                      inStock
+                    className={`text-[10px] md:text-xs px-2.5 py-1 rounded-full border ${inStock
                         ? "text-emerald-700 bg-emerald-50 border-emerald-300"
                         : "text-rose-700 bg-rose-50 border-rose-300"
-                    }`}
+                      }`}
                   >
                     {inStock ? "In Stock" : "Out of Stock"}
                   </span>

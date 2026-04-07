@@ -1,360 +1,348 @@
-import { useEffect, useRef } from "react";
-import { MoveRight, ArrowUpRight, Sparkles, Grid3X3 } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
-import CategorySlider from "./CategorySlider";
+import { sdk } from "../lib/medusaClient";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { MoveRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
 
-export default function CategorySection() {
+import { useQuery } from '@tanstack/react-query';
+import { medusaApi, prefetchImage } from '../lib/react-query';
+
+const CategorySection = () => {
+  const [activeSlide, setActiveSlide] = useState(0);
+
   const sectionRef = useRef(null);
-  const containerRef = useRef(null);
-  const badgeRef = useRef(null);
-  const titleRef = useRef(null);
-  const luxuryAccentRef = useRef(null);
-  const descriptionRef = useRef(null);
-  const statsRef = useRef(null);
+  const headerRef = useRef(null);
   const sliderRef = useRef(null);
-  const ctaRef = useRef(null);
-  const viewAllRef = useRef(null);
-  const backgroundRef = useRef(null);
-  const masterTl = useRef(null);
+
+  // --- TANSTACK QUERY INTEGRATION ---
+  const { data: curatedData, isLoading: loading } = useQuery({
+    queryKey: ['curated-categories'],
+    queryFn: async () => {
+      const { data } = await medusaApi.get('/store/curated-categories');
+      // Prefetch ALL images for the first category chunk immediately
+      const firstChunk = data.curated_categories?.slice(0, 4) || [];
+      firstChunk.forEach(cat => {
+        prefetchImage(cat.image);
+        cat.featuredProducts?.forEach(p => prefetchImage(p.thumbnail));
+      });
+      return data.curated_categories || [];
+    },
+    staleTime: 1000 * 60 * 10, // 10 mins
+  });
+
+  // Chunk layout data into grid modules of 4
+  const categoryChunks = [];
+  if (curatedData) {
+    for (let i = 0; i < curatedData.length; i += 4) {
+      categoryChunks.push(curatedData.slice(i, i + 4));
+    }
+  }
+
+  // Smart image prefetching for next slide
+  useEffect(() => {
+    if (categoryChunks[activeSlide + 1]) {
+      const nextSlideData = categoryChunks[activeSlide + 1];
+      nextSlideData.forEach(cat => {
+        prefetchImage(cat.image);
+        cat.featuredProducts?.forEach(p => prefetchImage(p.thumbnail));
+      });
+    }
+  }, [activeSlide, categoryChunks]);
 
   useEffect(() => {
-    if (masterTl.current) masterTl.current.kill();
+    if (loading || categoryChunks.length === 0) return;
 
-    masterTl.current = gsap.timeline({
-      defaults: { ease: "power2.out" },
-      scrollTrigger: {
-        trigger: sectionRef.current,
-        start: "top 75%",
-        toggleActions: "play none none reverse",
-        once: false
-      }
-    });
-
-    gsap.set(
-      [
-        badgeRef.current,
-        titleRef.current,
-        luxuryAccentRef.current,
-        descriptionRef.current,
-        statsRef.current,
-        sliderRef.current,
-        ctaRef.current,
-        viewAllRef.current
-      ],
-      { opacity: 0, willChange: "transform, opacity" }
-    );
-
-    masterTl.current.fromTo(
-      backgroundRef.current,
-      { opacity: 0 },
-      { opacity: 1, duration: 0.6, ease: "power1.out" }
-    );
-
-    masterTl.current.fromTo(
-      badgeRef.current,
-      { opacity: 0, y: 16, scale: 0.96 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.4)" },
-      0.1
-    );
-
-    if (titleRef.current) {
-      const titleWords = titleRef.current.querySelectorAll(".word");
-      masterTl.current.fromTo(
-        titleWords,
-        { opacity: 0, y: 24, rotationX: 8 },
-        {
-          opacity: 1,
-          y: 0,
-          rotationX: 0,
-          duration: 0.6,
-          stagger: 0.08,
-          ease: "power3.out"
-        },
-        0.2
-      );
-    }
-
-    masterTl.current.fromTo(
-      luxuryAccentRef.current,
-      { scaleX: 0, opacity: 0 },
-      {
-        scaleX: 1,
-        opacity: 1,
-        duration: 0.5,
+    const ctx = gsap.context(() => {
+      gsap.from(headerRef.current, {
+        opacity: 0,
+        y: 16,
+        duration: 0.8,
         ease: "power2.out",
-        transformOrigin: "left center"
-      },
-      0.4
-    );
+        scrollTrigger: { trigger: sectionRef.current, start: "top 80%" }
+      });
 
-    masterTl.current.fromTo(
-      descriptionRef.current,
-      { opacity: 0, y: 12 },
-      { opacity: 1, y: 0, duration: 0.5 },
-      0.5
-    );
+      gsap.from(sliderRef.current, {
+        opacity: 0,
+        y: 30,
+        duration: 1,
+        ease: "power3.out",
+        scrollTrigger: { trigger: sectionRef.current, start: "top 80%" },
+        clearProps: "all"
+      });
+    }, sectionRef);
 
-    if (statsRef.current) {
-      const statItems = statsRef.current.querySelectorAll(".stat-item");
-      masterTl.current.fromTo(
-        statItems,
-        { opacity: 0, y: 8, scale: 0.98 },
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.4,
-          stagger: 0.08,
-          ease: "back.out(1.2)"
-        },
-        0.6
-      );
-    }
-
-    masterTl.current.fromTo(
-      sliderRef.current,
-      { opacity: 0, y: 20, scale: 0.985 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.7, ease: "power3.out" },
-      0.7
-    );
-
-    // View All button animation
-    masterTl.current.fromTo(
-      viewAllRef.current,
-      { opacity: 0, y: 12, scale: 0.98 },
-      { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "back.out(1.2)" },
-      0.8
-    );
-
-    if (ctaRef.current) {
-      const ctaButtons = ctaRef.current.querySelectorAll(".cta-button");
-      masterTl.current.fromTo(
-        ctaButtons,
-        { opacity: 0, y: 16, scale: 0.98 },
-        {
-          opacity: 1,
-          y: 0,
-          scale: 1,
-          duration: 0.4,
-          stagger: 0.1,
-          ease: "back.out(1.3)"
-        },
-        0.9
-      );
-    }
-
-    gsap.to(".luxury-orb", {
-      y: -8,
-      x: 4,
-      duration: 5,
-      repeat: -1,
-      yoyo: true,
-      ease: "sine.inOut"
-    });
-
-    const onResize = () => {
-      ScrollTrigger.refresh();
-      if (containerRef.current) {
-        containerRef.current.scrollLeft = 0;
+    const handleScroll = () => {
+      if (!sliderRef.current) return;
+      const scrollPosition = sliderRef.current.scrollLeft;
+      const slideWidth = sliderRef.current.clientWidth;
+      const newActiveSlide = Math.round(scrollPosition / slideWidth);
+      if (newActiveSlide !== activeSlide) {
+        setActiveSlide(newActiveSlide);
       }
     };
-    window.addEventListener("resize", onResize);
-    window.addEventListener("orientationchange", onResize);
+
+    const sliderElement = sliderRef.current;
+    if (sliderElement) {
+      sliderElement.addEventListener("scroll", handleScroll, { passive: true });
+    }
 
     return () => {
-      if (masterTl.current) masterTl.current.kill();
-      ScrollTrigger.getAll().forEach((t) => t.kill());
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("orientationchange", onResize);
+      ctx.revert();
+      if (sliderElement) {
+        sliderElement.removeEventListener("scroll", handleScroll);
+      }
     };
-  }, []);
+  }, [loading, categoryChunks, activeSlide]);
 
-  const handleCTAHover = (e, isEntering) => {
-    const button = e.currentTarget;
-    const icon = button.querySelector(".cta-icon");
-    if (isEntering) {
-      gsap.to(button, { scale: 1.02, y: -1, duration: 0.15, ease: "power2.out" });
-      gsap.to(icon, { x: 2, duration: 0.15, ease: "power2.out" });
-    } else {
-      gsap.to(button, { scale: 1, y: 0, duration: 0.15, ease: "power2.out" });
-      gsap.to(icon, { x: 0, duration: 0.15, ease: "power2.out" });
-    }
+  const scrollToSlide = (index) => {
+    if (!sliderRef.current) return;
+    sliderRef.current.scrollTo({ left: sliderRef.current.clientWidth * index, behavior: "smooth" });
   };
 
-  const handleViewAllHover = (e, isEntering) => {
-    const button = e.currentTarget;
-    const icon = button.querySelector(".view-all-icon");
-    const text = button.querySelector(".view-all-text");
-    
-    if (isEntering) {
-      gsap.to(button, { 
-        scale: 1.05, 
-        y: -2, 
-        boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
-        duration: 0.2, 
-        ease: "power2.out" 
-      });
-      gsap.to(icon, { 
-        rotation: 90, 
-        scale: 1.1,
-        duration: 0.2, 
-        ease: "power2.out" 
-      });
-      gsap.to(text, { 
-        x: 2,
-        duration: 0.2, 
-        ease: "power2.out" 
-      });
-    } else {
-      gsap.to(button, { 
-        scale: 1, 
-        y: 0, 
-        boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
-        duration: 0.2, 
-        ease: "power2.out" 
-      });
-      gsap.to(icon, { 
-        rotation: 0, 
-        scale: 1,
-        duration: 0.2, 
-        ease: "power2.out" 
-      });
-      gsap.to(text, { 
-        x: 0,
-        duration: 0.2, 
-        ease: "power2.out" 
-      });
+  const scrollLeft = () => scrollToSlide(Math.max(0, activeSlide - 1));
+  const scrollRight = () => scrollToSlide(Math.min(categoryChunks.length - 1, activeSlide + 1));
+
+  if (loading) return (
+    <section className="h-full w-full flex items-center justify-center bg-[#fdfbf9]">
+      <div className="w-6 h-6 border-t border-stone-800 rounded-full animate-spin" />
+    </section>
+  );
+
+  if (categoryChunks.length === 0) {
+    return (
+      <section className="h-full w-full flex items-center justify-center bg-[#fdfbf9]">
+        <p className="text-stone-400 font-serif italic tracking-wide">Curating collections...</p>
+      </section>
+    );
+  }
+
+  const getMasonryClass = (index, chunkLength, chunkIdx) => {
+    if (chunkLength === 4) {
+      const variant = chunkIdx % 3;
+
+      switch (variant) {
+        case 0:
+          if (index === 0) return "md:col-span-2 md:row-span-2 col-span-2 row-span-1";
+          if (index === 1) return "md:col-span-2 md:row-span-1 col-span-2 row-span-1";
+          if (index === 2) return "md:col-span-1 md:row-span-1 col-span-1 row-span-1";
+          if (index === 3) return "md:col-span-1 md:row-span-1 col-span-1 row-span-1";
+          break;
+        case 1:
+          if (index === 0) return "md:col-span-2 md:row-span-1 col-span-2 row-span-1";
+          if (index === 1) return "md:col-span-1 md:row-span-1 col-span-1 row-span-1";
+          if (index === 2) return "md:col-span-1 md:row-span-1 col-span-1 row-span-1";
+          if (index === 3) return "md:col-span-2 md:row-span-2 col-span-2 row-span-1";
+          break;
+        case 2:
+          if (index === 0) return "md:col-span-1 md:row-span-2 col-span-1 row-span-2";
+          if (index === 1) return "md:col-span-2 md:row-span-1 col-span-2 row-span-1";
+          if (index === 2) return "md:col-span-1 md:row-span-2 col-span-1 row-span-2";
+          if (index === 3) return "md:col-span-2 md:row-span-1 col-span-2 row-span-1";
+          break;
+      }
+    } else if (chunkLength === 3) {
+      if (index === 0) return "md:col-span-2 md:row-span-2 col-span-2 row-span-1";
+      if (index === 1) return "md:col-span-1 md:row-span-2 col-span-1 row-span-1";
+      if (index === 2) return "md:col-span-1 md:row-span-2 col-span-1 row-span-1";
+    } else if (chunkLength === 2) {
+      return "md:col-span-2 md:row-span-2 col-span-1 row-span-2";
     }
+    return "col-span-4 row-span-2";
   };
+
+  const desktopGridCols = "md:grid-cols-4 md:grid-rows-2";
+  const mobileGridCols = "grid-cols-2 grid-rows-3";
 
   return (
     <section
       ref={sectionRef}
-      className="bg-transparent h-screen w-full overflow-hidden flex items-center justify-center pt-48"
-      aria-label="Browse categories"
+      // RESPONSIVE PADDING ADJUSTMENTS
+      className="relative h-full w-full flex flex-col pt-6 pb-6 md:pt-16 md:pb-12 lg:pt-24 lg:pb-16 overflow-hidden bg-[#fdfbf9] text-stone-900 justify-start md:justify-center group/section"
     >
-      {/* Background */}
-      <div ref={backgroundRef} className="absolute inset-0 pointer-events-none">
-        <div className="luxury-orb pointer-events-none absolute top-1/5 left-[8%] w-32 h-32 sm:w-48 sm:h-48 lg:w-64 lg:h-64 bg-gradient-to-br from-amber-200/30 to-orange-300/15 rounded-full blur-3xl" />
-        <div className="luxury-orb pointer-events-none absolute bottom-1/5 right-[8%] w-40 h-40 sm:w-56 sm:h-56 lg:w-72 lg:h-72 bg-gradient-to-br from-rose-200/25 to-pink-300/10 rounded-full blur-3xl" />
-        <div className="absolute inset-0 bg-gradient-to-br from-white/70 via-white/20 to-amber-50/40" />
-        <div
-          className="absolute inset-0 opacity-[0.015]"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='1' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
-          }}
-        />
-      </div>
+      <div className="flex flex-col gap-4 md:gap-6 w-full h-[85vh] min-h-0 max-h-[850px] max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 relative">
 
-      {/* Content Container */}
-      <div
-        ref={containerRef}
-        className="flex flex-col space-y-12 w-full max-w-9xl mx-auto px-4 sm:px-6 lg:px-8 py-20 sm:py-24 md:py-28"
-      >
-        <div className="flex flex-col items-center justify-center text-center space-y-4 sm:space-y-4 md:space-y-4">
-
-          {/* Badge */}
-          <div
-            ref={badgeRef}
-            className="inline-flex items-center px-6 sm:px-8 py-3 sm:py-4 relative overflow-hidden group"
-          >
-            {/* Luxury Background with Gradient */}
-            <div className="absolute inset-0 bg-gradient-to-r from-amber-50/40 via-white/60 to-amber-50/40 backdrop-blur-2xl" />
-
-
+        {/* HEADER AREA */}
+        <div ref={headerRef} className="flex-none flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
+          <div className="flex flex-col gap-1">
+            <span className="text-[10px] md:text-xs uppercase tracking-[0.4em] font-medium text-stone-400">
+              The Curated Edit
+            </span>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif italic tracking-tight text-stone-800">
+              Shop the Sanctuary
+            </h2>
           </div>
 
-          {/* Slider */}
-          <div
-            ref={sliderRef}
-            className="w-full max-w-full"
-          >
-            <CategorySlider />
-          </div>
-
-          {/* View All Categories Button */}
-          <div ref={viewAllRef} className="pt-4">
+          <div className="flex flex-col md:flex-row items-end md:items-center gap-4 md:gap-8">
             <Link
               to="/categories"
-              className="group inline-flex items-center justify-center gap-3 px-8 py-3 bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-xl text-gray-800 rounded-full text-sm font-medium tracking-wide border border-white/40 hover:border-white/60 transition-all duration-300 shadow-[0_4px_16px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.12)]"
-              onMouseEnter={(e) => handleViewAllHover(e, true)}
-              onMouseLeave={(e) => handleViewAllHover(e, false)}
-              aria-label="View all categories"
+              className="group flex items-center gap-2 text-[10px] md:text-xs uppercase tracking-[0.25em] font-medium text-stone-600 hover:text-stone-900 transition-colors duration-300 pb-1"
             >
-              <Grid3X3 
-                size={16} 
-                className="view-all-icon text-gray-600 transition-all duration-200" 
-                aria-hidden="true" 
-              />
-              <span className="view-all-text transition-transform duration-200">
-                View All Categories
-              </span>
+              All Collections
+              <MoveRight size={14} className="group-hover:translate-x-1.5 transition-transform duration-300" />
             </Link>
+
+            {/* Slider Arrows relocated elegantly to the header alongside Links */}
+            {categoryChunks.length > 1 && (
+              <div className="hidden md:flex items-center gap-2">
+                <button
+                  onClick={scrollLeft}
+                  disabled={activeSlide === 0}
+                  className={`w-10 h-10 rounded-full border border-stone-200 bg-white flex items-center justify-center text-stone-600 transition-all duration-300 ease-out shadow-sm
+                    ${activeSlide === 0 ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:scale-105 hover:bg-stone-900 hover:border-stone-900 hover:text-white hover:shadow-md'}`}
+                  aria-label="Previous Slide"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+
+                <button
+                  onClick={scrollRight}
+                  disabled={activeSlide === categoryChunks.length - 1}
+                  className={`w-10 h-10 rounded-full border border-stone-200 bg-white flex items-center justify-center text-stone-600 transition-all duration-300 ease-out shadow-sm
+                    ${activeSlide === categoryChunks.length - 1 ? 'opacity-30 cursor-not-allowed' : 'opacity-100 hover:scale-105 hover:bg-stone-900 hover:border-stone-900 hover:text-white hover:shadow-md'}`}
+                  aria-label="Next Slide"
+                >
+                  <ChevronRight size={18} />
+                </button>
+              </div>
+            )}
           </div>
-
-          {/* Main CTAs */}
-          <div
-            ref={ctaRef}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-6 sm:pt-8 w-full max-w-md sm:max-w-none px-4 sm:px-0"
-          >
-            <Link
-              to="/featured"
-              className="cta-button w-full sm:w-auto group inline-flex items-center justify-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-full text-base font-medium tracking-wide shadow-xl shadow-black/8 hover:shadow-2xl hover:shadow-black/15 transition-shadow duration-300"
-              onMouseEnter={(e) => handleCTAHover(e, true)}
-              onMouseLeave={(e) => handleCTAHover(e, false)}
-              aria-label="Featured Collection"
-            >
-              <span>Featured Collection</span>
-              <ArrowUpRight size={18} className="cta-icon transition-transform duration-200" aria-hidden="true" />
-            </Link>
-
-            <Link
-              to="/new-arrivals"
-              className="cta-button w-full sm:w-auto inline-flex items-center justify-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 bg-white/70 backdrop-blur-xl text-gray-800 rounded-full text-base font-light tracking-wide border border-white/50 hover:bg-white/85 transition-all duration-300 shadow-lg shadow-black/5"
-              onMouseEnter={(e) => handleCTAHover(e, true)}
-              onMouseLeave={(e) => handleCTAHover(e, false)}
-              aria-label="New Arrivals"
-            >
-              <span>New Arrivals</span>
-              <MoveRight size={18} className="cta-icon transition-transform duration-200" aria-hidden="true" />
-            </Link>
-          </div>
-
         </div>
+
+        {/* CAROUSEL WRAPPER */}
+        <div
+          ref={sliderRef}
+          className="flex-1 min-h-0 w-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide hide-scrollbar pb-2 pt-2 scroll-smooth"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          {categoryChunks.map((chunk, chunkIdx) => (
+            <div
+              key={`chunk-${chunkIdx}`}
+              className="w-full h-full min-h-0 shrink-0 snap-center px-1"
+            >
+              <div className={`w-full h-full grid ${mobileGridCols} ${desktopGridCols} grid-flow-dense gap-4 md:gap-6`}>
+                {chunk.map((cat, idx) => (
+                  <div
+                    key={cat.id}
+                    className={`${getMasonryClass(idx, chunk.length, chunkIdx)} min-h-0 h-full w-full`}
+                  >
+                    <CategoryCard
+                      category={cat}
+                      isLarge={getMasonryClass(idx, chunk.length, chunkIdx).includes('row-span-2') && getMasonryClass(idx, chunk.length, chunkIdx).includes('col-span-2')}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* --- UX DOT INDICATORS --- */}
+        {categoryChunks.length > 1 && (
+          <div className="flex-none flex items-center justify-center gap-2 pt-2 pb-1">
+            {categoryChunks.map((_, dotIdx) => (
+              <button
+                key={`dot-${dotIdx}`}
+                onClick={() => scrollToSlide(dotIdx)}
+                className={`transition-all duration-500 ease-out rounded-full 
+                  ${activeSlide === dotIdx
+                    ? "w-8 h-1.5 bg-stone-800"
+                    : "w-1.5 h-1.5 bg-stone-300 hover:bg-stone-400"
+                  }`}
+                aria-label={`Go to slide ${dotIdx + 1}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Enhanced responsive adjustments */}
       <style jsx>{`
-        @media (max-height: 800px) {
-          .space-y-12 > * + * { margin-top: 2rem !important; }
-          .space-y-8 > * + * { margin-top: 1.5rem !important; }
-          .space-y-6 > * + * { margin-top: 1.25rem !important; }
-          .space-y-4 > * + * { margin-top: 1rem !important; }
-        }
-        @media (max-height: 700px) {
-          .space-y-12 > * + * { margin-top: 1.5rem !important; }
-          .space-y-8 > * + * { margin-top: 1.25rem !important; }
-          .space-y-6 > * + * { margin-top: 1rem !important; }
-          .space-y-4 > * + * { margin-top: 0.75rem !important; }
-        }
-        @media (max-height: 600px) {
-          .space-y-12 > * + * { margin-top: 1rem !important; }
-          .space-y-8 > * + * { margin-top: 1rem !important; }
-          .space-y-6 > * + * { margin-top: 0.75rem !important; }
-          .space-y-4 > * + * { margin-top: 0.5rem !important; }
-        }
-        @media (max-height: 500px) {
-          .cta-button { padding: 0.625rem 1.25rem !important; font-size: 0.875rem !important; }
-          .space-y-12 > * + * { margin-top: 0.75rem !important; }
-          .space-y-8 > * + * { margin-top: 0.75rem !important; }
-          .space-y-6 > * + * { margin-top: 0.5rem !important; }
-          .space-y-4 > * + * { margin-top: 0.375rem !important; }
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
         }
       `}</style>
     </section>
   );
-}
+};
+
+/* LUXURY CARD COMPONENT */
+const CategoryCard = ({ category, isLarge = false }) => {
+  return (
+    <div
+      className="group relative w-full h-full min-h-0 flex overflow-hidden rounded-[1.25rem] md:rounded-[2rem] bg-stone-200 shadow-sm isolation-auto cursor-pointer border border-stone-200"
+    >
+      <Link
+        to={`/category/${category.handle}`}
+        className="absolute inset-0 z-0"
+        aria-label={`View ${category.name} category`}
+      />
+
+      <img
+        src={category.image}
+        alt={category.name}
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] ease-out will-change-transform md:group-hover:scale-105"
+        loading="lazy"
+      />
+
+      {/* Persistent gradient — matches ProductCarousel hero for consistent readability */}
+      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+
+      {/* Foreground Container: Mobile relies entirely on a minimalist approach (No product cards inside) */}
+      <div className="relative w-full h-full flex flex-col justify-end p-5 md:p-6 z-10 pointer-events-none overflow-hidden">
+
+        {/* Title Container - Centered and static on mobile. Translates dynamically on Desktop. */}
+        <div className="transform transition-all duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform 
+          translate-y-0 md:translate-y-0 md:group-hover:-translate-y-24 lg:group-hover:-translate-y-28
+          flex flex-col items-start md:block">
+          <h3 className={`text-white/95 font-serif italic font-light ${isLarge ? "text-2xl md:text-4xl lg:text-5xl" : "text-xl md:text-2xl"}`} style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
+            {category.name}
+          </h3>
+          <div className="h-[2px] bg-white/60 mt-3 transition-all duration-700 w-12 md:w-0 md:group-hover:w-16 shadow-sm" />
+
+          {/* Mobile only explore pill since we lack mini-products */}
+          <div className="mt-4 md:hidden inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] uppercase font-medium tracking-[0.2em] text-white/90">
+            Explore <MoveRight size={12} />
+          </div>
+        </div>
+
+        {/* Hover Products Container - HIDDEN ON MOBILE completely to declutter to pure editorial view */}
+        <div className="hidden md:flex absolute bottom-4 left-4 right-4 md:bottom-6 md:left-6 md:right-6 pointer-events-auto h-[65px] md:h-[80px] lg:h-[90px] overflow-visible items-end">
+
+          <div className="flex items-center gap-2 md:gap-3 w-full 
+            opacity-0 pointer-events-none group-hover:pointer-events-auto group-hover:opacity-100 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)]">
+
+            {category.featuredProducts && category.featuredProducts.length > 0 && (
+              category.featuredProducts.map((prod, i) => (
+                <Link
+                  key={prod.id}
+                  to={`/product/${prod.handle}`}
+                  className="group/mini relative h-[65px] md:h-[80px] lg:h-[90px] aspect-[3/4] rounded-lg md:rounded-xl overflow-hidden bg-stone-200 shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] border border-white/30 will-change-transform"
+                  style={{ transitionDelay: `${i * 30}ms` }}
+                  title={prod.title}
+                >
+                  <img src={prod.thumbnail || `https://placehold.co/150x200/e7e5e4/a8a29e?text=Image`} alt={prod.title} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/0 group-hover/mini:bg-black/20 transition-colors" />
+                </Link>
+              ))
+            )}
+
+            <Link
+              to={`/category/${category.handle}`}
+              className="group/mini ml-auto md:m-0 relative flex items-center justify-center h-[65px] md:h-[80px] lg:h-[90px] aspect-[3/4] rounded-lg md:rounded-xl overflow-hidden bg-white/10 backdrop-blur-md shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] border border-white/30 text-white hover:bg-white hover:text-stone-900 will-change-transform"
+              style={{ transitionDelay: `${category.featuredProducts?.length * 30}ms` }}
+              aria-label={`View all ${category.name}`}
+            >
+              <MoveRight size={20} className="transform -rotate-45" />
+            </Link>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default CategorySection;

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import gsap from "gsap";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
-import { sdk } from "../lib/medusaClient"; 
+import { sdk } from "../lib/medusaClient";
 import { useMenuStore } from "../stores/useMenuStore";
+import { useQuery } from "@tanstack/react-query";
+import { medusaApi, prefetchCategories } from "../lib/react-query";
 
 // Component Imports
 import HeroSection from "../components/HeroSection";
@@ -22,8 +24,7 @@ const Frontpage = () => {
   // ---------------------------------------------------------
   const [isLoading, setIsLoading] = useState(true);
   const [currentSection, setCurrentSection] = useState(0);
-  const [collections, setCollections] = useState([]);
-  
+
   const { isOpen: isMenuOpen } = useMenuStore();
 
   const sectionRefs = useRef([]);
@@ -38,30 +39,31 @@ const Frontpage = () => {
   const cooldownTime = 50; // Minimal cooldown between scrolls
 
   // ---------------------------------------------------------
-  // 2. DATA FETCHING
+  // 2. DATA FETCHING & PREFETCHING
   // ---------------------------------------------------------
-  useEffect(() => {
-    const fetchCollections = async () => {
-      try {
-        const { collections: fetchedCollections } = await sdk.store.collection.list({
-          limit: 3,
-          fields: "id,title,handle,metadata"
-        });
-        
-        setCollections(fetchedCollections);
-      } catch (error) {
-        console.error("Error fetching collections:", error);
-        setCollections([]);
-      }
-    };
+  const { data: collections = [] } = useQuery({
+    queryKey: ['frontpage-collections'],
+    queryFn: async () => {
+      const { data } = await medusaApi.get("/store/collections", {
+        params: { limit: 3, fields: "id,title,handle,metadata" }
+      });
+      return data.collections || [];
+    },
+    staleTime: 1000 * 60 * 30, // 30 mins
+  });
 
-    fetchCollections();
-  }, []);
+  // Prefetch critical data for the rest of the page
+  useEffect(() => {
+    if (!isLoading) {
+      // Prefetch curated categories as it's the next section
+      prefetchCategories();
+    }
+  }, [isLoading]);
 
   // ---------------------------------------------------------
   // 3. SCROLL & LAYOUT LOGIC
   // ---------------------------------------------------------
-  
+
   // Setup --vh CSS variable for mobile browsers
   useEffect(() => {
     const setVh = () => {
@@ -113,7 +115,7 @@ const Frontpage = () => {
 
   // Simulated Loading Timer
   useEffect(() => {
-    const t = setTimeout(() => setIsLoading(false), 2500); 
+    const t = setTimeout(() => setIsLoading(false), 2500);
     return () => clearTimeout(t);
   }, []);
 
@@ -122,10 +124,10 @@ const Frontpage = () => {
   // Ultra-fast scroll animation
   const animatedScrollToSection = useCallback((index) => {
     if (!readyRef.current || isAnimating.current) return;
-    
+
     const total = getTotalSections();
     if (index < 0 || index >= total) return;
-    
+
     const toSection = sectionRefs.current[index];
     if (!toSection) return;
 
@@ -138,9 +140,9 @@ const Frontpage = () => {
     gsap.to(window, {
       duration: animationDuration,
       ease: "power4.out",
-      scrollTo: { 
-        y: toSection.offsetTop, 
-        autoKill: false 
+      scrollTo: {
+        y: toSection.offsetTop,
+        autoKill: false
       },
       onComplete: () => {
         isAnimating.current = false;
@@ -157,7 +159,7 @@ const Frontpage = () => {
 
     const changeSection = (dir) => {
       if (isAnimating.current) return;
-      
+
       const next = currentSection + dir;
       if (next >= 0 && next < total) {
         animatedScrollToSection(next);
@@ -167,7 +169,7 @@ const Frontpage = () => {
     // Fixed wheel handler
     const wheelHandler = (e) => {
       e.preventDefault();
-      
+
       if (isAnimating.current) return;
 
       const now = Date.now();
@@ -207,7 +209,7 @@ const Frontpage = () => {
 
     const onTouchEnd = (e) => {
       if (isAnimating.current) return;
-      
+
       const touchEndTime = Date.now();
       const touchDuration = touchEndTime - touchStartTime.current;
       const deltaY = lastTouchY.current - e.changedTouches[0].clientY;
@@ -222,15 +224,15 @@ const Frontpage = () => {
 
     const keyHandler = (e) => {
       if (isAnimating.current) return;
-      
-      const keyMap = { 
-        ArrowDown: 1, 
-        PageDown: 1, 
-        ArrowUp: -1, 
-        PageUp: -1, 
-        Space: 1 
+
+      const keyMap = {
+        ArrowDown: 1,
+        PageDown: 1,
+        ArrowUp: -1,
+        PageUp: -1,
+        Space: 1
       };
-      
+
       if (keyMap[e.key] !== undefined) {
         e.preventDefault();
         changeSection(keyMap[e.key]);
@@ -292,12 +294,12 @@ const Frontpage = () => {
         {/* 3, 4, 5... Dynamic Collections (Animated Sections) */}
         {collections.map((collection, index) => (
           <div
-            key={collection.id} 
+            key={collection.id}
             ref={(el) => (sectionRefs.current[index + 3] = el)}
             className={sectionClass}
           >
             <AnimatedSection
-              collectionHandle={collection.handle} 
+              collectionHandle={collection.handle}
               defaultBackground={collection.metadata?.image}
               desktopViewMode={(index + 1) % 2 === 0 ? "invert" : "normal"}
               title={collection.title}
