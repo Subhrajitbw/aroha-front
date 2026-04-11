@@ -37,32 +37,20 @@ const FilterSection = ({
       >
         <div className="flex items-center gap-2">
           {icon && (
-            <motion.span
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              className={`${
-                accent ? "text-amber-600" : "text-stone-400"
-              } group-hover:text-stone-600 transition-all duration-300`}
-            >
+            <span className={`${accent ? "text-stone-600" : "text-stone-400"} transition-all duration-300`}>
               {icon}
-            </motion.span>
+            </span>
           )}
-          <span
-            className={`text-sm font-medium ${
-              accent ? "text-stone-800" : "text-stone-900"
-            } group-hover:text-stone-700 transition-colors duration-300 tracking-wide`}
-          >
+          <span className="text-xs uppercase tracking-[0.1em] font-normal text-stone-900 group-hover:text-stone-500 transition-colors duration-300">
             {title}
           </span>
         </div>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: 0.4, ease: [0.04, 0.62, 0.23, 0.98] }}
+          className="text-stone-400 group-hover:text-stone-900 transition-colors duration-300 text-lg font-normal leading-none"
         >
-          <ChevronDown
-            className={`w-4 h-4 ${
-              accent ? "text-amber-500" : "text-stone-400"
-            } group-hover:text-stone-600 transition-colors duration-300`}
-          />
+          {isOpen ? "−" : "+"}
         </motion.div>
       </motion.button>
 
@@ -103,13 +91,12 @@ const LuxuryCheckbox = ({
   premium = false,
   featured = false,
 }) => (
-  <motion.label
-    whileHover={{ x: 4, scale: 1.01 }}
+  <label
     htmlFor={id}
-    className="flex items-center justify-between group cursor-pointer py-2.5 -mx-2 px-2 rounded-lg hover:bg-gradient-to-r hover:from-stone-50/60 hover:to-transparent transition-all duration-400 relative overflow-hidden"
+    className="flex items-center justify-between group cursor-pointer py-1.5 transition-all duration-300 relative"
   >
     <div className="flex items-center space-x-3">
-      <div className="relative">
+      <div className="relative flex items-center justify-center">
         <input
           type="checkbox"
           id={id}
@@ -117,72 +104,43 @@ const LuxuryCheckbox = ({
           onChange={onChange}
           className="sr-only"
         />
-        <motion.div
-          animate={{
-            backgroundColor: checked
-              ? premium
-                ? "#f59e0b"
-                : "#1c1917"
-              : "transparent",
-            borderColor: checked
-              ? premium
-                ? "#f59e0b"
-                : "#1c1917"
-              : "#d6d3d1",
-            boxShadow: checked
-              ? premium
-                ? "0 0 15px rgba(245, 158, 11, 0.3)"
-                : "0 1px 4px rgba(28, 25, 23, 0.2)"
-              : "0 0 0 rgba(0,0,0,0)",
-          }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          className="w-4 h-4 border border-stone-300 rounded flex items-center justify-center transition-all duration-300 backdrop-blur-sm"
+        <div
+          className={`w-3.5 h-3.5 border flex items-center justify-center transition-all duration-300 ${
+            checked ? "bg-stone-900 border-stone-900" : "bg-transparent border-stone-300 group-hover:border-stone-500"
+          }`}
         >
           {checked && (
             <motion.svg
-              initial={{ scale: 0, rotate: -10 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: 10 }}
-              transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              className="w-3 h-3 text-white"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="w-2.5 h-2.5 text-white"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
               <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={3}
+                strokeLinecap="square"
+                strokeLinejoin="miter"
+                strokeWidth={2.5}
                 d="M5 13l4 4L19 7"
               />
             </motion.svg>
           )}
-        </motion.div>
+        </div>
       </div>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-stone-700 group-hover:text-stone-900 transition-colors duration-300 font-medium tracking-wide">
+        <span className={`text-xs font-normal tracking-wide transition-colors duration-300 ${checked ? "text-stone-900" : "text-stone-600 group-hover:text-stone-900"}`}>
           {label}
         </span>
-        {premium && <Crown className="w-3 h-3 text-amber-500" />}
-        {featured && <Sparkles className="w-3 h-3 text-rose-400" />}
       </div>
     </div>
 
     {typeof count === "number" && (
-      <span
-        className={`text-xs px-2 py-1 rounded-full font-medium transition-all duration-300 ${
-          premium
-            ? "bg-gradient-to-r from-amber-100 to-amber-50 text-amber-700 border border-amber-200/50"
-            : checked
-            ? "bg-stone-900 text-white"
-            : "text-stone-400 bg-stone-100 group-hover:bg-stone-200 group-hover:text-stone-600"
-        }`}
-      >
-        {count}
+      <span className="text-[11px] text-stone-400 font-normal tracking-widest">
+        ({count})
       </span>
     )}
-  </motion.label>
+  </label>
 );
 
 // Build tree from parent_category_id, still keyed by id internally
@@ -236,6 +194,7 @@ export const FilterSidebar = ({
   collections = [],
   categories = [],
   priceBounds = { min: 0, max: 0 },
+  tags = [],
   className = "",
   isMobile = false,
 }) => {
@@ -270,37 +229,26 @@ export const FilterSidebar = ({
       transition={{ duration: 0.8, delay: 0.2 }}
       className={`${isMobile ? "w-full" : "w-72"} ${className}`}
     >
-      <div className={isMobile ? "" : "sticky top-24"}>
-        <motion.div
-          className="relative bg-gradient-to-br from-white/95 via-white/90 to-stone-50/80 backdrop-blur-2xl border border-stone-200/60 rounded-2xl p-5 shadow-lg shadow-stone-900/5 overflow-hidden"
-          whileHover={{ scale: isMobile ? 1 : 1.005 }}
-          transition={{ duration: 0.3 }}
+      <div className={isMobile ? "" : "sticky top-32"}>
+        <div
+          className={`relative ${!isMobile ? "border-r border-stone-200/40 pr-6 mr-6" : ""} bg-transparent`}
         >
           {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-3 mb-6 relative z-10"
-          >
-            <div className="p-2 bg-gradient-to-br from-stone-900 to-stone-700 rounded-xl shadow-md">
-              <Filter className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h2 className="text-base font-medium text-stone-900 tracking-wide">
-                Filter products
+          {!isMobile && (
+            <div className="mb-10 pb-4 border-b border-stone-200/40">
+              <h2 className="text-xs uppercase tracking-[0.1em] font-normal text-stone-900">
+                Refine Selections
               </h2>
-              <p className="text-xs text-stone-500 font-light">
-                Narrow down the products you see
-              </p>
             </div>
-          </motion.div>
+          )}
 
-          <div className="space-y-1 relative z-10">
+          <div className="space-y-2 relative z-10">
             {/* Collections */}
             {collections.length > 0 && (
               <FilterSection
                 title="Collections"
                 defaultOpen
+
                 accent
                 icon={<Diamond className="w-4 h-4" />}
               >
@@ -335,12 +283,35 @@ export const FilterSidebar = ({
               </div>
             </FilterSection>
 
+            {/* Tags / Suitability */}
+            {tags && tags.length > 0 && (
+              <FilterSection title="Suitability">
+                <div className="space-y-1">
+                  {tags.map((tag) => (
+                    <LuxuryCheckbox
+                      key={tag}
+                      id={`tag-${tag}`}
+                      label={tag.replace(/-/g, " ")}
+                      checked={filters.tags?.includes(tag) || false}
+                      onChange={() => {
+                        const current = filters.tags || [];
+                        const next = current.includes(tag)
+                          ? current.filter((t) => t !== tag)
+                          : [...current, tag];
+                        onFiltersChange({ ...filters, tags: next });
+                      }}
+                    />
+                  ))}
+                </div>
+              </FilterSection>
+            )}
+
             {/* Price range */}
             <FilterSection
-              title="Price range"
-              icon={<Sparkles className="w-4 h-4" />}
+              title="Price"
+              defaultOpen
             >
-              <div className="space-y-4">
+              <div className="space-y-6 pt-2">
                 <PriceRangeSlider
                   min={priceBounds.min || 0}
                   max={priceBounds.max || 0}
@@ -430,7 +401,7 @@ export const FilterSidebar = ({
               </div>
             </FilterSection>
           </div>
-        </motion.div>
+        </div>
       </div>
     </motion.aside>
   );

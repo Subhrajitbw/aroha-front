@@ -184,13 +184,13 @@ export default function ProductCarousel() {
   // Layout Helpers
   const linkState = (() => {
     if (selectedTab === "New Designs") {
-      return { new: true, title: "New Designs" };
+      return { applyFilter: "newOnly", title: "New Designs" };
     }
     if (selectedTab === "Best Sellers") {
-      return { bestselling: true, title: "Best Sellers" };
+      return { applyFilter: "newOnly", title: "Best Sellers" };
     }
     if (selectedTab === "Sale") {
-      return { onsale: true, title: "Sale" };
+      return { applyFilter: "discountedOnly", title: "Sale" };
     }
     return { title: "Shop All" };
   })();

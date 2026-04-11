@@ -213,8 +213,12 @@ function App() {
   }, [siteSettings]);
 
   // ---------------- ROUTE CONFIG ----------------
-  const getNavBarVariant = () =>
-    ["/", "/home"].includes(pathname) ? "light" : "dark";
+  const getNavBarVariant = () => {
+    if (["/", "/home", "/lookbook"].includes(pathname) || pathname.startsWith("/shop")) {
+      return "light";
+    }
+    return "dark";
+  };
 
   const shouldShowFooter = !["/", "/home", "/lookbook"].includes(pathname);
 
@@ -245,7 +249,7 @@ function App() {
           <Route path="/home" element={<Frontpage />} />
           <Route path="/rooms" element={<Rooms />} />
           <Route path="/shop" element={<ProductCatelog />} />
-          <Route path="/shop/category/:categoryId" element={<ProductCatelog />} />
+          <Route path="/shop/category/:categoryHandle" element={<ProductCatelog />} />
           <Route path="/lookbook" element={<Lookbook />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/contact" element={<Contact />} />

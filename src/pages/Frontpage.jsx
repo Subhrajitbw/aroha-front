@@ -33,9 +33,9 @@ const Frontpage = () => {
   const lastTouchY = useRef(0);
   const touchStartTime = useRef(0);
   const scrollAccumulator = useRef(0);
-  const scrollThreshold = 30; // Lower threshold for better responsiveness
+  const scrollResetTimer = useRef(null);
+  const scrollThreshold = 40; // Balanced threshold
   const animationDuration = 0.5;
-  const cooldownTime = 50; // Minimal cooldown between scrolls
 
   // ---------------------------------------------------------
   // 2. DATA FETCHING
@@ -166,29 +166,29 @@ const Frontpage = () => {
 
     // Fixed wheel handler
     const wheelHandler = (e) => {
+      // Ignore primarily horizontal scrolls (e.g. for carousels)
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      
       e.preventDefault();
       
       if (isAnimating.current) return;
 
       const now = Date.now();
-      const timeSinceLastScroll = now - lastScrollTime.current;
-
-      // Only check cooldown when actually scrolling
-      if (timeSinceLastScroll < cooldownTime) return;
-
-      // Reset accumulator if paused
-      if (timeSinceLastScroll > 300) {
+      
+      // Cooldown to absorb trackpad momentum post-animation
+      // 800ms gives enough time for 500ms animation + 300ms momentum decay
+      if (now - lastScrollTime.current < 800) {
         scrollAccumulator.current = 0;
+        return;
       }
 
-      // Accumulate scroll - use raw deltaY for better sensitivity
       scrollAccumulator.current += e.deltaY;
 
-      // Check if we've reached threshold
-      if (Math.abs(scrollAccumulator.current) >= scrollThreshold) {
-        const dir = scrollAccumulator.current > 0 ? 1 : -1;
+      // No more accumulator threshold delay: trigger instantly on first clear movement,
+      // then use the cooldown to prevent double firing
+      if (Math.abs(e.deltaY) > 5) {
+        const dir = e.deltaY > 0 ? 1 : -1;
         lastScrollTime.current = now;
-        scrollAccumulator.current = 0;
         changeSection(dir);
       }
     };

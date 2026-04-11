@@ -8,8 +8,8 @@ export const MobileFilterDrawer = ({
   onClose,
   filters,
   onFiltersChange,
-  collections,
   categories,
+  tags,
   priceBounds,
   sort,
   onSortChange,
@@ -41,22 +41,18 @@ export const MobileFilterDrawer = ({
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-y-0 left-0 w-full max-w-full bg-white/95 backdrop-blur-xl z-50 shadow-2xl overflow-hidden flex flex-col"
+            className="fixed inset-y-0 left-0 w-full max-w-sm bg-white/95 backdrop-blur-3xl z-50 overflow-hidden flex flex-col border-r border-stone-200/40"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-stone-200/60">
-              <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-4 h-4 text-stone-700" />
-                <h2 className="text-sm font-medium tracking-wide text-stone-900">
-                  Filters & Sort
-                </h2>
-              </div>
+            <div className="flex items-center justify-between p-6 border-b border-stone-200/40">
+              <h2 className="text-xs uppercase tracking-[0.1em] font-normal text-stone-900">
+                Refine Selections
+              </h2>
               <button
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-stone-100 transition-colors"
+                className="p-1 hover:text-stone-400 transition-colors"
                 aria-label="Close filters"
               >
-                <X className="w-4 h-4 text-stone-700" />
+                <X className="w-5 h-5 text-stone-900 font-light" strokeWidth={1} />
               </button>
             </div>
 
@@ -64,15 +60,15 @@ export const MobileFilterDrawer = ({
             <div className="flex-1 overflow-y-auto pb-20">
               <div className="p-4 space-y-6">
                 {/* Sort section */}
-                <div className="space-y-2">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-stone-500">
+                <div className="space-y-4 pt-2">
+                  <p className="text-[10px] uppercase tracking-[0.2em] font-light text-stone-900">
                     Sort by
                   </p>
                   <div className="relative">
                     <select
                       value={sort}
                       onChange={(e) => onSortChange(e.target.value)}
-                      className="w-full border border-stone-200 bg-white text-sm px-3 py-2 rounded-full text-stone-800 focus:outline-none focus:ring-1 focus:ring-stone-400"
+                      className="w-full border-b border-stone-200 bg-transparent text-sm px-0 py-3 text-stone-800 focus:outline-none focus:border-stone-900 appearance-none rounded-none font-light tracking-wide transition-colors"
                     >
                       {sortOptions.map((opt) => (
                         <option key={opt.value} value={opt.value}>
@@ -89,6 +85,7 @@ export const MobileFilterDrawer = ({
                   onFiltersChange={onFiltersChange}
                   collections={collections}
                   categories={categories}
+                  tags={tags}
                   priceBounds={priceBounds}
                   className="w-full"
                   isMobile
@@ -97,7 +94,14 @@ export const MobileFilterDrawer = ({
             </div>
 
             {/* Footer actions */}
-            <div className="border-t border-stone-200/60 bg-white/90 backdrop-blur-md px-4 py-3 flex items-center justify-between gap-3">
+            <div className="border-t border-stone-200/40 bg-white/95 px-6 py-4 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full text-xs tracking-[0.2em] uppercase px-4 py-4 bg-stone-900 text-white hover:bg-stone-800 transition-colors"
+              >
+                Show Results
+              </button>
               <button
                 type="button"
                 onClick={() =>
@@ -105,22 +109,16 @@ export const MobileFilterDrawer = ({
                     priceRange: [priceBounds.min, priceBounds.max],
                     collections: [],
                     categories: [],
+                    tags: [],
                     discountedOnly: false,
                     newOnly: false,
                     inStockOnly: false,
                     ratings: [],
                   })
                 }
-                className="text-xs sm:text-sm px-3 py-2 rounded-full border border-stone-300 text-stone-700"
+                className="w-full text-xs tracking-[0.15em] uppercase px-4 py-3 text-stone-500 hover:text-stone-900 transition-colors"
               >
-                Clear all
-              </button>
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex-1 text-xs sm:text-sm px-4 py-2 rounded-full bg-stone-900 text-white font-medium tracking-wide hover:bg-stone-800 transition-colors"
-              >
-                Show results
+                Clear Selections
               </button>
             </div>
           </motion.div>
