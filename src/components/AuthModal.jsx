@@ -38,15 +38,15 @@ const AuthModal = () => {
       />
       
       {/* Modal Content */}
-      <div className="relative z-10 w-full max-w-5xl max-h-[95vh] overflow-auto">
-        <div className="relative bg-white rounded-xl shadow-2xl">
+      <div className="relative z-10 w-full max-w-5xl max-h-[95vh] overflow-hidden rounded-none">
+        <div className="relative bg-[#fafafa] rounded-none shadow-[0_0_100px_rgba(0,0,0,0.1)] overflow-y-auto max-h-[95vh] hide-scrollbar border border-stone-200">
           {/* Close Button */}
           <button
             onClick={close}
-            className="absolute top-4 right-4 z-20 p-2 text-gray-400 hover:text-gray-600 bg-white/80 backdrop-blur-sm rounded-full shadow-lg transition-colors"
+            className="absolute top-4 right-4 z-[50] p-2 md:p-3 text-stone-400 hover:text-stone-900 bg-white/50 hover:bg-white backdrop-blur-md transition-all duration-300 border border-transparent hover:border-stone-200"
             aria-label="Close modal"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 md:w-5 md:h-5 stroke-[1.5]" />
           </button>
           
           {/* Auth Page Component */}

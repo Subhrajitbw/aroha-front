@@ -243,7 +243,7 @@ const Lookbook = () => {
         <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-4 md:gap-8 lg:gap-12 space-y-4 md:space-y-8 lg:space-y-12 pb-32">
           {displayedProducts.map((product, idx) => (
             <ParallaxImageItem
-              key={product._id + idx + Math.random()}
+              key={`${product._id}-${idx}`}
               product={product}
               index={idx}
               onClick={() => handleProductClick(product.handle)}

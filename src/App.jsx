@@ -36,6 +36,7 @@ import Footer from "./components/Footer";
 import OAuthRelay from "./components/OAuthRelay";
 import ProtectedRoute from "./components/protectedroute";
 import FloatingEnquiry from "./components/FloatingEnquiry";
+import CustomCursor from "./components/CustomCursor";
 
 // ✅ Store
 import { useSearchStore } from "./stores/searchStore";
@@ -226,6 +227,7 @@ function App() {
 
   return (
     <div className={`app-container device-${deviceType}`}>
+      <CustomCursor />
       <NavBar
         variant={getNavBarVariant()}
         onSearchClick={openSearch}
@@ -248,6 +250,7 @@ function App() {
           <Route path="/" element={<Frontpage />} />
           <Route path="/home" element={<Frontpage />} />
           <Route path="/rooms" element={<Rooms />} />
+          <Route path="/rooms/:roomLabel" element={<Rooms />} />
           <Route path="/shop" element={<ProductCatelog />} />
           <Route path="/shop/category/:categoryHandle" element={<ProductCatelog />} />
           <Route path="/lookbook" element={<Lookbook />} />

@@ -277,6 +277,36 @@ const MobileMenu = ({
                 ))}
               </div>
 
+              {/* Editorials Section */}
+              <div className="space-y-6 pt-6 border-t border-stone-200">
+                <h3 className="text-[10px] tracking-[0.3em] uppercase text-stone-400 font-medium pb-2">
+                  Editorials
+                </h3>
+                <div className="grid grid-cols-1 gap-y-4">
+                  {[
+                    { name: "Rooms", href: "/rooms" },
+                    { name: "Journal", href: "/journal" },
+                    { name: "Lookbook", href: "/lookbook" }
+                  ].map((item) => (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={handleClose}
+                      className="flex items-center justify-between group/link"
+                    >
+                      <span className="text-xl font-serif text-stone-900 tracking-wide font-light transition-transform duration-500 origin-left group-hover/link:scale-[1.05]">
+                        {item.name}
+                      </span>
+                      <ArrowRight
+                        size={16}
+                        strokeWidth={1}
+                        className="text-stone-400 group-hover/link:text-stone-900 group-hover/link:translate-x-2 transition-all duration-500"
+                      />
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
               {/* Account Section */}
               <div className="space-y-6 pt-6 border-t border-stone-200">
                 {isLoggedIn && user ? (
