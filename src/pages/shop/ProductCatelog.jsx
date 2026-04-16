@@ -1,8 +1,8 @@
 // pages/ProductCatalog.jsx
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { FilterIcon, LayoutGrid } from "lucide-react";
+import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
+import { FilterIcon, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
 import { sdk } from "../../lib/medusaClient";
 
 import { FilterSidebar } from "../../components/shop/FilterSidebar";
@@ -58,6 +58,14 @@ export default function ProductCatalog() {
     tags: [],
   });
 
+  // Category slider interaction state
+  const sliderContainerRef = useRef(null);
+  const sliderContentRef = useRef(null);
+  const [dragConstraints, setDragConstraints] = useState({ left: 0, right: 0 });
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const x = useMotionValue(0);
+
   // Keep selectedCategoryHandle and filters.categories in sync with URL changes
   useEffect(() => {
     const next =
@@ -69,9 +77,12 @@ export default function ProductCatalog() {
     }));
     setPage(1);
     
+    // Reset category slider position
+    if (x) x.set(0);
+
     // Explicit scroll restoration to prevent bottom-stuck views
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [categoryHandleParam, location.state?.initialCategoryHandle]);
+  }, [categoryHandleParam, location.state?.initialCategoryHandle, x]);
 
   // Fetch region
   useEffect(() => {
@@ -228,9 +239,9 @@ export default function ProductCatalog() {
         if (prices.length) {
           const min = Math.min(...prices);
           const max = Math.max(...prices);
-          setPriceBounds((prev) => ({ 
-            min: prev.min === 0 ? min : Math.min(prev.min, min), 
-            max: prev.max === 50000000 ? max : Math.max(prev.max, max) 
+          setPriceBounds((prev) => ({
+            min: prev.min === 0 ? min : Math.min(prev.min, min),
+            max: prev.max === 50000000 ? max : Math.max(prev.max, max)
           }));
 
           setFilters((prev) => {
@@ -299,26 +310,26 @@ export default function ProductCatalog() {
   }, []);
 
   useEffect(() => {
-  if (location.state?.applyFilter) {
-    const filterKey = location.state.applyFilter;
-    
-    setFilters((prev) => ({
-      ...prev,
-      [filterKey]: true,
-      // Reset other quick filters
-      newOnly: filterKey === 'newOnly',
-      discountedOnly: filterKey === 'discountedOnly',
-    }));
-    
-    setPage(1);
-    
-    // Explicit scroll restoration
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    
-    // Clear the state so it doesn't reapply on refresh
-    window.history.replaceState({}, document.title);
-  }
-}, [location.state]);
+    if (location.state?.applyFilter) {
+      const filterKey = location.state.applyFilter;
+
+      setFilters((prev) => ({
+        ...prev,
+        [filterKey]: true,
+        // Reset other quick filters
+        newOnly: filterKey === 'newOnly',
+        discountedOnly: filterKey === 'discountedOnly',
+      }));
+
+      setPage(1);
+
+      // Explicit scroll restoration
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // Clear the state so it doesn't reapply on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Build category tree and helpers (by id, but we also need lookups by handle)
   const buildCategoryTree = (categoriesArray) => {
@@ -398,7 +409,7 @@ export default function ProductCatalog() {
       // Suitability Tags
       if (filters.tags && filters.tags.length > 0) {
         if (!product.tags || product.tags.length === 0) return false;
-        
+
         const productTagValues = product.tags.map(t => (t.value || t).toLowerCase());
         const matchesATag = filters.tags.some(t => productTagValues.includes(t.toLowerCase()));
         if (!matchesATag) return false;
@@ -444,6 +455,49 @@ export default function ProductCatalog() {
     setPage(1);
   };
 
+  const updateScrollState = () => {
+    if (!sliderContainerRef.current || !sliderContentRef.current) return;
+    const containerWidth = sliderContainerRef.current.offsetWidth;
+    const contentWidth = sliderContentRef.current.scrollWidth;
+    const currentX = x.get();
+    
+    setCanScrollLeft(currentX < -5);
+    setCanScrollRight(currentX > containerWidth - contentWidth + 5);
+  };
+
+  useEffect(() => {
+    if (sliderContainerRef.current && sliderContentRef.current) {
+      const containerWidth = sliderContainerRef.current.offsetWidth;
+      const contentWidth = sliderContentRef.current.scrollWidth;
+      setDragConstraints({
+        left: contentWidth > containerWidth ? -(contentWidth - containerWidth + 32) : 0,
+        right: 0
+      });
+      updateScrollState();
+    }
+  }, [categories, subCategories, selectedCategoryHandle]);
+
+  useEffect(() => {
+    const unsub = x.onChange(() => updateScrollState());
+    return () => unsub();
+  }, [x, dragConstraints]);
+
+  const slide = (direction) => {
+    if (!sliderContainerRef.current) return;
+    const containerWidth = sliderContainerRef.current.offsetWidth;
+    const scrollAmount = containerWidth * 0.6;
+    const targetX = direction === 'left' ? x.get() + scrollAmount : x.get() - scrollAmount;
+    
+    // Clamp targetX within constraints
+    const clampedX = Math.min(0, Math.max(dragConstraints.left, targetX));
+    
+    animate(x, clampedX, {
+      type: "spring",
+      stiffness: 300,
+      damping: 30
+    });
+  };
+
   return (
     <div className="min-h-screen pt-16 sm:pt-20 lg:pt-24 bg-gradient-to-br from-stone-50/30 via-white to-stone-100/30">
       {/* Header */}
@@ -455,7 +509,7 @@ export default function ProductCatalog() {
             transition={{ duration: 1, ease: "easeOut" }}
             className="text-center space-y-4 sm:space-y-6"
           >
-            <h1 
+            <h1
               className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-light text-stone-900 tracking-[0.05em] leading-tight px-2"
               style={{ fontFamily: "'Playfair Display', serif" }}
             >
@@ -486,28 +540,102 @@ export default function ProductCatalog() {
         </div>
       </div>
 
-      {/* Subcategory tabs row (selected node + its children) */}
-      {/* Subcategory navigation bar */}
-      {selectedCategoryNode && subCategories.length > 0 && (
-        <div className="max-w-[2200px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-16 mb-8 sm:mb-12">
-          <div className="flex flex-col gap-4 border-y border-stone-200/60 py-4 sm:py-6">
-            <div className="flex items-center justify-start md:justify-center gap-4 sm:gap-8 overflow-x-auto no-scrollbar px-2">
-              <CategoryTab
-                key={selectedCategoryNode.id}
-                category={selectedCategoryNode}
-                isSelected={
-                  selectedCategoryHandle === selectedCategoryNode.handle
-                }
-                onClick={() => goToCategory(selectedCategoryNode.handle)}
-              />
-              {subCategories.map((category) => (
-                <CategoryTab
-                  key={category.id}
-                  category={category}
-                  isSelected={selectedCategoryHandle === category.handle}
-                  onClick={() => goToCategory(category.handle)}
-                />
-              ))}
+      {/* Enhanced Category Navigation Slider */}
+      {(categoryTree.length > 0 || subCategories.length > 0) && (
+        <div className="max-w-[2200px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-16 mb-8 sm:mb-12 border-y border-stone-200/60 py-2 sm:py-3 group/nav">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Proper Navigation Arrows - On the same line as categories */}
+            <div className="w-8 sm:w-10 shrink-0 flex items-center justify-center">
+              <AnimatePresence>
+                {canScrollLeft && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    onClick={() => slide('left')}
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all duration-300"
+                  >
+                    <ChevronLeft size={16} className="sm:w-5 sm:h-5" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div
+              ref={sliderContainerRef}
+              className="flex-1 overflow-hidden relative"
+            >
+              <motion.div
+                ref={sliderContentRef}
+                className="flex items-center gap-4 sm:gap-8 cursor-grab active:cursor-grabbing"
+                drag="x"
+                dragConstraints={dragConstraints}
+                dragElastic={0.1}
+                dragTransition={{ bounceStiffness: 600, bounceDamping: 20 }}
+                style={{ x }}
+                onDrag={() => updateScrollState()}
+              >
+                <div className="flex items-center gap-4 sm:gap-8 w-max px-2">
+                  {!selectedCategoryHandle && (
+                    <CategoryTab
+                      key="all-root"
+                      category="All Objects"
+                      isSelected={!selectedCategoryHandle}
+                      onClick={() => goToCategory(null)}
+                    />
+                  )}
+
+                  {!selectedCategoryHandle ? (
+                    categoryTree.map((category) => (
+                      <CategoryTab
+                        key={category.id}
+                        category={category}
+                        isSelected={selectedCategoryHandle === category.handle}
+                        onClick={() => goToCategory(category.handle)}
+                      />
+                    ))
+                  ) : (
+                    <>
+                      <CategoryTab
+                        key={selectedCategoryNode?.id}
+                        category={selectedCategoryNode}
+                        isSelected={selectedCategoryHandle === selectedCategoryNode?.handle}
+                        onClick={() => goToCategory(selectedCategoryNode?.handle)}
+                      />
+                      {subCategories.map((category) => (
+                        <CategoryTab
+                          key={category.id}
+                          category={category}
+                          isSelected={selectedCategoryHandle === category.handle}
+                          onClick={() => goToCategory(category.handle)}
+                        />
+                      ))}
+                      <CategoryTab
+                        key="back-to-all"
+                        category="Explore All"
+                        isSelected={false}
+                        onClick={() => goToCategory(null)}
+                      />
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+
+            <div className="w-8 sm:w-10 shrink-0 flex items-center justify-center">
+              <AnimatePresence>
+                {canScrollRight && (
+                  <motion.button
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    onClick={() => slide('right')}
+                    className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center hover:bg-stone-900 hover:text-white hover:border-stone-900 transition-all duration-300"
+                  >
+                    <ChevronRight size={16} className="sm:w-5 sm:h-5" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
