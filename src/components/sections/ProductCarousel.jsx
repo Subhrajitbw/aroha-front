@@ -247,9 +247,9 @@ export default function ProductCarousel() {
 
                 <div className="w-full text-white/95 flex flex-col md:flex-row justify-between md:items-end gap-4 md:gap-8" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
                   <div className="flex flex-col max-w-xl">
-                    <h3 className="text-2xl sm:text-3xl lg:text-5xl font-serif italic font-light leading-snug line-clamp-2">
+                    <h4 className="text-2xl sm:text-3xl lg:text-5xl font-serif italic font-light leading-snug line-clamp-2">
                       {activeProduct.title}
-                    </h3>
+                    </h4>
                   </div>
 
                   <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:pb-1 md:shrink-0 w-full md:w-auto mt-auto">
