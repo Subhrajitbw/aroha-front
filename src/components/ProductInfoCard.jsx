@@ -53,78 +53,6 @@ export const ProductInfoCard = ({
     return () => ctx.revert();
   }, []);
 
-  // Desktop hover animations
-  useEffect(() => {
-    if (isMobile || isTouchDevice) return;
-
-    const wrapper = imageWrapperRef.current;
-    const image = imageRef.current;
-    const button = buttonRef.current;
-
-    if (!wrapper || !image || !button) return;
-
-    const hoverTl = gsap.timeline({ paused: true });
-
-    hoverTl
-      .to(image, {
-        scale: 1.08,
-        duration: 0.8,
-        ease: "power2.out",
-      })
-      .to(
-        button,
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.4,
-          ease: "back.out(1.7)",
-        },
-        "-=0.6"
-      );
-
-    const handleMouseMove = (e) => {
-      const { left, top, width, height } = wrapper.getBoundingClientRect();
-      const x = (e.clientX - left - width / 2) / width;
-      const y = (e.clientY - top - height / 2) / height;
-
-      gsap.to(wrapper, {
-        x: x * 10,
-        y: y * 10,
-        rotationX: -y * 3,
-        rotationY: x * 3,
-        duration: 0.5,
-        ease: "power2.out",
-      });
-    };
-
-    const handleMouseEnter = () => {
-      hoverTl.play();
-    };
-
-    const handleMouseLeave = () => {
-      hoverTl.reverse();
-      gsap.to(wrapper, {
-        x: 0,
-        y: 0,
-        rotationX: 0,
-        rotationY: 0,
-        duration: 0.8,
-        ease: "elastic.out(1, 0.5)",
-      });
-    };
-
-    wrapper.addEventListener("mousemove", handleMouseMove);
-    wrapper.addEventListener("mouseenter", handleMouseEnter);
-    wrapper.addEventListener("mouseleave", handleMouseLeave);
-
-    return () => {
-      wrapper.removeEventListener("mousemove", handleMouseMove);
-      wrapper.removeEventListener("mouseenter", handleMouseEnter);
-      wrapper.removeEventListener("mouseleave", handleMouseLeave);
-      hoverTl.kill();
-    };
-  }, [isMobile, isTouchDevice]);
-
   // Touch interaction - show button on tap
   const handleTouchStart = () => {
     if (!isTouchDevice || !buttonRef.current) return;
@@ -210,7 +138,7 @@ export const ProductInfoCard = ({
             alt={productName}
             loading="lazy"
             onLoad={() => setImageLoaded(true)}
-            className={`w-full h-full object-cover absolute inset-0 transition-all duration-1000 ease-out ${
+            className={`w-full h-full object-cover absolute inset-0 transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.08] ${
               imageLoaded ? "opacity-100 blur-0" : "opacity-0 blur-md"
             }`}
             style={{
@@ -229,7 +157,7 @@ export const ProductInfoCard = ({
           {/* Action button - larger touch target */}
           <div
             ref={buttonRef}
-            className="absolute bottom-4 xs:bottom-5 sm:bottom-6 md:bottom-8 left-0 right-0 mx-auto w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-xl translate-y-10 opacity-0 z-20"
+            className="absolute bottom-4 xs:bottom-5 sm:bottom-6 md:bottom-8 left-0 right-0 mx-auto w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-xl translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-[600ms] ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-20"
             style={{
               minWidth: isTouchDevice ? "48px" : "auto",
               minHeight: isTouchDevice ? "48px" : "auto",

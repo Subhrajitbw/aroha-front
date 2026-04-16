@@ -13,6 +13,8 @@ import {
   Search as SearchIcon,
   ChevronDown,
   BookOpen,
+  User,
+  ShoppingBag,
 } from "lucide-react";
 
 import { useSearchStore } from "../stores/searchStore";
@@ -53,11 +55,11 @@ const NavBar = ({
 
   // Data
   const [navItems, setNavItems] = useState([]);
+  const [roomCategories, setRoomCategories] = useState([]);
   const [megaMenuContent, setMegaMenuContent] = useState({});
 
-  // Mega menu
-  const [megaMenuOpen, setMegaMenuOpen] = useState(false);
-  const [caretPosition, setCaretPosition] = useState(null);
+  // Mega menus
+  const [activeMegaMenu, setActiveMegaMenu] = useState(null); // 'shop', 'rooms', or null
 
   // Theming
   const [navTheme, setNavTheme] = useState(
@@ -100,7 +102,7 @@ const NavBar = ({
 
   // FIX 1: Prevent body scroll when mega menu is open
   useEffect(() => {
-    if (megaMenuOpen && !isMobile) {
+    if (activeMegaMenu && !isMobile) {
       const originalOverflow = document.body.style.overflow;
       const originalPaddingRight = document.body.style.paddingRight;
 
@@ -116,12 +118,11 @@ const NavBar = ({
         document.body.style.paddingRight = originalPaddingRight;
       };
     }
-  }, [megaMenuOpen, isMobile]);
+  }, [activeMegaMenu, isMobile]);
 
-  // FIX 3: Freeze theme when mega menu is open
   useEffect(() => {
-    setThemeFrozen(megaMenuOpen);
-  }, [megaMenuOpen]);
+    setThemeFrozen(!!activeMegaMenu);
+  }, [activeMegaMenu]);
 
   // Fetch Medusa + Sanity nav data
   useEffect(() => {
@@ -277,13 +278,69 @@ const NavBar = ({
     fetchNavigationData();
   }, []);
 
+  // Fetch Rooms for Mega Menu
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const data = await sanityClient.fetch(`*[_type == "product" && defined(perfectFor)]{ perfectFor }`);
+        const keywords = ["bedroom", "living", "studio", "lounge", "dining", "office", "suite"];
+        const found = new Set();
+        data.forEach(p => {
+          const tags = Array.isArray(p.perfectFor) ? p.perfectFor : [p.perfectFor];
+          tags.forEach(tag => {
+            const lower = tag.toLowerCase();
+            if (keywords.find(kw => lower.includes(kw))) {
+              const display = tag.split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
+              found.add(display);
+            }
+          });
+        });
+        setRoomCategories(Array.from(found).slice(0, 6)); // Limit to 6 for menu
+      } catch (err) {
+        console.error("Failed to fetch rooms for nav:", err);
+      }
+    };
+    fetchRooms();
+  }, []);
+
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Build proper parent-child structure for mega menu
+  // Build Rooms Mega Content
+  const roomsMegaContent = useMemo(() => {
+    const categories = roomCategories.length > 0 ? roomCategories : ["Living Room", "Bedroom", "Studio"];
+    
+    return {
+      columns: [
+        {
+          title: "Virtual Tours",
+          href: "/rooms",
+          items: categories.map(cat => ({ 
+            name: cat.toUpperCase(), 
+            href: `/rooms/${cat.toLowerCase().replace(/\s+/g, '-')}` 
+          }))
+        }
+      ],
+      featured: [
+        {
+          title: "The Visionary Estate",
+          subtitle: "UHNI homes",
+          href: "/rooms",
+          image: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&q=80&w=800"
+        },
+        {
+          title: "Structural Form",
+          subtitle: "Architects",
+          href: "/rooms",
+          image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800"
+        }
+      ]
+    };
+  }, [roomCategories]);
+
   const aggregatedMegaContent = useMemo(() => {
     const columns = [];
     const allFeatured = [];
@@ -325,41 +382,38 @@ const NavBar = ({
     };
   }, [navItems, megaMenuContent]);
 
-  // FIX 4: Only hovering chevron opens mega menu
-  const handleChevronHover = (event) => {
+  const handleShopHover = () => {
     if (window.matchMedia("(hover: hover)").matches) {
-      setMegaMenuOpen(true);
-      calculateCaretPosition(event);
+      setActiveMegaMenu('shop');
     }
   };
 
-  // FIX 4: Click on "Shop" button navigates to /shop
+  const handleRoomsHover = () => {
+    if (window.matchMedia("(hover: hover)").matches) {
+      setActiveMegaMenu('rooms');
+    }
+  };
+
   const handleShopClick = (event) => {
     event.preventDefault();
-    setMegaMenuOpen(false);
+    setActiveMegaMenu(null);
     navigate("/shop");
   };
 
-  const calculateCaretPosition = (event) => {
-    if (!contentWrapperRef.current || !shopButtonRef.current) return;
-
-    const wrapperBounds = contentWrapperRef.current.getBoundingClientRect();
-    const btnBounds = shopButtonRef.current.getBoundingClientRect();
-
-    const btnCenter = btnBounds.left + btnBounds.width / 2;
-    const positionInPx = btnCenter - wrapperBounds.left;
-
-    const positionInPercent = Math.max(5, Math.min(95, (positionInPx / wrapperBounds.width) * 100));
-
-    setCaretPosition(positionInPercent);
+  const handleRoomsClick = (event) => {
+    event.preventDefault();
+    setActiveMegaMenu(null);
+    navigate("/rooms");
   };
+
+
 
   // FIX 2: Better mouse leave detection
   const handleNavAreaLeave = useCallback((event) => {
     const relatedTarget = event.relatedTarget;
 
     if (!relatedTarget) {
-      setMegaMenuOpen(false);
+      setActiveMegaMenu(null);
       return;
     }
 
@@ -371,7 +425,7 @@ const NavBar = ({
       return;
     }
 
-    setMegaMenuOpen(false);
+    setActiveMegaMenu(null);
   }, []);
 
   const handleLogout = () => {
@@ -591,41 +645,57 @@ const NavBar = ({
                 {/* Desktop: Shop with Chevron + Lookbook */}
                 <div className="flex items-center gap-1">
                   <button
-                    ref={shopButtonRef}
                     type="button"
                     onClick={handleShopClick}
+                    onMouseEnter={handleShopHover}
                     className={`text-xs tracking-[0.24em] uppercase ${colors.navTextColor} ${colors.navHoverColor} transition-colors`}
                   >
                     Shop
                   </button>
+                  <ChevronDown
+                    className={`w-3 h-3 transition-transform duration-200 ${colors.navTextColor} ${
+                      activeMegaMenu === 'shop' ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
+
+    <Link
+                  to="/lookbook"
+                  className={`hidden md:flex text-xs tracking-[0.24em] uppercase ${colors.navTextColor} ${colors.navHoverColor} transition-colors`}
+                  onMouseEnter={() => setActiveMegaMenu(null)}
+                >
+                  Lookbook
+                </Link>
+
+                <div className="flex items-center gap-1">
                   <button
-                    ref={chevronRef}
                     type="button"
-                    onMouseEnter={handleChevronHover}
-                    className={`${colors.navTextColor} ${colors.navHoverColor} transition-all`}
-                    aria-label="Open shop menu"
+                    onClick={handleRoomsClick}
+                    onMouseEnter={handleRoomsHover}
+                    className={`text-xs tracking-[0.24em] uppercase ${colors.navTextColor} ${colors.navHoverColor} transition-colors`}
                   >
-                    <ChevronDown
-                      className={`w-3 h-3 transition-transform duration-200 ${
-                        megaMenuOpen ? "rotate-180" : ""
-                      }`}
-                    />
+                    Rooms
                   </button>
+                  <ChevronDown
+                    className={`w-3 h-3 transition-transform duration-200 ${colors.navTextColor} ${
+                      activeMegaMenu === 'rooms' ? "rotate-180" : ""
+                    }`}
+                  />
                 </div>
 
                 <Link
-                  to="/lookbook"
-                  className={`text-xs tracking-[0.24em] uppercase ${colors.navTextColor} ${colors.navHoverColor} transition-colors`}
-                  onMouseEnter={() => setMegaMenuOpen(false)}
+                  to="/journal"
+                  className={`hidden md:flex text-xs tracking-[0.24em] uppercase ${colors.navTextColor} ${colors.navHoverColor} transition-colors`}
+                  onMouseEnter={() => setActiveMegaMenu(null)}
                 >
-                  Lookbook
+                  Journal
                 </Link>
               </>
             )}
 
             {isMobile && (
               <>
-                {/* Mobile: Menu Icon + Lookbook Icon - FIXED SPACING */}
+                {/* Mobile: Menu Icon Only */}
                 <NavIcon
                   onClick={toggleMenu}
                   className={`${colors.navTextColor} ${colors.navHoverColor}`}
@@ -633,14 +703,6 @@ const NavBar = ({
                 >
                   {menuOpen ? <X size={18} /> : <Menu size={18} />}
                 </NavIcon>
-                
-                <Link
-                  to="/lookbook"
-                  className={`${colors.navTextColor} ${colors.navHoverColor} transition-colors flex items-center justify-center`}
-                  aria-label="View Lookbook"
-                >
-                  <BookOpen size={18} strokeWidth={2} />
-                </Link>
               </>
             )}
           </div>
@@ -655,44 +717,64 @@ const NavBar = ({
                 fontFamily: "Playfair Display, serif",
                 textDecoration: "none",
               }}
-              onMouseEnter={() => setMegaMenuOpen(false)}
+              onMouseEnter={() => setActiveMegaMenu(null)}
             >
               AROHA
             </Link>
           </div>
 
-          {/* Right: Search */}
-          <div className="flex-1 flex justify-end items-center">
-  <NavIcon
-    onClick={openSearch}
-    className={`
-      ${colors.navTextColor} 
-      ${colors.navHoverColor}
-      bg-white/10 
-      backdrop-blur-md 
-      border border-white/20 
-      shadow-lg
-      rounded-full 
-      p-2
-      transition-all duration-300
-      hover:bg-white/20
-    `}
-    iconRef={(el) => (iconsRef.current[1] = el)}
-  >
-    <SearchIcon size={18} />
-  </NavIcon>
-</div>
+          {/* Right: Actions */}
+          <div className="flex-1 flex justify-end items-center gap-3 md:gap-5">
+            <NavIcon
+              onClick={openSearch}
+              onMouseEnter={() => setActiveMegaMenu(null)}
+              className={`
+                ${colors.navTextColor} 
+                ${colors.navHoverColor}
+                transition-all duration-300
+              `}
+              iconRef={(el) => (iconsRef.current[1] = el)}
+            >
+              <SearchIcon size={18} strokeWidth={1.5} />
+            </NavIcon>
+
+            <NavIcon
+              onClick={() => isAuthenticated ? navigate('/account') : openAuth()}
+              onMouseEnter={() => setActiveMegaMenu(null)}
+              className={`
+                hidden md:flex
+                ${colors.navTextColor} 
+                ${colors.navHoverColor}
+                transition-all duration-300
+              `}
+              iconRef={(el) => (iconsRef.current[2] = el)}
+            >
+              <User size={18} strokeWidth={1.5} />
+            </NavIcon>
+
+            <NavIcon
+              onClick={() => {}}
+              onMouseEnter={() => setActiveMegaMenu(null)}
+              className={`
+                ${colors.navTextColor} 
+                ${colors.navHoverColor}
+                transition-all duration-300
+              `}
+              iconRef={(el) => (iconsRef.current[3] = el)}
+            >
+              <ShoppingBag size={18} strokeWidth={1.5} />
+            </NavIcon>
+          </div>
 
         </div>
 
-        {/* Single aggregated mega menu with parent-child structure */}
+        {/* Dynamic Mega Menu Support */}
         {!isMobile && (
           <MegaMenu
             ref={megaMenuRef}
-            isOpen={megaMenuOpen}
-            content={aggregatedMegaContent}
-            caretPosition={caretPosition}
-            onClose={() => setMegaMenuOpen(false)}
+            isOpen={!!activeMegaMenu}
+            content={activeMegaMenu === 'rooms' ? roomsMegaContent : aggregatedMegaContent}
+            onClose={() => setActiveMegaMenu(null)}
             onMouseLeave={handleNavAreaLeave}
           />
         )}

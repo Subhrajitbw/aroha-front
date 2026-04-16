@@ -34,7 +34,7 @@ export default function ProductCatalog() {
 
   // Pagination
   const [page, setPage] = useState(1);
-  const limit = 10;
+  const limit = 12; // Adjusted to perfectly divide into 2, 3, or 4 columns
   const [totalCount, setTotalCount] = useState(0);
 
   // Sort
@@ -55,6 +55,7 @@ export default function ProductCatalog() {
     newOnly: false,
     inStockOnly: false,
     ratings: [],
+    tags: [],
   });
 
   // Keep selectedCategoryHandle and filters.categories in sync with URL changes
@@ -67,6 +68,9 @@ export default function ProductCatalog() {
       categories: next ? [next] : [],
     }));
     setPage(1);
+    
+    // Explicit scroll restoration to prevent bottom-stuck views
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [categoryHandleParam, location.state?.initialCategoryHandle]);
 
   // Fetch region
@@ -101,23 +105,29 @@ export default function ProductCatalog() {
     };
   }, []);
 
-  // Fetch products with price mapping + pagination + sort + category filter (by handle)
+  // We use stringified dependencies to avoid infinite loops from object references
+  const backendCollections = filters.collections?.join(",") || "";
+  const backendCategories = filters.categories?.join(",") || "";
+
+  // Fetch products with backend filtering for categories/collections
   useEffect(() => {
     const fetchProducts = async () => {
       if (!regionId) return;
 
+      // We must wait for categories to load if we need to map handles -> IDs
+      if (filters.categories?.length > 0 && categories.length === 0) {
+        return;
+      }
+
       setLoading(true);
       try {
-        const offset = (page - 1) * limit;
-
         let orderParam;
         if (sort === "newest") {
           orderParam = "-created_at";
         }
 
         const queryParams = {
-          limit,
-          offset,
+          limit: 100, // Fetch more for proper client-side filtering of price/sale
           fields:
             "id,title,handle,thumbnail,variants.calculated_price,variants.prices.*,images,created_at,collection_id,tags",
           region_id: regionId,
@@ -127,15 +137,24 @@ export default function ProductCatalog() {
           queryParams.order = orderParam;
         }
 
-        // Filter by category handle on the backend when selected
-        if (selectedCategoryHandle) {
-          queryParams["category_handle[]"] = [selectedCategoryHandle];
+        // Backend filtering for collections
+        if (filters.collections?.length > 0) {
+          queryParams["collection_id[]"] = filters.collections;
+        }
+
+        // Backend filtering for categories (requires mapping from handle -> ID)
+        if (filters.categories?.length > 0) {
+          const categoryIds = filters.categories
+            .map((handle) => categories.find((c) => c.handle === handle)?.id)
+            .filter(Boolean);
+
+          if (categoryIds.length > 0) {
+            queryParams["category_id[]"] = categoryIds;
+          }
         }
 
         const { products: productsList, count } =
           await sdk.store.product.list(queryParams);
-
-        setTotalCount(count || 0);
 
         const mappedProducts = (productsList || []).map((product) => {
           const defaultVariant = product.variants?.[0];
@@ -195,13 +214,13 @@ export default function ProductCatalog() {
             _rawAmount: amount,
             _rawOriginalAmount: originalAmount,
             _currencyCode: currencyCode,
-            collection_id: product.collection_id,
+            collection_id: product.collection_id || product.collection?.id,
             tags: product.tags,
             created_at: product.created_at,
           };
         });
 
-        // Price bounds
+        // Price bounds calculation based on REAL catalog bounds, not just this batch
         const prices = mappedProducts
           .map((p) => p._rawAmount || 0)
           .filter((v) => v > 0);
@@ -209,7 +228,10 @@ export default function ProductCatalog() {
         if (prices.length) {
           const min = Math.min(...prices);
           const max = Math.max(...prices);
-          setPriceBounds({ min, max });
+          setPriceBounds((prev) => ({ 
+            min: prev.min === 0 ? min : Math.min(prev.min, min), 
+            max: prev.max === 50000000 ? max : Math.max(prev.max, max) 
+          }));
 
           setFilters((prev) => {
             const isDefault =
@@ -229,8 +251,6 @@ export default function ProductCatalog() {
           sortedProducts.sort(
             (a, b) => (b._rawAmount || 0) - (a._rawAmount || 0)
           );
-        } else {
-          sortedProducts = mappedProducts;
         }
 
         setProducts(sortedProducts);
@@ -243,7 +263,7 @@ export default function ProductCatalog() {
     };
 
     fetchProducts();
-  }, [sort, regionId, page, selectedCategoryHandle]);
+  }, [sort, regionId, backendCollections, backendCategories, categories.length]);
 
   // Fetch collections
   useEffect(() => {
@@ -292,6 +312,9 @@ export default function ProductCatalog() {
     
     setPage(1);
     
+    // Explicit scroll restoration
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
     // Clear the state so it doesn't reapply on refresh
     window.history.replaceState({}, document.title);
   }
@@ -338,6 +361,20 @@ export default function ProductCatalog() {
       ? selectedCategoryNode.children
       : [];
 
+  // Extract unique suitability tags from fetched products
+  const availableTags = useMemo(() => {
+    const uniqueTags = new Set();
+    products.forEach((p) => {
+      if (p.tags && Array.isArray(p.tags)) {
+        p.tags.forEach((t) => {
+          const val = t.value || t;
+          if (val) uniqueTags.add(val.toLowerCase());
+        });
+      }
+    });
+    return Array.from(uniqueTags).sort();
+  }, [products]);
+
   // Filter products (client-side filters)
   const filteredProducts = useMemo(() => {
     const productsArray = Array.isArray(products) ? products : [];
@@ -358,6 +395,15 @@ export default function ProductCatalog() {
         return false;
       }
 
+      // Suitability Tags
+      if (filters.tags && filters.tags.length > 0) {
+        if (!product.tags || product.tags.length === 0) return false;
+        
+        const productTagValues = product.tags.map(t => (t.value || t).toLowerCase());
+        const matchesATag = filters.tags.some(t => productTagValues.includes(t.toLowerCase()));
+        if (!matchesATag) return false;
+      }
+
       // Discounted only
       if (filters.discountedOnly && !(product.discount > 0)) {
         return false;
@@ -375,10 +421,10 @@ export default function ProductCatalog() {
     });
   }, [products, filters]);
 
-  // Pagination helpers
-  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
-  const hasPrev = page > 1;
-  const hasNext = page < totalPages;
+  // Luxury 'Discover More' flow
+  const totalFilteredCount = filteredProducts.length;
+  const hasMore = totalFilteredCount > page * limit;
+  const currentProducts = filteredProducts.slice(0, page * limit);
 
   // Helpers to navigate to category shop page (by handle)
   const goToCategory = (handle) => {
@@ -409,11 +455,14 @@ export default function ProductCatalog() {
             transition={{ duration: 1, ease: "easeOut" }}
             className="text-center space-y-4 sm:space-y-6"
           >
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-extralight text-stone-900 tracking-wide leading-tight px-2">
+            <h1 
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-light text-stone-900 tracking-[0.05em] leading-tight px-2"
+              style={{ fontFamily: "'Playfair Display', serif" }}
+            >
               Curated Atelier
             </h1>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-stone-600 font-light max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto leading-relaxed px-4">
-              A curated collection of furniture pieces for your home.
+            <p className="text-xs sm:text-sm md:text-base text-stone-500 font-light max-w-xs sm:max-w-md md:max-w-xl mx-auto leading-relaxed px-4 tracking-[0.2em] uppercase">
+              Archival Objects for the Modern Space
             </p>
           </motion.div>
         </div>
@@ -423,7 +472,7 @@ export default function ProductCatalog() {
       <div className="px-3 sm:px-4 md:px-6 lg:px-8 xl:px-16 pb-3 sm:pb-4 lg:pb-6">
         <div className="max-w-[2200px] mx-auto flex items-center justify-between gap-3">
           <div className="text-xs sm:text-sm text-stone-500">
-            Showing {filteredProducts.length} of {totalCount} products
+            Showing {currentProducts.length} of {totalFilteredCount} products
           </div>
 
           <div className="flex items-center gap-3">
@@ -469,14 +518,11 @@ export default function ProductCatalog() {
             filters={filters}
             onFiltersChange={(val) => {
               setFilters(val);
-              if (val.categories?.length) {
-                goToCategory(val.categories[0]);
-              } else {
-                goToCategory(null);
-              }
+              setPage(1); // Reset page on filter change
             }}
             collections={collections}
             categories={categories}
+            tags={availableTags}
             priceBounds={priceBounds}
             className="hidden lg:block lg:w-72 xl:w-80 2xl:w-96 shrink-0"
           />
@@ -516,8 +562,8 @@ export default function ProductCatalog() {
                         md:grid-cols-3 
                         lg:grid-cols-3 
                         xl:grid-cols-4 
-                        gap-x-4 sm:gap-x-6 lg:gap-x-8
-                        gap-y-6 sm:gap-y-8 lg:gap-y-10
+                        gap-x-4 sm:gap-x-8 lg:gap-x-12
+                        gap-y-10 sm:gap-y-12 lg:gap-y-16
                       "
                     >
                       {loading ? (
@@ -529,7 +575,7 @@ export default function ProductCatalog() {
                           </div>
                         ))
                       ) : (
-                        filteredProducts.map((product) => (
+                        currentProducts.map((product) => (
                           <ProductInfoCard
                             key={product.id}
                             product={product}
@@ -540,38 +586,23 @@ export default function ProductCatalog() {
                       )}
                     </div>
 
-                    {/* Pagination */}
-                    {!loading && totalPages > 1 && (
-                      <div className="mt-8 flex items-center justify-center gap-3 sm:gap-4">
-                        <button
-                          onClick={() => hasPrev && setPage((p) => p - 1)}
-                          disabled={!hasPrev}
-                          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm border transition
-                            ${
-                              hasPrev
-                                ? "border-stone-400 text-stone-800 hover:bg-stone-100"
-                                : "border-stone-200 text-stone-300 cursor-not-allowed"
-                            }`}
+                    {/* Pagination - Luxury Discover More */}
+                    {!loading && hasMore && (
+                      <div className="mt-16 sm:mt-24 mb-8 flex flex-col items-center justify-center">
+                        <div className="text-xs text-stone-400 font-light tracking-wider mb-6">
+                          Showing {currentProducts.length} of {totalFilteredCount}
+                        </div>
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          onClick={() => setPage((p) => p + 1)}
+                          className="group relative px-8 py-3 bg-transparent overflow-hidden"
                         >
-                          Previous
-                        </button>
-
-                        <span className="text-xs sm:text-sm text-stone-600">
-                          Page {page} of {totalPages}
-                        </span>
-
-                        <button
-                          onClick={() => hasNext && setPage((p) => p + 1)}
-                          disabled={!hasNext}
-                          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-sm border transition
-                            ${
-                              hasNext
-                                ? "border-stone-400 text-stone-800 hover:bg-stone-100"
-                                : "border-stone-200 text-stone-300 cursor-not-allowed"
-                            }`}
-                        >
-                          Next
-                        </button>
+                          <div className="absolute inset-x-0 bottom-0 h-[1px] bg-stone-300 group-hover:bg-stone-900 transition-colors duration-500"></div>
+                          <span className="relative z-10 text-xs sm:text-sm tracking-[0.2em] uppercase text-stone-600 group-hover:text-stone-900 transition-colors duration-500">
+                            Discover More
+                          </span>
+                        </motion.button>
                       </div>
                     )}
                   </>
@@ -589,14 +620,11 @@ export default function ProductCatalog() {
         filters={filters}
         onFiltersChange={(val) => {
           setFilters(val);
-          if (val.categories?.length) {
-            goToCategory(val.categories[0]);
-          } else {
-            goToCategory(null);
-          }
+          setPage(1); // Reset page on filter change
         }}
         collections={collections}
         categories={categories}
+        tags={availableTags}
         priceBounds={priceBounds}
         sort={sort}
         onSortChange={(val) => {

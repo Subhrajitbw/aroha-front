@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { gsap } from "gsap";
 import { ChevronRight, ArrowRight } from "lucide-react";
 
-const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseLeave }, ref) => {
+const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) => {
   const menuRef = useRef(null);
   const backdropRef = useRef(null);
   const contentRef = useRef(null);
@@ -17,43 +17,43 @@ const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseL
         duration: 0.3,
         ease: "power2.out",
       });
-      
+
       gsap.fromTo(
         menuRef.current,
-        { y: -30, scale: 0.95 },
+        { y: -24, scale: 0.98, autoAlpha: 0 },
         {
           y: 0,
           scale: 1,
           autoAlpha: 1,
-          duration: 0.5,
+          duration: 0.55,
           ease: "power3.out",
         }
       );
 
       gsap.fromTo(
         contentRef.current?.querySelectorAll(".mega-column") || [],
-        { y: 30, opacity: 0 },
+        { y: 22, opacity: 0 },
         {
           y: 0,
           opacity: 1,
-          duration: 0.6,
-          stagger: 0.05,
+          duration: 0.65,
+          stagger: 0.06,
           ease: "power2.out",
-          delay: 0.1,
+          delay: 0.12,
         }
       );
     } else {
       gsap.to(menuRef.current, {
-        y: -20,
+        y: -16,
         scale: 0.98,
         autoAlpha: 0,
-        duration: 0.3,
+        duration: 0.28,
         ease: "power2.in",
       });
-      
+
       gsap.to(backdropRef.current, {
         autoAlpha: 0,
-        duration: 0.25,
+        duration: 0.22,
         ease: "power2.in",
         onComplete: () => {
           gsap.set(backdropRef.current, { display: "none" });
@@ -62,126 +62,234 @@ const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseL
     }
   }, [isOpen]);
 
-  // Prevent click propagation on menu to avoid closing when clicking inside
-  const handleMenuClick = (e) => {
-    e.stopPropagation();
-  };
+  const handleMenuClick = (e) => e.stopPropagation();
 
   if (!content || !content.columns?.length) return null;
 
   return (
     <>
-      {/* Backdrop overlay - MODIFIED: Added pointer-events control */}
+      {/* ── Backdrop ── */}
       <div
         ref={backdropRef}
-        className="fixed inset-x-0 top-0 h-screen  z-40 pointer-events-auto"
+        className="fixed inset-x-0 top-0 h-screen z-40 pointer-events-auto"
         style={{ display: "none" }}
         onClick={onClose}
         onMouseEnter={onMouseLeave}
       />
 
-      {/* Mega menu container - MODIFIED: Better event handling */}
+      {/* ── Mega Menu Container ── */}
       <div
         ref={(node) => {
           menuRef.current = node;
           if (ref) {
-            if (typeof ref === 'function') {
-              ref(node);
-            } else {
-              ref.current = node;
-            }
+            typeof ref === "function" ? ref(node) : (ref.current = node);
           }
         }}
-        className="absolute left-0 right-0 top-full mt-3 z-50 pointer-events-auto"
-        style={{ visibility: "hidden" }}
+        className="absolute left-0 right-0 top-full z-50 pointer-events-auto"
+        style={{ visibility: "hidden", marginTop: "2px" }}
         onMouseLeave={onMouseLeave}
         onClick={handleMenuClick}
       >
-        {/* Caret indicator - properly positioned */}
-        {typeof caretPosition === "number" && (
+        {/* ── Hover bridge (prevents gap flicker) ── */}
+        <div
+          className="absolute -top-5 left-0 right-0 h-5 pointer-events-auto"
+          aria-hidden="true"
+        />
+
+        {/* ── Panel ── */}
+        <div
+          className="relative w-screen"
+          style={{
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(15, 15, 15, 0.85)",
+            backdropFilter: "blur(60px) saturate(120%)",
+            borderTop: "1px solid rgba(255, 255, 255, 0.05)",
+            borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+            overflow: "hidden",
+          }}
+        >
+          {/* Gold hairline at top */}
           <div
-            className="absolute w-3 h-3 bg-white transform rotate-45 pointer-events-none"
+            aria-hidden="true"
             style={{
-              top: "-6px",
-              left: `${caretPosition}%`,
-              marginLeft: "-6px",
-              boxShadow: "-2px -2px 8px rgba(0,0,0,0.05)",
-              zIndex: 51,
+              position: "absolute",
+              top: 0,
+              left: "64px",
+              right: "64px",
+              height: "1px",
+              background:
+                "linear-gradient(90deg, transparent, rgba(201, 169, 110, 0.2) 20%, rgba(232, 213, 163, 0.3) 50%, rgba(201, 169, 110, 0.2) 80%, transparent)",
+              opacity: 1,
+              zIndex: 0,
             }}
           />
-        )}
 
-        {/* Main menu panel - MODIFIED: Added hover bridge */}
-        <div className="relative">
-          {/* Invisible hover bridge to prevent gap issues */}
-          <div 
-            className="absolute -top-6 left-0 right-0 h-6 pointer-events-auto"
-            aria-hidden="true"
-          />
-          
-          <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-neutral-100 overflow-hidden mx-6">
-            <div
-              ref={contentRef}
-              className="max-w-[1400px] mx-auto px-12 py-14 space-y-8"
-            >
-              <h2>Explore our Shop</h2>
-              {/* Categories grid - full width */}
-              <div className={`grid ${
-                content.columns.length <= 3 ? 'grid-cols-3' : 
-                content.columns.length <= 4 ? 'grid-cols-4' : 
-                content.columns.length <= 6 ? 'grid-cols-5' :
-                'grid-cols-6'
-              } gap-x-12 gap-y-10`}>
+          {/* ── Inner layout ── */}
+          <div
+            ref={contentRef}
+            className="relative z-10 flex mx-auto max-w-[1400px] px-8 md:px-16 pt-16 pb-20"
+          >
+            {/* ─── LEFT PANE: Directory ─── */}
+            <div className="w-[55%] lg:w-[60%] pr-12 lg:pr-24 border-r border-stone-800/60 flex flex-col">
+              {/* Section label */}
+              <div className="flex items-center gap-4 mb-10">
+                <span className="text-[10px] font-medium tracking-[0.3em] uppercase text-[#c9a96e] whitespace-nowrap">
+                  The Directory
+                </span>
+                <div className="flex-1 h-[1px] bg-gradient-to-r from-stone-800 to-transparent" />
+              </div>
+
+              {/* Columns grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-14">
                 {content.columns.map((column, idx) => (
-                  <div key={idx} className="mega-column">
-                    {/* Column header */}
+                  <div key={idx} className="mega-column flex flex-col">
+                    {/* Column heading */}
                     <Link
                       to={column.href}
                       onClick={onClose}
-                      className="group block mb-6"
+                      className="group inline-flex items-center gap-2 mb-3"
                     >
-                      <h3 className="text-[11px] font-medium tracking-[0.15em] uppercase text-neutral-900 group-hover:text-neutral-600 transition-colors duration-300 flex items-center gap-2 mb-3">
+                      <span className="font-serif text-sm lg:text-base tracking-[0.1em] uppercase text-stone-200 group-hover:text-[#c9a96e] transition-colors duration-300">
                         {column.title}
-                        <ChevronRight
-                          size={12}
-                          strokeWidth={2}
-                          className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"
-                        />
-                      </h3>
-                      <div className="h-[1px] bg-gradient-to-r from-neutral-200 via-neutral-300 to-transparent" />
+                      </span>
+                      <ChevronRight
+                        size={14}
+                        strokeWidth={1.5}
+                        className="text-[#c9a96e] opacity-0 group-hover:opacity-100 translate-x-0 group-hover:translate-x-1 transition-all duration-300"
+                      />
                     </Link>
 
-                    {/* Column items */}
-                    <nav className="space-y-4">
+                    {/* Gold rule */}
+                    <div className="w-8 h-[1px] bg-[#c9a96e]/40 mb-6" />
+
+                    {/* Items */}
+                    <nav className="flex flex-col gap-3">
                       {column.items?.slice(0, 5).map((item, itemIdx) => (
                         <Link
                           key={itemIdx}
                           to={item.href}
                           onClick={onClose}
-                          className="group flex items-start gap-3 text-[13px] text-neutral-600 hover:text-neutral-900 transition-all duration-300"
+                          className="group flex items-center gap-3"
                         >
-                          <span className="mt-1.5 w-[3px] h-[3px] rounded-full bg-neutral-300 group-hover:bg-neutral-900 group-hover:w-[5px] group-hover:h-[5px] transition-all duration-300 flex-shrink-0" />
-                          <span className="leading-relaxed tracking-wide group-hover:translate-x-0.5 transition-transform duration-300">
+                          <span className="w-1 h-1 rounded-full bg-stone-700 transition-colors duration-300 group-hover:bg-[#c9a96e]" />
+                          <span className="text-[11px] lg:text-xs tracking-[0.15em] uppercase text-stone-400 group-hover:text-[#c9a96e] group-hover:translate-x-1 transition-all duration-300">
                             {item.name}
                           </span>
                         </Link>
                       ))}
                     </nav>
 
-                    {/* View all link */}
                     {column.items?.length > 5 && (
                       <Link
                         to={column.href}
                         onClick={onClose}
-                        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-500 hover:text-neutral-900 transition-colors mt-5 tracking-wide"
+                        className="inline-flex items-center gap-2 mt-5 group"
                       >
-                        <span>View all</span>
-                        <ArrowRight size={11} strokeWidth={2} />
+                        <span className="text-[10px] tracking-[0.2em] uppercase text-stone-600 group-hover:text-[#c9a96e] transition-colors duration-300">
+                          View All
+                        </span>
+                        <ArrowRight
+                          size={12}
+                          strokeWidth={1.5}
+                          className="text-stone-600 group-hover:text-[#c9a96e] group-hover:translate-x-1 transition-all duration-300"
+                        />
                       </Link>
                     )}
                   </div>
                 ))}
               </div>
+            </div>
+
+            {/* ─── RIGHT PANE: Curated Focus ─── */}
+            <div className="w-[45%] lg:w-[40%] pl-12 lg:pl-24 flex flex-col">
+              {/* Section label */}
+              <div className="flex items-center justify-between mb-10">
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] font-medium tracking-[0.3em] uppercase text-[#c9a96e] whitespace-nowrap">
+                    Curated Focus
+                  </span>
+                  <div className="w-12 h-[1px] bg-gradient-to-r from-stone-800 to-transparent" />
+                </div>
+                <Link
+                  to="/lookbook"
+                  onClick={onClose}
+                  className="text-[10px] tracking-[0.2em] uppercase text-stone-500 hover:text-[#c9a96e] border-b border-stone-800 hover:border-[#c9a96e] pb-[2px] transition-colors"
+                >
+                  Lookbook ›
+                </Link>
+              </div>
+
+              {/* Featured cards */}
+              <div className="flex-1 grid grid-cols-2 gap-6 min-h-[350px]">
+                {content.featured?.slice(0, 2).map((item, idx) => (
+                  <Link
+                    to={item.href}
+                    onClick={onClose}
+                    key={idx}
+                    className="mega-column group relative overflow-hidden flex flex-col justify-end bg-stone-900 border border-stone-800/50"
+                  >
+                    {/* Image */}
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105 brightness-[0.7] group-hover:brightness-90"
+                    />
+
+                    {/* Gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-80 group-hover:opacity-100 transition-opacity duration-700" />
+
+                    {/* Gold border reveal */}
+                    <div className="absolute inset-0 border border-transparent group-hover:border-[#c9a96e]/30 transition-colors duration-700 pointer-events-none z-20" />
+
+                    {/* Card content */}
+                    <div className="relative z-10 p-6 lg:p-8 transform translate-y-2 group-hover:translate-y-0 transition-transform duration-700">
+                      <p className="text-[10px] tracking-[0.3em] uppercase text-[#c9a96e] opacity-80 mb-3">
+                        No. 0{idx + 1}
+                      </p>
+                      <h4 className="font-serif text-xl lg:text-3xl font-light text-stone-100 tracking-wide leading-tight group-hover:text-white transition-colors duration-500">
+                        {item.title}
+                      </h4>
+                      {item.subtitle && (
+                        <p className="text-[10px] lg:text-[11px] tracking-[0.2em] uppercase text-[#c9a96e]/70 mt-3 group-hover:text-[#c9a96e] transition-colors duration-500">
+                          {item.subtitle}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Footer strip ── */}
+          <div className="relative z-1 h-[1px] mx-8 md:mx-16 bg-gradient-to-r from-transparent via-stone-800 to-transparent" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between mx-auto gap-4 md:gap-0 max-w-[1400px] px-8 md:px-16 py-6">
+            <span className="font-serif text-xs md:text-sm italic text-stone-500 tracking-[0.06em]">
+              "Curating spaces of undeniable intention." — Aroha
+            </span>
+            <div className="flex items-center gap-6 md:gap-8">
+              {[
+                { label: "New Arrivals", href: "/shop" },
+                { label: "Editorials", href: "/lookbook" },
+                { label: "Client Services", href: "/account" },
+              ].map((link) => (
+                <Link
+                  key={link.label}
+                  to={link.href}
+                  onClick={onClose}
+                  className="group inline-flex items-center gap-2"
+                >
+                  <span className="text-[9px] md:text-[10px] tracking-[0.2em] uppercase text-stone-400 group-hover:text-[#c9a96e] transition-colors duration-300">
+                    {link.label}
+                  </span>
+                  <ArrowRight
+                    size={10}
+                    strokeWidth={1.5}
+                    className="text-stone-400 group-hover:text-[#c9a96e] group-hover:translate-x-1 transition-all duration-300"
+                  />
+                </Link>
+              ))}
             </div>
           </div>
         </div>
@@ -190,6 +298,6 @@ const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseL
   );
 });
 
-MegaMenu.displayName = 'MegaMenu';
+MegaMenu.displayName = "MegaMenu";
 
 export default MegaMenu;
