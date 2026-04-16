@@ -100,7 +100,6 @@ export default function ProductCarousel() {
       mapped.forEach(p => prefetchImage(p.image));
       return mapped;
     },
-    staleTime: 1000 * 60 * 5,
   });
 
 

@@ -1,19 +1,39 @@
 import { QueryClient } from "@tanstack/react-query";
+import { persistQueryClient } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { sdk } from "./medusaClient";
 import { sanityClient, urlFor } from "./sanityClient";
 
 // -----------------------------
-// Query Client
+// Query Client Configuration
 // -----------------------------
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 30,
+      // Data is fresh for 1 hour by default (adjust as needed for dynamic stores)
+      staleTime: 1000 * 60 * 60,
+      // Keep data in cache for 24 hours even if unused
+      gcTime: 1000 * 60 * 60 * 24,
       retry: 1,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+      // Aggressive caching: only refetch if data is stale
     },
   },
+});
+
+// -----------------------------
+// Persistence Setup (LocalStorage)
+// -----------------------------
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+  key: "AROHA_QUERY_CACHE",
+});
+
+persistQueryClient({
+  queryClient,
+  persister,
+  maxAge: 1000 * 60 * 60 * 24, // 24 hours
 });
 
 // -----------------------------
@@ -36,6 +56,15 @@ export const prefetchImage = (url) => {
 // API Layer (IMPORTANT)
 // -----------------------------
 export const medusaApi = {
+  async getRegion() {
+    const { regions } = await sdk.store.region.list({ limit: 1 });
+    return regions?.[0] || null;
+  },
+
+  async get(url, config = {}) {
+    return sdk.client.fetch(url, { method: "GET", ...config });
+  },
+
   async getCuratedCategories() {
     try {
       const response = await sdk.client.fetch(

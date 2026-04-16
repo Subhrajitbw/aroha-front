@@ -18,24 +18,27 @@ const CategorySection = () => {
   const sliderRef = useRef(null);
 
   // --- TANSTACK QUERY INTEGRATION ---
-  const { data: curatedData, isLoading: loading } = useQuery({
+  // getCuratedCategories() already returns the array directly
+  const { data: curatedData = [], isLoading: loading } = useQuery({
     queryKey: ['curated-categories'],
     queryFn: async () => {
-      const { data } = await medusaApi.get('/store/curated-categories');
+      const categories = await medusaApi.getCuratedCategories();
+      // Normalize: getCuratedCategories returns the array on success,
+      // or { curated_categories: [] } on error
+      const list = Array.isArray(categories) ? categories : (categories?.curated_categories ?? []);
       // Prefetch ALL images for the first category chunk immediately
-      const firstChunk = data.curated_categories?.slice(0, 4) || [];
+      const firstChunk = list.slice(0, 4);
       firstChunk.forEach(cat => {
         prefetchImage(cat.image);
         cat.featuredProducts?.forEach(p => prefetchImage(p.thumbnail));
       });
-      return data.curated_categories || [];
+      return list;
     },
-    staleTime: 1000 * 60 * 10, // 10 mins
   });
 
   // Chunk layout data into grid modules of 4
   const categoryChunks = [];
-  if (curatedData) {
+  if (curatedData.length) {
     for (let i = 0; i < curatedData.length; i += 4) {
       categoryChunks.push(curatedData.slice(i, i + 4));
     }
@@ -110,6 +113,7 @@ const CategorySection = () => {
       <div className="w-6 h-6 border-t border-stone-800 rounded-full animate-spin" />
     </section>
   );
+  console.log(categoryChunks)
 
   if (categoryChunks.length === 0) {
     return (

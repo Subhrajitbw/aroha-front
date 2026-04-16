@@ -3,6 +3,7 @@ import { useInView } from "react-intersection-observer";
 import { animated } from "@react-spring/web";
 import { motion } from "framer-motion";
 import { useResponsive } from "../hooks/useResponsive";
+import { useRegion } from "../hooks/useRegion";
 import { useBackgroundSpring } from "../hooks/useBackgroundSpring";
 import { useContentAnimation } from "../hooks/useContentAnimation";
 import { useQuery } from "@tanstack/react-query";
@@ -47,14 +48,8 @@ const AnimatedSection = ({
   // ---------------------------------------------------------
 
   // A. Fetch Region
-  const { data: regionId } = useQuery({
-    queryKey: ['region'],
-    queryFn: async () => {
-      const { regions } = await medusa.region.list({ limit: 1 });
-      return regions?.[0]?.id || null;
-    },
-    staleTime: 1000 * 60 * 60, // 1 hour
-  });
+  const { data: region } = useRegion();
+  const regionId = region?.id || null;
 
   // B. Fetch Collection & Products
   const { data: sectionData, isLoading: loading } = useQuery({
@@ -131,7 +126,6 @@ const AnimatedSection = ({
       return { collection: targetCollection, products: mapped };
     },
     enabled: !!regionId || regionId === null,
-    staleTime: 1000 * 60 * 10,
   });
 
   const collection = sectionData?.collection;
