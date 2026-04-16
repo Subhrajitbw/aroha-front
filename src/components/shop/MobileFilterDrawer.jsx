@@ -8,6 +8,7 @@ export const MobileFilterDrawer = ({
   onClose,
   filters,
   onFiltersChange,
+  collections,
   categories,
   tags,
   priceBounds,
@@ -44,7 +45,7 @@ export const MobileFilterDrawer = ({
             className="fixed inset-y-0 left-0 w-full max-w-sm bg-white/95 backdrop-blur-3xl z-50 overflow-hidden flex flex-col border-r border-stone-200/40"
           >
             <div className="flex items-center justify-between p-6 border-b border-stone-200/40">
-              <h2 className="text-xs uppercase tracking-[0.1em] font-normal text-stone-900">
+              <h2 className="text-sm uppercase tracking-[0.1em] font-bold text-stone-900">
                 Refine Selections
               </h2>
               <button
@@ -52,7 +53,7 @@ export const MobileFilterDrawer = ({
                 className="p-1 hover:text-stone-400 transition-colors"
                 aria-label="Close filters"
               >
-                <X className="w-5 h-5 text-stone-900 font-light" strokeWidth={1} />
+                <X className="w-5 h-5 text-stone-900" strokeWidth={1} />
               </button>
             </div>
 
@@ -61,7 +62,7 @@ export const MobileFilterDrawer = ({
               <div className="p-4 space-y-6">
                 {/* Sort section */}
                 <div className="space-y-4 pt-2">
-                  <p className="text-[10px] uppercase tracking-[0.2em] font-light text-stone-900">
+                  <p className="text-xs uppercase tracking-[0.2em] font-bold text-stone-900">
                     Sort by
                   </p>
                   <div className="relative">

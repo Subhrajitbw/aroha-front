@@ -41,7 +41,7 @@ const FilterSection = ({
               {icon}
             </span>
           )}
-          <span className="text-xs uppercase tracking-[0.1em] font-normal text-stone-900 group-hover:text-stone-500 transition-colors duration-300">
+          <span className="text-sm uppercase tracking-[0.1em] font-bold text-stone-900 group-hover:text-stone-500 transition-colors duration-300">
             {title}
           </span>
         </div>
@@ -129,17 +129,18 @@ const LuxuryCheckbox = ({
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <span className={`text-xs font-normal tracking-wide transition-colors duration-300 ${checked ? "text-stone-900" : "text-stone-600 group-hover:text-stone-900"}`}>
+        <span className={`text-sm font-normal tracking-wide transition-colors duration-300 ${checked ? "text-stone-900" : "text-stone-700 group-hover:text-stone-900"}`}>
           {label}
         </span>
       </div>
     </div>
 
     {typeof count === "number" && (
-      <span className="text-[11px] text-stone-400 font-normal tracking-widest">
+      <span className="text-xs text-stone-500 font-normal tracking-widest">
         ({count})
       </span>
     )}
+
   </label>
 );
 

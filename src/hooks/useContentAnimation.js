@@ -11,23 +11,16 @@ export const useContentAnimation = (inView, isDesktop) => {
 
   // ✅ First effect: handle content + setting desktopEntered
   useEffect(() => {
-
     if (inView) {
-      contentControls.start({
-        y: 0,
-        opacity: 1,
-        transition: { duration: 1, ease: "easeOut" },
-      }).then(() => {
-        setDesktopEntered(true);
-      });
+      contentControls.set({ y: 0, opacity: 1 });
+      setDesktopEntered(true);
     } else {
       setDesktopEntered(false);
-      setTextAnimationTriggered(false);  // Reset the text animation trigger
-      contentControls.set({ y: 100, opacity: 0 });
+      setTextAnimationTriggered(false);
       desktopControls.stop();
       mobileSliderControls.stop();
     }
-  }, [inView, isDesktop, contentControls]);
+  }, [inView, contentControls]);
 
   // ✅ New effect: trigger slider animations only after desktopEntered is true
   useEffect(() => {

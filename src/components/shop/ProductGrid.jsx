@@ -1,6 +1,6 @@
 // components/ProductGrid.jsx
 import { motion } from "framer-motion";
-import { ProductInfoCard } from "../ProductInfoCard";
+import { ProductInfoCard } from "./ProductInfoCard";
 
 const getGridConfig = (width) => {
   if (width >= 1920) return { columns: "grid-cols-5", spacing: "gap-8" };

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { motion } from "framer-motion";
-import { ProductInfoCard } from "../ProductInfoCard";
+import { ProductInfoCard } from "../shop/ProductInfoCard";
 
 const SliderColumn = ({
   products,

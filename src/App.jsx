@@ -11,32 +11,30 @@ import { useSite } from "./context/SiteContext";
 
 // ✅ Pages
 import Frontpage from "./pages/Frontpage";
-import Rooms from "./pages/Rooms";
-import ProductCatelog from "./pages/ProductCatelog";
-import ShopSingle from "./pages/ShopSingle";
-import ShopSingleDetails from "./pages/ShopSingleDetails";
-import Lookbook from "./pages/Lookbook";
-import FAQ from "./pages/FAQ";
+import Rooms from "./pages/shop/Rooms";
+import ProductCatelog from "./pages/shop/ProductCatelog";
+import ShopSingle from "./pages/shop/ShopSingle";
+import Lookbook from "./pages/shop/Lookbook";
 import Contact from "./pages/Contact";
 import Journal from "./pages/Journal";
-import ProductPage from "./pages/ProductSingle";
-import Account from "./pages/Account";
+import ProductPage from "./pages/shop/ProductSingle";
+import Account from "./pages/account/Account";
 
 // ✅ Legal Pages
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfUse from "./pages/TermsOfUse";
-import ReturnRefundPolicy from "./pages/Refund";
-import ShippingPolicy from "./pages/Shipping";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
+import TermsOfUse from "./pages/legal/TermsOfUse";
+import ReturnRefundPolicy from "./pages/legal/Refund";
+import ShippingPolicy from "./pages/legal/Shipping";
 
 // ✅ Components
-import NavBar from "./components/NavBar";
-import AuthModal from "./components/AuthModal";
-import SearchModal from "./components/SearchModal";
-import Footer from "./components/Footer";
-import OAuthRelay from "./components/OAuthRelay";
-import ProtectedRoute from "./components/protectedroute";
-import FloatingEnquiry from "./components/FloatingEnquiry";
-import CustomCursor from "./components/CustomCursor";
+import NavBar from "./components/layout/NavBar";
+import AuthModal from "./components/auth/AuthModal";
+import SearchModal from "./components/layout/SearchModal";
+import Footer from "./components/layout/Footer";
+import OAuthRelay from "./components/auth/OAuthRelay";
+import ProtectedRoute from "./components/ui/ProtectedRoute";
+import FloatingEnquiry from "./components/layout/FloatingEnquiry";
+import CustomCursor from "./components/ui/CustomCursor";
 
 // ✅ Store
 import { useSearchStore } from "./stores/searchStore";
@@ -254,11 +252,9 @@ function App() {
           <Route path="/shop" element={<ProductCatelog />} />
           <Route path="/shop/category/:categoryHandle" element={<ProductCatelog />} />
           <Route path="/lookbook" element={<Lookbook />} />
-          <Route path="/faq" element={<FAQ />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/journal" element={<Journal />} />
           <Route path="/product/:slug" element={<ShopSingle />} />
-          <Route path="/shop-single-details/:slug" element={<ShopSingleDetails />} />
           <Route path="/products/:handle" element={<ProductPage />} />
           <Route path="/blogs/:handle" element={<Journal />} />
           <Route path="/account/*" element={<ProtectedRoute><Account /></ProtectedRoute>} />

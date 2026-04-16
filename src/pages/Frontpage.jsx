@@ -6,14 +6,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useMenuStore } from "../stores/useMenuStore";
 
 // Component Imports
-import HeroSection from "../components/HeroSection";
-import ProductCarousel from "../components/ProductCarousel";
-import AboutSection from "../components/AboutSection";
-import EngagementSection from "../components/EngagementSection";
-import CategorySection from "../components/CategorySection";
-import AnimatedSection from "../components/AnimatedSection";
-import LuxuryLoadingOverlay from "../components/LoadingOverlay";
-import Footer from "../components/Footer";
+import HeroSection from "../components/sections/HeroSection";
+import ProductCarousel from "../components/sections/ProductCarousel";
+import AboutSection from "../components/sections/AboutSection";
+import EngagementSection from "../components/sections/EngagementSection";
+import CategorySection from "../components/sections/CategorySection";
+import AnimatedSection from "../components/sections/AnimatedSection";
+import LuxuryLoadingOverlay from "../components/ui/LoadingOverlay";
+import Footer from "../components/layout/Footer";
 
 gsap.registerPlugin(ScrollToPlugin);
 

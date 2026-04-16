@@ -109,6 +109,32 @@ body::-webkit-scrollbar {
 /* Ensure smooth scrolling behavior */
 html {
   scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #1c1917; /* stone-900 */
+  text-rendering: optimizeLegibility;
+}
+
+/* Stabilize global font weights for luxury readability */
+* {
+  font-weight: 400; /* Prevent flickering and accidental ultra-lights */
+}
+
+/* Headings stabilization */
+h1, h2, h3, h4, h5, h6 {
+  font-family: inherit;
+  color: #1c1917;
+}
+
+/* Ensure small text remains legible */
+small, .text-xs, .text-\[10px\] {
+  font-weight: 500 !important; /* Slightly heavier for tiny text */
+  letter-spacing: 0.05em;
 }
 
 /* Remove outline on focus for custom scroll areas */
@@ -116,6 +142,7 @@ html {
   outline: none;
   scrollbar-width: none;
 }
+
 
 /* Custom utility classes */
 .no-scrollbar {

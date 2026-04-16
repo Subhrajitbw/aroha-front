@@ -1,12 +1,12 @@
-// components/AuthPage.js
+// src/pages/AuthPage.jsx
 import React, { useEffect, useRef, useState } from "react";
 import gsap from "gsap";
-import { ArrowRight, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, Sparkles, ShieldCheck, Mail, Lock, User, ShoppingBag, Clock, Heart, CheckCircle2 } from "lucide-react";
 import { GoogleLogin } from '@react-oauth/google';
 import FacebookLogin from 'react-facebook-login/dist/facebook-login-render-props';
 import { useAuthStore } from "../stores/useAuthStore";
 import { useAuthModalStore } from "../stores/useAuthModalStore";
-import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 
 const AuthPage = () => {
   const [formData, setFormData] = useState({
@@ -17,357 +17,376 @@ const AuthPage = () => {
   });
   const [localError, setLocalError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [view, setView] = useState("login"); // login, register, forgot
 
-  const containerRef = useRef();
-  const formRef = useRef();
-  const heroRef = useRef();
+  const heroImageRef = useRef();
 
-  const navigate = useNavigate();
-  
   const { 
     login, 
     register, 
+    forgotPassword,
     handleGoogleCredential,
     handleFacebookToken,
     isLoading, 
     error: authError,
     setError: setAuthError,
-    updateActivity,
     user
   } = useAuthStore();
   
   const { 
     close, 
-    redirectPath, 
     mode, 
-    setMode,
     error: modalError,
     clearError: clearModalError,
     isOpen
   } = useAuthModalStore();
-  
-  const isRegister = mode === 'register';
 
   useEffect(() => {
-    if (!user) return;
-    updateActivity();
-    close();
-  }, [user, updateActivity, close, navigate, redirectPath]);
+    if (mode) setView(mode);
+  }, [mode]);
 
-  // GSAP Animations
+  useEffect(() => {
+    if (user) close();
+  }, [user, close]);
+
   useEffect(() => {
     if (!isOpen) return;
     const tl = gsap.timeline();
-    tl.fromTo(containerRef.current, { opacity: 0, scale: 0.98 }, { opacity: 1, scale: 1, duration: 0.8, ease: "power3.out" })
-      .fromTo(formRef.current, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" }, "-=0.6")
-      .fromTo(heroRef.current, { scale: 1.05, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.2, ease: "power2.out" }, "-=0.8");
+    tl.fromTo(heroImageRef.current, 
+      { scale: 1.15, filter: "brightness(0.3)" }, 
+      { scale: 1, filter: "brightness(1)", duration: 2.5, ease: "power4.out" }
+    );
   }, [isOpen]);
 
-  useEffect(() => {
-    setLocalError("");
-    setAuthError(null);
-    clearModalError();
-  }, [mode, setAuthError, clearModalError]);
-
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     if (localError) setLocalError("");
   };
 
-  const parseFullName = (name) => {
-    const parts = name.trim().split(/\s+/);
-    return { firstName: parts[0] || "", lastName: parts.slice(1).join(" ") || "" };
-  };
-
-  const validateForm = () => {
-    if (!formData.email || !formData.password) {
-      setLocalError("Please provide all required credentials.");
-      return false;
-    }
-    if (isRegister && !formData.fullName.trim()) {
-      setLocalError("Please provide your full identity.");
-      return false;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setLocalError("Please provide a valid email address.");
-      return false;
-    }
-    if (isRegister) {
-      if (formData.password.length < 8) {
-        setLocalError("Password must encompass at least 8 characters.");
-        return false;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        setLocalError("Authentication credentials do not match.");
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
-    setLocalError("");
-    
-    try {
-      let result;
-      if (isRegister) {
-        const { firstName, lastName } = parseFullName(formData.fullName);
-        const userData = {
-          firstName,
-          lastName,
-          username: formData.email.split("@")[0],
-          email: formData.email,
-          password: formData.password,
-          confirmPassword: formData.confirmPassword,
-        };
-        result = await register(userData);
-      } else {
-        result = await login({ email: formData.email, password: formData.password });
-      }
-
-      if (!result?.success) {
-        setLocalError(result?.message || `Authentication unfulfilled. Please try again.`);
-      }
-    } catch (error) {
-      console.error('Auth error:', error);
-      setLocalError('An anomaly occurred within our records. Please try again.');
-    }
-  };
-
-  const handleGoogleSuccess = async (credentialResponse) => {
-    setLocalError("");
-    try {
-      const result = await handleGoogleCredential(credentialResponse.credential);
-      if (!result.success) setLocalError(result.message);
-    } catch {
-      setLocalError('Google authentication suspended. Please try again.');
-    }
-  };
-
   const handleFacebookResponse = async (response) => {
-    if (!response?.accessToken || !response?.userID) {
-      setLocalError('Facebook authentication suspended. Please try again.');
-      return;
-    }
-    setLocalError("");
+    if (!response?.accessToken) return;
     try {
       const result = await handleFacebookToken(response.accessToken, response.userID);
       if (!result.success) setLocalError(result.message);
     } catch {
-      setLocalError('Facebook authentication suspended. Please try again.');
+      setLocalError('Facebook connection failed.');
     }
   };
 
-  const handleToggle = () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setLocalError("");
-    setFormData({ fullName: "", email: "", password: "", confirmPassword: "" });
     
-    gsap.to(formRef.current, {
-      opacity: 0,
-      y: 10,
-      duration: 0.3,
-      ease: "power2.in",
-      onComplete: () => {
-        setMode(isRegister ? 'login' : 'register');
-        gsap.fromTo(formRef.current, { y: -10, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" });
-      },
-    });
+    try {
+      let result;
+      if (view === "forgot") {
+        result = await forgotPassword(formData.email);
+        if (result.success) {
+          setLocalError(result.message); // Show success message
+        } else {
+          setLocalError(result.message);
+        }
+        return;
+      }
+      
+      if (view === "register") {
+        const parts = formData.fullName.trim().split(/\s+/);
+        result = await register({
+          firstName: parts[0] || "",
+          lastName: parts.slice(1).join(" ") || "",
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+        });
+      } else {
+        result = await login({ email: formData.email, password: formData.password });
+      }
+
+      if (!result?.success) setLocalError(result?.message || `Authorization unfulfilled.`);
+    } catch (error) {
+      setLocalError('Systems are currently stabilizing. Please try again.');
+    }
   };
 
+  const benefits = [
+    { icon: ShoppingBag, title: "Order Management", desc: "Track shipments and view archival history." },
+    { icon: Heart, title: "Curated Wishlist", desc: "Save objects for future space planning." },
+    { icon: Clock, title: "Expedited Checkout", desc: "Securely store your delivery preferences." }
+  ];
+
   const displayError = localError || modalError || authError;
-  const isFormDisabled = isLoading;
 
   return (
-    <div ref={containerRef} className="w-full flex flex-col md:flex-row bg-[#fafafa] overflow-hidden min-h-[600px] md:min-h-[700px]">
+    <div className="w-full h-full flex flex-col lg:flex-row bg-white overflow-hidden">
       
-      {/* Luxury Hero Image Context */}
-      <div ref={heroRef} className="hidden md:block md:w-[45%] relative bg-stone-200">
-        <img 
-          src="https://images.unsplash.com/photo-1600607686527-6fb886090705?q=80&w=2912&auto=format&fit=crop" 
-          alt="Aroha Context" 
-          className="absolute inset-0 w-full h-full object-cover filter brightness-[0.85] contrast-[1.1]" 
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-12">
-          <span className="text-[10px] tracking-[0.3em] text-white/70 uppercase mb-4">The Collection</span>
-          <h2 className="text-3xl font-serif text-white tracking-wide font-light leading-snug max-w-sm">
-            Curating spaces of undeniable intention.
-          </h2>
+      {/* Dynamic Archival Collage Section (42%) */}
+      <div className="hidden lg:flex lg:w-[45%] relative flex-col justify-center p-12 overflow-hidden bg-stone-50 border-r border-stone-100">
+        
+        {/* Curated Collage Grid */}
+        <div className="absolute inset-0 grid grid-cols-6 grid-rows-6 gap-4 p-8 transition-opacity duration-1000">
+          {[
+            { img: "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=1000&auto=format&fit=crop", span: "col-span-3 row-span-3", delay: 0 },
+            { img: "https://images.unsplash.com/photo-1592078615290-033ee584e267?q=80&w=1000&auto=format&fit=crop", span: "col-span-3 row-span-2", delay: 0.2 },
+            { img: "https://images.unsplash.com/photo-1567016432779-094069958ea5?q=80&w=1000&auto=format&fit=crop", span: "col-span-2 row-span-2", delay: 0.4 },
+            { img: "https://images.unsplash.com/photo-1519947486511-46149fa0a254?q=80&w=1000&auto=format&fit=crop", span: "col-span-4 row-span-2", delay: 0.1 },
+            { img: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?q=80&w=1000&auto=format&fit=crop", span: "col-span-3 row-span-3", delay: 0.3 },
+            { img: "https://images.unsplash.com/photo-1581539250439-c96689b516dd?q=80&w=1000&auto=format&fit=crop", span: "col-span-3 row-span-2", delay: 0.5 },
+          ].map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: item.delay, ease: [0.16, 1, 0.3, 1] }}
+              className={`relative overflow-hidden rounded-none border border-stone-100 shadow-sm transition-all duration-[2s] ${item.span}`}
+            >
+              <img 
+                src={item.img} 
+                alt="Object" 
+                className="w-full h-full object-cover transition-transform duration-[3s] hover:scale-105" 
+              />
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Cinematic Content Overlay */}
+        <div className="relative z-10 space-y-8 bg-white/60 backdrop-blur-xl p-12 border border-stone-200/50 shadow-2xl max-w-lg mx-auto">
+          <div className="space-y-4">
+             <div className="flex items-center gap-3">
+               <Sparkles className="text-stone-400" size={16} strokeWidth={1} />
+               <span className="text-[10px] uppercase tracking-[0.4em] text-stone-400 font-bold">Curated Discovery</span>
+             </div>
+             <h2 className="text-4xl font-serif italic text-stone-900 leading-[1.1] tracking-tight">
+               Archival Objects <br />
+               <span className="text-stone-300">for the modern space.</span>
+             </h2>
+          </div>
+
+          <div className="space-y-6">
+            <AnimatePresence mode="wait">
+              {view === "register" ? (
+                <motion.div
+                  key="reg-info"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-6"
+                >
+                  <div className="grid gap-6">
+                    {benefits.slice(0, 2).map((b, i) => (
+                      <div key={i} className="flex gap-4 items-start">
+                        <div className="w-8 h-8 flex items-center justify-center shrink-0 border border-stone-200 bg-white">
+                          <b.icon size={12} strokeWidth={1} />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-[10px] uppercase tracking-widest text-stone-900 font-bold">{b.title}</h4>
+                          <p className="text-[9px] text-stone-500 leading-relaxed uppercase tracking-tighter">{b.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="login-info"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-4"
+                >
+                  <p className="text-stone-400 text-[9px] uppercase tracking-[0.2em] font-bold max-w-xs leading-relaxed">
+                    Trusted by architects and archival specialists globally. Establish your archive access.
+                  </p>
+                  <div className="flex items-center gap-4">
+                     <span className="block text-[10px] uppercase tracking-widest text-stone-900 font-bold">12k+ Active Collectors</span>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
-      {/* Auth Interface */}
-      <div className="w-full md:w-[55%] p-10 md:p-16 lg:p-20 flex flex-col justify-center relative overflow-hidden bg-[#fafafa]">
-        
-        {/* Subtle Watermark */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-[0.03]">
-          <h1 className="font-serif text-[180px] tracking-tighter whitespace-nowrap">AROHA</h1>
-        </div>
-
-        <div ref={formRef} className="max-w-md w-full mx-auto relative z-10">
+      {/* Structured Interface Section */}
+      <div className="w-full lg:w-3/5 p-8 lg:p-20 flex flex-col justify-center bg-white border-l border-stone-100">
+        <div className="max-w-md w-full mx-auto space-y-10">
           
-          <div className="mb-14">
-            <h1 className="text-4xl font-serif text-stone-900 mb-4 tracking-wide font-light">
-              {isRegister ? "Join Aroha" : "Welcome Back"}
-            </h1>
-            <p className="text-stone-500 text-[11px] uppercase tracking-[0.2em]">
-              {isRegister 
-                ? "Enter your details to create an account." 
-                : "Enter your credentials to access your collection."
-              }
-            </p>
+          <div className="space-y-2">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={view}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.4 }}
+              >
+                <h1 className="text-4xl font-serif italic text-stone-900">
+                  {view === "login" && "Archive Access"}
+                  {view === "register" && "Create Identity"}
+                  {view === "forgot" && "Reset Access"}
+                </h1>
+                <p className="text-stone-400 text-[10px] uppercase tracking-[0.3em] mt-3 font-bold">
+                  {view === "login" && "Enter your credentials to continue exploration."}
+                  {view === "register" && "Join our global community of collectors."}
+                  {view === "forgot" && "Securely recover your archival identity."}
+                </p>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
-          {displayError && (
-            <div className="mb-8 p-4 bg-stone-100 border-l-2 border-stone-900 flex items-start">
-              <AlertCircle className="h-4 w-4 text-stone-900 mt-0.5 mr-3 flex-shrink-0" />
-              <p className="text-stone-800 text-xs tracking-wide leading-relaxed">{displayError}</p>
-            </div>
-          )}
-
           <form className="space-y-6" onSubmit={handleSubmit}>
-            {isRegister && (
-              <div className="relative group">
-                <input
-                  type="text"
-                  name="fullName"
-                  placeholder="Full Name"
-                  className="w-full bg-transparent border-b border-stone-200 py-3 text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-900 focus:placeholder:text-transparent transition-all tracking-wide text-sm"
-                  value={formData.fullName}
-                  onChange={handleInputChange}
-                  required={isRegister}
-                  disabled={isFormDisabled}
-                />
-              </div>
-            )}
+            <div className="space-y-4">
+              {view === "register" && (
+                <>
+                  <div className="relative">
+                    <span className="absolute left-4 top-3 text-[8px] uppercase tracking-widest text-stone-400 font-bold">Full Identity</span>
+                    <input
+                      type="text"
+                      name="fullName"
+                      required
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      className="w-full bg-stone-50 border border-stone-100 pt-7 pb-3 px-4 text-stone-900 outline-none focus:border-stone-900 transition-all text-sm font-medium"
+                    />
+                    <User className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300" size={16} strokeWidth={1.5} />
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-4 top-3 text-[8px] uppercase tracking-widest text-stone-400 font-bold">Mobile Link</span>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone || ""}
+                      onChange={handleInputChange}
+                      placeholder="+91 00000 00000"
+                      className="w-full bg-stone-50 border border-stone-100 pt-7 pb-3 px-4 text-stone-900 outline-none focus:border-stone-900 transition-all text-sm font-medium"
+                    />
+                    <Clock className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300" size={16} strokeWidth={1.5} />
+                  </div>
+                </>
+              )}
 
-            <div className="relative group">
-              <input
-                type="email"
-                name="email"
-                placeholder="Email Address"
-                className="w-full bg-transparent border-b border-stone-200 py-3 text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-900 focus:placeholder:text-transparent transition-all tracking-wide text-sm"
-                value={formData.email}
-                onChange={handleInputChange}
-                required
-                disabled={isFormDisabled}
-              />
+              <div className="relative">
+                  <span className="absolute left-4 top-3 text-[8px] uppercase tracking-widest text-stone-400 font-bold">Inquiry Email</span>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className="w-full bg-stone-50 border border-stone-100 pt-7 pb-3 px-4 text-stone-900 outline-none focus:border-stone-900 transition-all text-sm font-medium"
+                  />
+                  <Mail className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-300" size={16} strokeWidth={1.5} />
+              </div>
+
+              {view !== "forgot" && (
+                <div className="relative">
+                  <span className="absolute left-4 top-3 text-[8px] uppercase tracking-widest text-stone-400 font-bold">Security Credential</span>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    required
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className="w-full bg-stone-50 border border-stone-100 pt-7 pb-3 px-4 text-stone-900 outline-none focus:border-stone-900 transition-all text-sm font-medium"
+                  />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-stone-300 hover:text-stone-900">
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                    <Lock className="text-stone-300" size={16} strokeWidth={1.5} />
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="relative group">
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                placeholder="Password"
-                className="w-full bg-transparent border-b border-stone-200 py-3 pr-10 text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-900 focus:placeholder:text-transparent transition-all tracking-wide text-sm"
-                value={formData.password}
-                onChange={handleInputChange}
-                required
-                minLength={isRegister ? 8 : 6}
-                disabled={isFormDisabled}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-900 transition-colors"
-                disabled={isFormDisabled}
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-
-            {isRegister && (
-              <div className="relative group">
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  placeholder="Confirm Password"
-                  className="w-full bg-transparent border-b border-stone-200 py-3 pr-10 text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-900 focus:placeholder:text-transparent transition-all tracking-wide text-sm"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  required={isRegister}
-                  disabled={isFormDisabled}
-                />
-              </div>
+            {view === "login" && (
+               <div className="flex justify-end">
+                  <button type="button" onClick={() => setView("forgot")} className="text-[9px] uppercase tracking-[0.2em] text-stone-400 hover:text-stone-900 transition-colors font-bold">
+                    Credential Recovery?
+                  </button>
+               </div>
             )}
 
-            {!isRegister && (
-              <div className="flex justify-end pt-2">
-                <button
-                  type="button"
-                  className="text-[10px] uppercase tracking-[0.15em] text-stone-500 hover:text-stone-900 transition-colors"
-                  disabled={isFormDisabled}
+            <AnimatePresence>
+              {displayError && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="p-4 bg-stone-50 border-l-2 border-stone-900 flex items-center gap-3 text-[10px] uppercase tracking-widest text-stone-900 font-bold"
                 >
-                  Forgot Identity?
-                </button>
-              </div>
-            )}
+                  {displayError.includes("dispatched") ? <CheckCircle2 size={14} className="text-green-600" /> : <AlertCircle size={14} className="text-red-500" />}
+                  {displayError}
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <button
               type="submit"
-              disabled={isFormDisabled}
-              className="group w-full py-4 mt-6 bg-stone-900 text-white hover:bg-black transition-all flex items-center justify-between px-6"
+              disabled={isLoading}
+              className="w-full py-5 bg-stone-900 text-white hover:opacity-90 transition-all flex items-center justify-center gap-4 relative overflow-hidden group/btn"
             >
-              <span className="text-xs uppercase tracking-[0.2em] font-medium">
-                {isFormDisabled ? "Processing..." : (isRegister ? "Establish Account" : "Access Identity")}
+              <span className="text-xs uppercase tracking-[0.4em] font-bold">
+                {isLoading ? "Synchronizing..." : (
+                  view === "login" ? "Enter Identity" : 
+                  view === "register" ? "Confirm Identity" : 
+                  "Send Recovery Link"
+                )}
               </span>
-              {!isFormDisabled && <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />}
+              <ArrowRight size={16} className="transition-transform group-hover/btn:translate-x-2" strokeWidth={1.5} />
             </button>
           </form>
 
-          <div className="mt-14 mb-8 relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-200"></div></div>
-            <div className="relative flex justify-center text-center">
-              <span className="px-4 bg-[#fafafa] text-[9px] uppercase tracking-[0.2em] text-stone-400">Or authenticate via provider</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2 sm:col-span-1 overflow-hidden h-[46px] border border-stone-200 hover:border-stone-900 transition-colors flex items-center justify-center relative">
-              <div className="absolute inset-0 flex items-center justify-center pb-2 scale-[1.3] brightness-0 contrast-200 opacity-70 mix-blend-multiply hover:opacity-100 hover:brightness-100">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={() => setLocalError('Google authentication suspended.')}
-                  type="icon"
-                  size="large"
-                  theme="outline"
-                  shape="rectangular"
-                />
+          {/* Institutional Access Providers */}
+          <div className="space-y-6 pt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-100"></div></div>
+              <div className="relative flex justify-center text-center">
+                <span className="px-6 bg-white text-[9px] uppercase tracking-[0.3em] text-stone-300 font-bold">Or authenticate via provider</span>
               </div>
-              <span className="absolute pointer-events-none text-[10px] uppercase tracking-[0.1em] text-stone-900 opacity-0 group-hover:opacity-100">Google</span>
             </div>
 
-            <FacebookLogin
-              appId={import.meta.env.VITE_FACEBOOK_APP_ID || "temp"}
-              callback={handleFacebookResponse}
-              render={renderProps => (
-                <button
-                  onClick={renderProps.onClick}
-                  disabled={isFormDisabled}
-                  className="col-span-2 sm:col-span-1 h-[46px] border border-stone-200 hover:border-stone-900 transition-colors flex items-center justify-center group"
-                  type="button"
-                >
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-stone-900 font-medium">Facebook</span>
-                </button>
-              )}
-            />
+            <div className="flex gap-4">
+               <div className="flex-1 h-14 border border-stone-200 dark:border-white/10 flex items-center justify-center hover:bg-stone-50 transition-colors cursor-pointer relative overflow-hidden grayscale opacity-50 hover:opacity-100 hover:grayscale-0">
+                  <GoogleLogin
+                    onSuccess={(res) => handleGoogleCredential(res.credential)}
+                    onError={() => setLocalError('Google sync failed')}
+                    type="icon"
+                    theme="outline"
+                  />
+               </div>
+               <FacebookLogin
+                appId={import.meta.env.VITE_FACEBOOK_APP_ID || "temp"}
+                callback={handleFacebookResponse}
+                render={renderProps => (
+                  <button onClick={renderProps.onClick} className="flex-1 h-14 border border-stone-200 dark:border-white/10 text-[9px] uppercase tracking-widest font-bold text-stone-400 hover:text-stone-900 hover:bg-stone-50 transition-all">
+                    Facebook
+                  </button>
+                )}
+              />
+            </div>
           </div>
 
-          <div className="mt-16 text-center">
-            <p className="text-stone-500 text-xs font-light tracking-wide">
-              {isRegister ? "Already hold an identity?" : "New to the atelier?"}{" "}
-              <button 
-                onClick={handleToggle} 
-                disabled={isFormDisabled}
-                className="text-stone-900 hover:text-black uppercase tracking-[0.1em] font-medium border-b border-stone-900 pb-0.5 ml-1 transition-colors"
-              >
-                {isRegister ? "Sign In" : "Register"}
-              </button>
-            </p>
+          {/* Footer View Toggle */}
+          <div className="text-center pt-8 border-t border-stone-100">
+             {view === "forgot" ? (
+               <button onClick={() => setView("login")} className="flex items-center gap-2 mx-auto text-[10px] uppercase tracking-widest text-stone-400 hover:text-stone-900 transition-colors font-bold group">
+                  <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                  Return to Archive Access
+               </button>
+             ) : (
+               <div className="text-[10px] uppercase tracking-widest text-stone-400 font-bold">
+                 {view === "login" ? "New to the atelier?" : "Already registered?"}
+                 <button 
+                   onClick={() => setView(view === "login" ? "register" : "login")}
+                   className="ml-2 text-stone-900 border-b border-stone-900 leading-none pb-0.5 hover:opacity-60 transition-opacity"
+                 >
+                   {view === "login" ? "Create Identity" : "Access Archive"}
+                 </button>
+               </div>
+             )}
+          </div>
+
+          <div className="flex items-center justify-center gap-4 pt-4 opacity-20 group-hover:opacity-40 transition-opacity">
+             <ShieldCheck size={16} />
+             <span className="text-[8px] uppercase tracking-[0.3em] font-bold">Secure SSL Authentication Environment</span>
           </div>
 
         </div>

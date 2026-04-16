@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import AnimatedText from "./AnimatedText";
 import TextContent from "./TextContent";
-import ProductSlider from "../ProductSlider";
+import ProductSlider from "../shop/ProductSlider";
 
 const TextColumn = ({
     products,
