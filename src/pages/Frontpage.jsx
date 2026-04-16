@@ -35,8 +35,6 @@ const Frontpage = () => {
   const scrollAccumulator = useRef(0);
   const scrollResetTimer = useRef(null);
   const scrollThreshold = 40; // Balanced threshold
-  const scrollResetTimer = useRef(null);
-  const scrollThreshold = 40; // Balanced threshold
   const animationDuration = 0.5;
 
   // ---------------------------------------------------------
@@ -175,15 +173,10 @@ const Frontpage = () => {
       if (now - lastScrollTime.current < 800) {
         scrollAccumulator.current = 0;
         return;
-        return;
       }
 
       scrollAccumulator.current += e.deltaY;
 
-      // No more accumulator threshold delay: trigger instantly on first clear movement,
-      // then use the cooldown to prevent double firing
-      if (Math.abs(e.deltaY) > 5) {
-        const dir = e.deltaY > 0 ? 1 : -1;
       // No more accumulator threshold delay: trigger instantly on first clear movement,
       // then use the cooldown to prevent double firing
       if (Math.abs(e.deltaY) > 5) {
