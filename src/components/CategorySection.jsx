@@ -278,7 +278,7 @@ const CategoryCard = ({ category, isLarge = false }) => {
       className="group relative w-full h-full min-h-0 flex overflow-hidden rounded-[1.25rem] md:rounded-[2rem] bg-stone-200 shadow-sm isolation-auto cursor-pointer border border-stone-200"
     >
       <Link
-        to={`/category/${category.handle}`}
+        to={`/shop/category/${category.handle}`}
         className="absolute inset-0 z-0"
         aria-label={`View ${category.name} category`}
       />
@@ -306,9 +306,12 @@ const CategoryCard = ({ category, isLarge = false }) => {
           <div className="h-[2px] bg-white/60 mt-3 transition-all duration-700 w-12 md:w-0 md:group-hover:w-16 shadow-sm" />
 
           {/* Mobile only explore pill since we lack mini-products */}
-          <div className="mt-4 md:hidden inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] uppercase font-medium tracking-[0.2em] text-white/90">
+          <Link
+            to={`/shop/category/${category.handle}`}
+            className="mt-4 md:hidden inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] uppercase font-medium tracking-[0.2em] text-white/90 hover:bg-white/20 transition-colors pointer-events-auto relative z-20"
+          >
             Explore <MoveRight size={12} />
-          </div>
+          </Link>
         </div>
 
         {/* Hover Products Container - HIDDEN ON MOBILE completely to declutter to pure editorial view */}
@@ -333,7 +336,7 @@ const CategoryCard = ({ category, isLarge = false }) => {
             )}
 
             <Link
-              to={`/category/${category.handle}`}
+              to={`/shop/category/${category.handle}`}
               className="group/mini ml-auto md:m-0 relative flex items-center justify-center h-[65px] md:h-[80px] lg:h-[90px] aspect-[3/4] rounded-lg md:rounded-xl overflow-hidden bg-white/10 backdrop-blur-md shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] border border-white/30 text-white hover:bg-white hover:text-stone-900 will-change-transform"
               style={{ transitionDelay: `${category.featuredProducts?.length * 30}ms` }}
               aria-label={`View all ${category.name}`}
