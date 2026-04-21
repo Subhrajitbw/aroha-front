@@ -62,7 +62,7 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
 
   useEffect(() => {
     initializeAuth();
-    
+
     // Initial cart count fetch
     const fetchCartStatus = async () => {
       const cartId = localStorage.getItem("cart_id");
@@ -125,8 +125,8 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
     <>
       <nav
         ref={navRef}
-        className={`fixed z-50 transition-all duration-500 ease-out ${floatingPosition} ${scrolled ? "rounded-[2rem] shadow-xl" : ""
-          } px-6 lg:px-12 py-5`}
+        className={`fixed z-50 transition-all duration-500 ease-out ${floatingPosition} ${scrolled ? "rounded-full shadow-xl" : ""
+          } px-6 lg:px-12 py-4 lg:py-2`}
         style={floatingStyles}
         onMouseLeave={handleNavAreaLeave}
         data-theme={effectiveTheme}
@@ -157,7 +157,7 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
                       )}
                     </button>
                     {location.pathname === item.path && (
-                      <motion.div 
+                      <motion.div
                         layoutId="navUnderline"
                         className="absolute bottom-3 left-0 right-0 h-[1.5px] bg-current opacity-40"
                         transition={{ type: "spring", stiffness: 380, damping: 30 }}
@@ -196,25 +196,25 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
                 )}
               </button>
 
-              <ProfileDropdown 
-                user={user} 
-                isOpen={profileDropdownOpen} 
-                onClose={() => setProfileDropdownOpen(false)} 
-                navigate={navigate} 
+              <ProfileDropdown
+                user={user}
+                isOpen={profileDropdownOpen}
+                onClose={() => setProfileDropdownOpen(false)}
+                navigate={navigate}
                 onLogout={handleLogout}
                 getInitials={getInitials}
                 getUserDisplayName={getUserDisplayName}
               />
             </div>
 
-            <div 
-              className="relative flex items-center" 
-              onMouseEnter={() => { setActiveMegaMenu(null); setCartDropdownOpen(true); }} 
+            <div
+              className="relative flex items-center"
+              onMouseEnter={() => { setActiveMegaMenu(null); setCartDropdownOpen(true); }}
               onMouseLeave={() => setCartDropdownOpen(false)}
             >
-              <NavIcon 
-                onClick={() => navigate('/cart')} 
-                className={`${colors.navTextColor} ${colors.navHoverColor} relative`} 
+              <NavIcon
+                onClick={() => navigate('/cart')}
+                className={`${colors.navTextColor} ${colors.navHoverColor} relative`}
                 iconRef={(el) => (iconsRef.current[3] = el)}
               >
                 <ShoppingBag size={18} strokeWidth={1.5} />
@@ -225,10 +225,10 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
                 )}
               </NavIcon>
 
-              <CartDropdown 
-                isOpen={cartDropdownOpen} 
-                onClose={() => setCartDropdownOpen(false)} 
-                navigate={navigate} 
+              <CartDropdown
+                isOpen={cartDropdownOpen}
+                onClose={() => setCartDropdownOpen(false)}
+                navigate={navigate}
               />
             </div>
           </div>

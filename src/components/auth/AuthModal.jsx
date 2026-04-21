@@ -34,7 +34,7 @@ const AuthModal = () => {
 
           {/* Scroll-isolating layer — this scrolls, body does not */}
           <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
-            <div className="min-h-full flex items-center justify-center p-4 md:p-8 lg:p-12">
+            <div className="min-h-full flex items-center justify-center p-0 md:p-0 lg:p-12">
 
               {/* Modal panel */}
               <motion.div
@@ -43,7 +43,7 @@ const AuthModal = () => {
                 exit={{ opacity: 0, y: 16, scale: 0.98 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 className="relative z-10 w-full max-w-6xl bg-white rounded-2xl shadow-2xl shadow-stone-900/8 border border-stone-200/60 flex flex-col overflow-hidden"
-                style={{ maxHeight: '92vh' }}
+                style={{ maxHeight: '100vh' }}
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Close button */}
@@ -56,7 +56,7 @@ const AuthModal = () => {
                 </button>
 
                 {/* Scrollable content */}
-                <div 
+                <div
                   className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain"
                   onWheel={(e) => e.stopPropagation()}
                   onTouchMove={(e) => e.stopPropagation()}

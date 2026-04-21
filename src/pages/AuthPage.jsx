@@ -1,58 +1,96 @@
 // src/pages/AuthPage.jsx
-import React, { useEffect, useRef, useState } from "react";
-import gsap from "gsap";
-import { ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, ShieldCheck, Mail, Lock, User, ShoppingBag, Clock, Heart, CheckCircle2 } from "lucide-react";
+import React, { useEffect, useState, useMemo } from "react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff, AlertCircle, ShieldCheck, Mail, Lock, User, CheckCircle2 } from "lucide-react";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useAuthModalStore } from "../stores/useAuthModalStore";
 import { motion, AnimatePresence } from "framer-motion";
 import { sdk } from "../lib/medusaClient";
+
+// Fallback images in case products haven't loaded yet
+const FALLBACK_IMAGES = [
+  "https://images.unsplash.com/photo-1583847268964-b28e5039e14a?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=600&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1556912173-3bb406ef7e77?q=80&w=600&auto=format&fit=crop",
+];
+
+const AnimatedColumn = ({ images, reverse = false, speed = 40 }) => (
+  <motion.div
+    initial={{ y: reverse ? "-50%" : "0%" }}
+    animate={{ y: reverse ? "0%" : "-50%" }}
+    transition={{ duration: speed, repeat: Infinity, ease: "linear" }}
+    className="flex flex-col gap-3 sm:gap-4 w-1/3 lg:w-56 flex-shrink-0"
+  >
+    {[...images, ...images].map((src, i) => (
+      <div key={i} className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden shadow-lg border border-stone-200/40">
+        <img src={src} alt="Product" loading="lazy" className="w-full h-full object-cover" />
+      </div>
+    ))}
+  </motion.div>
+);
 
 const AuthPage = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    phone: ""
   });
   const [localError, setLocalError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [view, setView] = useState("login"); // login, register, forgot
+  const [view, setView] = useState("login");
+  const [productImages, setProductImages] = useState([]);
 
-  const heroImageRef = useRef();
-
-  const {
-    login,
-    register,
-    forgotPassword,
-    initiateSocialAuth,
-    getCurrentUser,
-    isLoading: authStoreLoading,
-    error: authError,
-    setError: setAuthError,
-    user
-  } = useAuthStore();
-
-  const {
-    close,
-    mode,
-    error: modalError,
-    clearError: clearModalError,
-    isOpen
-  } = useAuthModalStore();
+  const { login, register, forgotPassword, initiateSocialAuth, isLoading: authStoreLoading, error: authError, user } = useAuthStore();
+  const { close, mode, error: modalError, isOpen } = useAuthModalStore();
 
   const isLoading = authStoreLoading;
+
+  // Fetch real product images from Medusa store
+  useEffect(() => {
+    const fetchProductImages = async () => {
+      try {
+        const { products } = await sdk.store.product.list({
+          limit: 15,
+          fields: "id,title,thumbnail,images",
+        });
+        const images = products
+          .map((p) => p.thumbnail || p.images?.[0]?.url)
+          .filter(Boolean);
+        if (images.length >= 9) {
+          setProductImages(images.slice(0, 9));
+        } else if (images.length > 0) {
+          // Pad with fallback images if we don't have enough
+          const padded = [...images, ...FALLBACK_IMAGES.slice(0, 9 - images.length)];
+          setProductImages(padded.slice(0, 9));
+        }
+      } catch (err) {
+        console.warn("AuthPage: Could not fetch product images, using fallbacks.", err);
+      }
+    };
+    fetchProductImages();
+  }, []);
+
+  // Use fetched product images or fallbacks
+  const collageImages = useMemo(
+    () => (productImages.length >= 9 ? productImages : FALLBACK_IMAGES),
+    [productImages]
+  );
 
   useEffect(() => {
     if (mode) setView(mode);
   }, [mode]);
 
   useEffect(() => {
-    // Check for error parameters in the URL (sent by OAuthRelay)
     const params = new URLSearchParams(window.location.search);
     const urlError = params.get('error');
     if (urlError) {
       setLocalError(decodeURIComponent(urlError));
-      // Clean the URL so the error doesn't persist on refresh
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
@@ -61,45 +99,21 @@ const AuthPage = () => {
     if (user) close();
   }, [user, close]);
 
-  useEffect(() => {
-    if (!isOpen || !heroImageRef.current) return;
-    gsap.fromTo(heroImageRef.current,
-      { scale: 1.1, opacity: 0 },
-      { scale: 1, opacity: 1, duration: 1.5, ease: "power3.out" }
-    );
-  }, [isOpen]);
-
   const handleInputChange = (e) => {
     setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     if (localError) setLocalError("");
   };
 
-  const handleFacebookResponse = async (response) => {
-    if (!response?.accessToken) return;
-    try {
-      const result = await handleFacebookToken(response.accessToken, response.userID);
-      if (!result.success) setLocalError(result.message);
-    } catch {
-      setLocalError('Facebook connection failed.');
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLocalError("");
-
     try {
       let result;
       if (view === "forgot") {
         result = await forgotPassword(formData.email);
-        if (result.success) {
-          setLocalError(result.message);
-        } else {
-          setLocalError(result.message);
-        }
+        setLocalError(result.message);
         return;
       }
-
       if (view === "register") {
         const parts = formData.fullName.trim().split(/\s+/);
         result = await register({
@@ -112,9 +126,8 @@ const AuthPage = () => {
       } else {
         result = await login({ email: formData.email, password: formData.password });
       }
-
       if (!result?.success) setLocalError(result?.message || `Authorization failed.`);
-    } catch (error) {
+    } catch {
       setLocalError('Something went wrong. Please try again.');
     }
   };
@@ -122,295 +135,215 @@ const AuthPage = () => {
   const displayError = localError || modalError || authError;
 
   return (
-    <div className="w-full flex flex-col lg:flex-row min-h-[520px]">
+    <div className="relative flex flex-col lg:flex-row w-full h-[100dvh] lg:h-[88vh] lg:min-h-[600px] overflow-hidden bg-stone-50 font-sans selection:bg-stone-200">
 
-      {/* Left — Visual panel */}
-      <div className="hidden lg:block lg:w-[44%] relative overflow-hidden bg-stone-100">
-        <div ref={heroImageRef} className="absolute inset-0">
-          <img
-            src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?q=80&w=1200&auto=format&fit=crop"
-            alt="Interior"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-stone-900/50 via-stone-900/20 to-transparent" />
+      {/* ========== Left / Background: Animated Product Collage ========== */}
+      {/* Mobile: absolute, full viewport. Desktop: relative left column. */}
+      <div className="absolute inset-0 lg:relative lg:w-[45%] lg:h-full z-0 overflow-hidden flex justify-center items-center pointer-events-none bg-stone-100/50">
+
+        {/* Ambient Gradient Orbs */}
+        <div className="absolute top-[-10%] left-[-10%] w-[80vw] lg:w-[150%] h-[80vw] lg:h-[150%] bg-amber-100/80 rounded-full blur-[100px] lg:blur-[120px] mix-blend-multiply" />
+        <div className="absolute bottom-[-10%] right-[10%] lg:right-[-20%] w-[70vw] lg:w-[150%] h-[70vw] lg:h-[150%] bg-stone-200/80 rounded-full blur-[80px] lg:blur-[100px] mix-blend-multiply" />
+
+        {/* Dynamic Masonry Collage */}
+        <div className="flex gap-3 sm:gap-4 transform -rotate-[6deg] scale-[1.6] sm:scale-[1.4] lg:scale-[1.1] w-[160vw] sm:w-[130vw] lg:w-[120%] justify-center">
+          <AnimatedColumn images={collageImages.slice(0, 3)} speed={45} />
+          <AnimatedColumn images={collageImages.slice(3, 6)} reverse speed={55} />
+          <AnimatedColumn images={collageImages.slice(6, 9)} speed={50} />
         </div>
 
-        <div className="relative z-10 flex flex-col justify-end h-full p-10 lg:p-14">
+        {/* Semi-transparent overlay on mobile so text stays readable */}
+        <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] lg:hidden" />
+      </div>
+
+      {/* ========== Right / Foreground: Auth Form ========== */}
+      {/* Mobile: overlaid, centered with padding. Desktop: right 55% column. */}
+      <div className="relative z-10 w-full lg:w-[55%] h-full flex items-center justify-center px-5 py-8 sm:px-8 sm:py-10 lg:p-12">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-[440px]
+                     rounded-[2rem] bg-white/90 lg:bg-transparent backdrop-blur-2xl lg:backdrop-blur-none
+                     border border-white/80 lg:border-none shadow-[0_20px_60px_rgba(0,0,0,0.06)] lg:shadow-none
+                     p-6 sm:p-8 lg:p-0"
+        >
           <div className="space-y-5">
+
             <AnimatePresence mode="wait">
               <motion.div
                 key={view}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -12 }}
-                transition={{ duration: 0.4 }}
-                className="space-y-3"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.3 }}
+                className="space-y-2 text-center lg:text-left"
               >
-                <h2
-                  className="text-3xl lg:text-4xl text-white leading-snug"
-                  style={{ fontFamily: "'EB Garamond', 'Georgia', serif" }}
-                >
+                <h1 className="text-3xl sm:text-4xl font-serif text-stone-900 tracking-tight leading-tight">
                   {view === "login" && "Welcome back."}
-                  {view === "register" && "Join our community."}
-                  {view === "forgot" && "We'll help you recover."}
-                </h2>
-                <p className="text-white/60 text-sm max-w-xs leading-relaxed">
-                  {view === "login" && "Sign in to access your orders, wishlist, and curated collections."}
-                  {view === "register" && "Create your account and start exploring our premium collections."}
-                  {view === "forgot" && "Enter your email and we'll send you a recovery link."}
+                  {view === "register" && "Join Maison."}
+                  {view === "forgot" && "Recover access."}
+                </h1>
+                <p className="text-sm text-stone-500 font-medium tracking-wide leading-relaxed">
+                  {view === "login" && "Sign in to access your premium collections."}
+                  {view === "register" && "Create your account for an exclusive experience."}
+                  {view === "forgot" && "Enter your email for a secure recovery link."}
                 </p>
               </motion.div>
             </AnimatePresence>
 
-            <div className="flex items-center gap-6 pt-4">
-              {[
-                { icon: ShoppingBag, label: "Track Orders" },
-                { icon: Heart, label: "Wishlist" },
-                { icon: Clock, label: "Fast Checkout" },
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <item.icon size={13} className="text-white/50" strokeWidth={1.5} />
-                  <span className="text-[10px] text-white/50 uppercase tracking-wider">{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div className="space-y-3.5">
+                <AnimatePresence>
+                  {view === "register" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-3.5 overflow-hidden"
+                    >
+                      <div>
+                        <label className="block text-[11px] text-stone-700 font-semibold mb-1.5 uppercase tracking-[0.1em]">Full Name</label>
+                        <div className="relative group">
+                          <input type="text" name="fullName" required={view === "register"} value={formData.fullName} onChange={handleInputChange} placeholder="John Doe"
+                            className="w-full bg-white rounded-xl border border-stone-200 px-4 py-3 text-stone-900 text-sm outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all duration-300 placeholder-stone-400 shadow-sm"
+                          />
+                          <User className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 group-focus-within:text-stone-600 transition-colors" size={16} strokeWidth={2} />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-stone-700 font-semibold mb-1.5 uppercase tracking-[0.1em]">Phone</label>
+                        <input type="tel" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="+1 000 000 0000"
+                          className="w-full bg-white rounded-xl border border-stone-200 px-4 py-3 text-stone-900 text-sm outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all duration-300 placeholder-stone-400 shadow-sm"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-      {/* Right — Form panel */}
-      <div className="flex-1 flex flex-col justify-center p-8 lg:p-14 xl:p-20">
-        <div className="max-w-sm w-full mx-auto space-y-8">
-
-          {/* Header */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={view}
-              initial={{ opacity: 0, x: -12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 12 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-2"
-            >
-              <h1
-                className="text-3xl text-stone-900"
-                style={{ fontFamily: "'EB Garamond', 'Georgia', serif" }}
-              >
-                {view === "login" && "Sign In"}
-                {view === "register" && "Create Account"}
-                {view === "forgot" && "Reset Password"}
-              </h1>
-              <p className="text-sm text-stone-400">
-                {view === "login" && "Enter your credentials to continue."}
-                {view === "register" && "Fill in your details to get started."}
-                {view === "forgot" && "We'll send a recovery link to your email."}
-              </p>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Form */}
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="space-y-3.5">
-              {view === "register" && (
-                <>
-                  <div className="relative">
-                    <label className="block text-[11px] text-stone-500 font-medium mb-1.5 uppercase tracking-wider">Full Name</label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        name="fullName"
-                        required
-                        value={formData.fullName}
-                        onChange={handleInputChange}
-                        placeholder="John Doe"
-                        className="w-full bg-stone-50 rounded-xl border border-stone-200 px-4 py-3 text-stone-900 text-sm outline-none focus:border-stone-400 focus:bg-white transition-all duration-300 placeholder-stone-300"
-                      />
-                      <User className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-300" size={15} strokeWidth={1.5} />
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <label className="block text-[11px] text-stone-500 font-medium mb-1.5 uppercase tracking-wider">Phone</label>
-                    <div className="relative">
-                      <input
-                        type="tel"
-                        name="phone"
-                        value={formData.phone || ""}
-                        onChange={handleInputChange}
-                        placeholder="+91 00000 00000"
-                        className="w-full bg-stone-50 rounded-xl border border-stone-200 px-4 py-3 text-stone-900 text-sm outline-none focus:border-stone-400 focus:bg-white transition-all duration-300 placeholder-stone-300"
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-
-              <div>
-                <label className="block text-[11px] text-stone-500 font-medium mb-1.5 uppercase tracking-wider">Email</label>
-                <div className="relative">
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="you@example.com"
-                    className="w-full bg-stone-50 rounded-xl border border-stone-200 px-4 py-3 text-stone-900 text-sm outline-none focus:border-stone-400 focus:bg-white transition-all duration-300 placeholder-stone-300"
-                  />
-                  <Mail className="absolute right-3.5 top-1/2 -translate-y-1/2 text-stone-300" size={15} strokeWidth={1.5} />
-                </div>
-              </div>
-
-              {view !== "forgot" && (
                 <div>
-                  <label className="block text-[11px] text-stone-500 font-medium mb-1.5 uppercase tracking-wider">Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      required
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      placeholder="••••••••"
-                      className="w-full bg-stone-50 rounded-xl border border-stone-200 px-4 py-3 pr-20 text-stone-900 text-sm outline-none focus:border-stone-400 focus:bg-white transition-all duration-300 placeholder-stone-300"
+                  <label className="block text-[11px] text-stone-700 font-semibold mb-1.5 uppercase tracking-[0.1em]">Email</label>
+                  <div className="relative group">
+                    <input type="email" name="email" required value={formData.email} onChange={handleInputChange} placeholder="you@example.com"
+                      className="w-full bg-white rounded-xl border border-stone-200 px-4 py-3 text-stone-900 text-sm outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all duration-300 placeholder-stone-400 shadow-sm"
                     />
-                    <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="text-stone-300 hover:text-stone-600 transition-colors"
-                      >
-                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                      </button>
-                      <Lock className="text-stone-300" size={15} strokeWidth={1.5} />
-                    </div>
+                    <Mail className="absolute right-4 top-1/2 -translate-y-1/2 text-stone-400 group-focus-within:text-stone-600 transition-colors" size={16} strokeWidth={2} />
                   </div>
                 </div>
-              )}
-            </div>
 
-            {view === "login" && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setView("forgot")}
-                  className="text-xs text-stone-400 hover:text-stone-700 transition-colors"
-                >
-                  Forgot password?
-                </button>
-              </div>
-            )}
-
-            {/* Error display */}
-            <AnimatePresence>
-              {displayError && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">
-                    {displayError.includes("dispatched") ? (
-                      <CheckCircle2 size={15} className="text-emerald-500 shrink-0" />
-                    ) : (
-                      <AlertCircle size={15} className="text-red-400 shrink-0" />
-                    )}
-                    <span className="text-xs">{displayError}</span>
+                {view !== "forgot" && (
+                  <div>
+                    <div className="flex justify-between items-center mb-1.5">
+                      <label className="block text-[11px] text-stone-700 font-semibold uppercase tracking-[0.1em]">Password</label>
+                      {view === "login" && (
+                        <button type="button" onClick={() => setView("forgot")} className="text-[11px] font-medium text-stone-500 hover:text-stone-900 transition-colors">
+                          Forgot password?
+                        </button>
+                      )}
+                    </div>
+                    <div className="relative group">
+                      <input type={showPassword ? "text" : "password"} name="password" required value={formData.password} onChange={handleInputChange} placeholder="••••••••"
+                        className="w-full bg-white rounded-xl border border-stone-200 px-4 py-3 pr-20 text-stone-900 text-sm outline-none focus:border-stone-400 focus:ring-2 focus:ring-stone-100 transition-all duration-300 placeholder-stone-400 shadow-sm"
+                      />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2.5">
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-stone-400 hover:text-stone-700 transition-colors focus:outline-none">
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Submit button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3.5 bg-stone-900 text-white rounded-xl hover:bg-stone-800 active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50"
-            >
-              <span className="text-sm font-medium tracking-wide">
-                {isLoading ? "Please wait..." : (
-                  view === "login" ? "Sign In" :
-                    view === "register" ? "Create Account" :
-                      "Send Reset Link"
                 )}
-              </span>
-              {!isLoading && <ArrowRight size={15} strokeWidth={2} />}
-            </button>
-          </form>
+              </div>
 
-          {/* Social auth */}
-          <div className="space-y-5">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-100" /></div>
-              <div className="relative flex justify-center">
-                <span className="px-4 bg-white text-xs text-stone-300">or continue with</span>
+              <AnimatePresence>
+                {displayError && (
+                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}>
+                    <div className={`flex items-center gap-3 p-3 rounded-xl border text-xs font-medium
+                      ${displayError.includes("dispatched") || displayError.includes("Check your email")
+                        ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                        : "bg-red-50 border-red-200 text-red-800"}`}>
+                      {displayError.includes("dispatched") || displayError.includes("Check your email") ? (
+                        <CheckCircle2 size={16} className="text-emerald-500 shrink-0" />
+                      ) : (
+                        <AlertCircle size={16} className="text-red-500 shrink-0" />
+                      )}
+                      <span>{displayError}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="group relative w-full py-3.5 bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-all duration-300 flex items-center justify-center gap-2 shadow-md active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="relative z-10 text-sm font-semibold tracking-wide">
+                  {isLoading ? "Processing..." : (view === "login" ? "Sign In" : view === "register" ? "Create Account" : "Send Recovery Link")}
+                </span>
+                {!isLoading && <ArrowRight size={16} className="relative z-10 group-hover:translate-x-1 transition-transform duration-300" strokeWidth={2.5} />}
+              </button>
+            </form>
+
+            {/* Social Auth */}
+            <div className="space-y-4 pt-1">
+              <div className="relative flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-stone-200" /></div>
+                <span className="relative px-3 text-[10px] text-stone-500 font-semibold uppercase tracking-[0.2em] bg-white/80 lg:bg-white backdrop-blur-md rounded-full py-1">or continue with</span>
+              </div>
+
+              <div className="flex items-center justify-center gap-4">
+                {[
+                  {
+                    id: "google",
+                    logo: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg",
+                    alt: "Google"
+                  },
+                  {
+                    id: "facebook",
+                    logo: "https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg",
+                    alt: "Facebook"
+                  },
+                ].map((provider) => (
+                  <button
+                    key={provider.id}
+                    type="button"
+                    onClick={() => initiateSocialAuth(provider.id)}
+                    className="w-12 h-12 rounded-xl bg-white border border-stone-200 shadow-sm flex items-center justify-center hover:bg-stone-50 hover:shadow transition-all duration-300 hover:scale-105"
+                    title={`Continue with ${provider.alt}`}
+                  >
+                    <img src={provider.logo} className="w-5 h-5 object-contain" alt={provider.alt} />
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="flex items-center justify-center gap-6">
-              {[
-                {
-                  id: "google",
-                  logo: "https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png",
-                  alt: "Google"
-                },
-                {
-                  id: "facebook",
-                  logo: "https://upload.wikimedia.org/wikipedia/commons/b/b8/2021_Facebook_icon.svg",
-                  alt: "Facebook"
-                },
-                {
-                  id: "pinterest",
-                  logo: "https://upload.wikimedia.org/wikipedia/commons/0/08/Pinterest-logo.png",
-                  alt: "Pinterest"
-                }
-              ].map((provider) => (
-                <button
-                  key={provider.id}
-                  type="button"
-                  onClick={() => initiateSocialAuth(provider.id)}
-                  className="w-14 h-14 rounded-full border border-stone-200 flex items-center justify-center hover:bg-stone-50 hover:border-stone-900 transition-all duration-500 bg-white group"
-                  title={`Continue with ${provider.alt}`}
-                >
-                  <img
-                    src={provider.logo}
-                    className="w-5 h-5 object-contain grayscale group-hover:grayscale-0 transition-all duration-500"
-                    alt={provider.alt}
-                  />
+            <div className="text-center pt-1">
+              {view === "forgot" ? (
+                <button onClick={() => setView("login")} className="inline-flex items-center gap-1.5 text-sm font-medium text-stone-500 hover:text-stone-900 transition-colors group">
+                  <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+                  Return to Login
                 </button>
-              ))}
+              ) : (
+                <p className="text-sm text-stone-500 font-medium">
+                  {view === "login" ? "New to Maison Aroha?" : "Already part of Maison?"}
+                  <button
+                    onClick={() => setView(view === "login" ? "register" : "login")}
+                    className="ml-2 text-stone-900 font-bold hover:underline underline-offset-4 decoration-stone-300 transition-all"
+                  >
+                    {view === "login" ? "Create an account" : "Sign in"}
+                  </button>
+                </p>
+              )}
             </div>
-          </div>
 
-          {/* Footer toggle */}
-          <div className="text-center pt-2">
-            {view === "forgot" ? (
-              <button
-                onClick={() => setView("login")}
-                className="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-700 transition-colors group"
-              >
-                <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform" />
-                Back to sign in
-              </button>
-            ) : (
-              <p className="text-sm text-stone-400">
-                {view === "login" ? "Don't have an account?" : "Already have an account?"}
-                <button
-                  onClick={() => setView(view === "login" ? "register" : "login")}
-                  className="ml-1.5 text-stone-700 font-medium hover:text-stone-900 transition-colors"
-                >
-                  {view === "login" ? "Sign Up" : "Sign In"}
-                </button>
-              </p>
-            )}
-          </div>
+            <div className="flex items-center justify-center gap-1.5 opacity-60">
+              <ShieldCheck size={13} strokeWidth={2} className="text-stone-900" />
+              <span className="text-[9px] text-stone-900 uppercase tracking-[0.2em] font-bold">Secure Connection</span>
+            </div>
 
-          {/* Security badge */}
-          <div className="flex items-center justify-center gap-2 opacity-30">
-            <ShieldCheck size={13} strokeWidth={1.5} />
-            <span className="text-[10px] text-stone-500 uppercase tracking-wider">Secure SSL Connection</span>
           </div>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

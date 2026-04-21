@@ -47,7 +47,7 @@ const OAuthRelay = () => {
 
         // 🔵 STEP 2 & 3: Profile Check & Refinement
         let userResult = await getCurrentUser();
-        
+
         // Decoding the most up-to-date info from Google
         const payload = JSON.parse(atob(token.split(".")[1]));
         const metadata = payload.user_metadata || {};
@@ -65,20 +65,20 @@ const OAuthRelay = () => {
         // Case A & C: Missing entirely OR "Ghost" Profile (404 Orphan)
         if (!userResult.success) {
           setStatus("Provisioning Maison Profile...");
-          
+
           try {
             const { customer: newCustomer } = await sdk.store.customer.create(
               {
                 email: email,
-                first_name: firstName || "Maison",
-                last_name: lastName || "Guest",
+                first_name: firstName || "",
+                last_name: lastName || "",
               },
               {},
               { headers: { Authorization: `Bearer ${token}` } }
             );
 
             console.log("[OAuthRelay] Provisioning Success. Hydrating session...");
-            
+
             // 🔥 INSTANT HYDRATION: Manually sync the store state 
             // This bypasses the 401 issue by using the data we just received
             useAuthStore.setState({
@@ -94,12 +94,12 @@ const OAuthRelay = () => {
             setStatus("Link Required");
             throw new Error("Social account link conflict. Please clear database or use another account.");
           }
-        } 
+        }
 
         if (!userResult.success) {
-           throw new Error("Handshake complete but profile link failed. Please refresh.");
+          throw new Error("Handshake complete but profile link failed. Please refresh.");
         }
-        
+
         // Case B: Profile exists but name is placeholder -> Refine
         else if (userResult.success && (userResult.user?.first_name === "Maison" || !userResult.user?.first_name)) {
           if (firstName && firstName !== "Maison") {
@@ -132,7 +132,7 @@ const OAuthRelay = () => {
           <div className="absolute inset-0 border-[0.5px] border-stone-200 rounded-full" />
           <div className="absolute inset-0 border-[0.5px] border-stone-900 border-t-transparent rounded-full animate-spin" />
           <div className="absolute inset-0 flex items-center justify-center">
-             <span className="text-[10px] uppercase tracking-[0.5em] text-stone-900/40 font-serif">Aroha</span>
+            <span className="text-[10px] uppercase tracking-[0.5em] text-stone-900/40 font-serif">Aroha</span>
           </div>
         </div>
         <div className="space-y-4">
