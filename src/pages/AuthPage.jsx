@@ -368,8 +368,9 @@ const AuthPage = () => {
                 <button
                   key={provider.id}
                   type="button"
-                  onClick={() => initiateSocialAuth(provider.id)}
-                  className="w-14 h-14 rounded-full border border-stone-200 flex items-center justify-center hover:bg-stone-50 hover:border-stone-900 transition-all duration-500 bg-white group"
+                  onClick={() => {
+                    window.location.href = `${import.meta.env.VITE_MEDUSA_BACKEND_URL}/auth/customer/${provider.id}`;
+                  }} className="w-14 h-14 rounded-full border border-stone-200 flex items-center justify-center hover:bg-stone-50 hover:border-stone-900 transition-all duration-500 bg-white group"
                   title={`Continue with ${provider.alt}`}
                 >
                   <img
