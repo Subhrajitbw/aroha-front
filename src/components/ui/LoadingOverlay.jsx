@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import useLockBodyScroll from "../../hooks/useLockBodyScroll";
 
 const LuxuryLoadingOverlay = ({ 
   isVisible = true, 
@@ -9,6 +10,8 @@ const LuxuryLoadingOverlay = ({
 }) => {
   const [animationPhase, setAnimationPhase] = useState("loading");
   const [showOverlay, setShowOverlay] = useState(true);
+
+  useLockBodyScroll(showOverlay);
 
   useEffect(() => {
     let exitTimeout;

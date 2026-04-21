@@ -1,7 +1,9 @@
 // components/MobileFilterDrawer.jsx
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, SlidersHorizontal } from "lucide-react";
 import { FilterSidebar } from "./FilterSidebar";
+import useLockBodyScroll from "../../hooks/useLockBodyScroll";
 
 export const MobileFilterDrawer = ({
   isOpen,
@@ -15,6 +17,8 @@ export const MobileFilterDrawer = ({
   sort,
   onSortChange,
 }) => {
+  useLockBodyScroll(isOpen);
+
   const sortOptions = [
     { value: "relevance", label: "Featured" },
     { value: "price-low", label: "Price: Low to High" },
@@ -32,7 +36,8 @@ export const MobileFilterDrawer = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50"
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-50"
             onClick={onClose}
           />
 
@@ -41,8 +46,8 @@ export const MobileFilterDrawer = ({
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-y-0 left-0 w-full max-w-sm bg-white/95 backdrop-blur-3xl z-50 overflow-hidden flex flex-col border-r border-stone-200/40"
+            transition={{ type: "tween", duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-y-0 left-0 w-full max-w-sm bg-white z-50 overflow-hidden flex flex-col border-r border-stone-200/40"
           >
             <div className="flex items-center justify-between p-6 border-b border-stone-200/40">
               <h2 className="text-sm uppercase tracking-[0.1em] font-bold text-stone-900">
@@ -58,7 +63,11 @@ export const MobileFilterDrawer = ({
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto pb-20">
+            <div 
+              className="flex-1 overflow-y-auto pb-20 overscroll-contain"
+              onWheel={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+            >
               <div className="p-4 space-y-6">
                 {/* Sort section */}
                 <div className="space-y-4 pt-2">

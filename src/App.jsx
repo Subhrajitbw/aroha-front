@@ -76,9 +76,12 @@ function App() {
     isLoading: authLoading,
   } = useAuthStore();
 
-  // ---------------- AUTH INIT ----------------
+  // ---------------- INITIALIZATION ----------------
   useEffect(() => {
-    initializeAuth();
+    // Only initialize if we're not in the middle of a social handshake
+    if (window.location.pathname !== "/oauth/callback") {
+      initializeAuth();
+    }
   }, [initializeAuth]);
 
   // ---------------- SCROLL RESET ----------------
@@ -213,7 +216,11 @@ function App() {
 
   // ---------------- ROUTE CONFIG ----------------
   const getNavBarVariant = () => {
-    if (["/", "/home", "/lookbook"].includes(pathname) || pathname.startsWith("/shop")) {
+    if (
+      ["/", "/home", "/lookbook"].includes(pathname) ||
+      pathname.startsWith("/shop") ||
+      pathname.startsWith("/account")
+    ) {
       return "light";
     }
     return "dark";
@@ -221,10 +228,13 @@ function App() {
 
   const shouldShowFooter = !["/", "/home", "/lookbook"].includes(pathname);
 
-  if (!isInitialized || authLoading) return <LoadingSpinner />;
+  // BYPASS GUARD: Allow the OAuth Relay to render so it can initialize the session!
+  if (pathname !== "/oauth/callback" && (!isInitialized || authLoading)) {
+    return <LoadingSpinner />;
+  }
 
   return (
-    <div className={`app-container device-${deviceType}`}>
+    <div className={`app-container device-${deviceType} pb-[max(110px,calc(100px+env(safe-area-inset-bottom)))] md:pb-0`}>
       <CustomCursor />
       <NavBar
         variant={getNavBarVariant()}

@@ -1,27 +1,27 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { X, Search, ArrowRight, Sparkles, TrendingUp, History, Compass } from "lucide-react";
+import { X, Search, ArrowRight, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSearchStore } from "../../stores/searchStore";
 import { searchClient, PRODUCTS_INDEX } from "../../lib/meilisearch";
 import { medusaApi } from "../../lib/react-query";
-import gsap from "gsap";
 import { motion, AnimatePresence } from "framer-motion";
+import useLockBodyScroll from "../../hooks/useLockBodyScroll";
 
 const SearchModal = () => {
-  const modalRef = useRef();
   const inputRef = useRef();
 
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [featuredCategories, setFeaturedCategories] = useState([]);
 
   const { isOpen, close } = useSearchStore();
   const navigate = useNavigate();
 
-  // Fetch featured categories for empty state
+  useLockBodyScroll(isOpen);
+
+  // Fetch featured categories
   useEffect(() => {
     if (isOpen) {
       const fetchInitial = async () => {
@@ -37,67 +37,41 @@ const SearchModal = () => {
     }
   }, [isOpen]);
 
-  // Entrance & Exit Animations
+  // Focus input when open
   useEffect(() => {
-    if (isOpen && modalRef.current) {
-      gsap.to(modalRef.current, {
-        opacity: 1,
-        backdropFilter: "blur(50px)",
-        duration: 1,
-        ease: "power4.out"
-      });
-      
-      gsap.fromTo(".search-content", 
-        { y: 60, opacity: 0 },
-        { y: 0, opacity: 1, duration: 1.2, delay: 0.1, ease: "power4.out" }
-      );
-
-      document.body.style.overflow = "hidden";
-      setTimeout(() => inputRef.current?.focus(), 500);
+    if (isOpen) {
+      const timer = setTimeout(() => inputRef.current?.focus(), 400);
+      return () => clearTimeout(timer);
     }
-    
-    return () => {
-      document.body.style.overflow = "unset";
-    };
   }, [isOpen]);
 
+  // Close handler
   const handleClose = useCallback(() => {
-    gsap.to(modalRef.current, {
-      opacity: 0,
-      backdropFilter: "blur(0px)",
-      duration: 0.6,
-      ease: "power2.inOut",
-      onComplete: () => {
-        close();
-        setQuery("");
-        setResults([]);
-      }
-    });
+    close();
+    setQuery("");
+    setResults([]);
+    setSelectedIndex(-1);
   }, [close]);
 
-  // MeiliSearch Integration
+  // Search logic
   const fetchResults = useCallback(async (searchTerm) => {
     if (!searchTerm.trim()) {
       setResults([]);
       return;
     }
-
     setLoading(true);
-    setError("");
-
     try {
       const searchResponse = await searchClient
         .index(PRODUCTS_INDEX)
         .search(searchTerm, {
           limit: 12,
-          attributesToRetrieve: ['id', 'title', 'handle', 'thumbnail', 'description', 'variants', 'collection'],
-          attributesToHighlight: ['title'],
+          attributesToRetrieve: ["id", "title", "handle", "thumbnail", "description", "variants", "collection"],
+          attributesToHighlight: ["title"],
         });
 
-      const mappedProducts = searchResponse.hits.map(hit => {
+      const mappedProducts = searchResponse.hits.map((hit) => {
         const defaultVariant = hit.variants?.[0];
         let price = defaultVariant?.prices?.[0]?.amount;
-        
         return {
           id: hit.id,
           title: hit.title,
@@ -106,15 +80,14 @@ const SearchModal = () => {
           description: hit.description,
           collection: hit.collection?.title,
           _highlightedTitle: hit._formatted?.title || hit.title,
-          price: price 
-            ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(price)
-            : null
+          price: price
+            ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(price)
+            : null,
         };
       });
-
       setResults(mappedProducts);
-    } catch (err) {
-      setError("Unable to complete search request.");
+    } catch {
+      setResults([]);
     } finally {
       setLoading(false);
     }
@@ -122,225 +95,294 @@ const SearchModal = () => {
 
   useEffect(() => {
     const debounce = setTimeout(() => {
-      fetchResults(query);
-    }, 300);
+      if (query) fetchResults(query);
+      else setResults([]);
+    }, 280);
     return () => clearTimeout(debounce);
   }, [query, fetchResults]);
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === "Escape") handleClose();
-    else if (e.key === "Enter") {
-      if (selectedIndex >= 0 && results[selectedIndex]) {
+  // Keyboard navigation
+  const handleKeyDown = useCallback(
+    (e) => {
+      if (e.key === "Escape") handleClose();
+      else if (e.key === "Enter" && selectedIndex >= 0 && results[selectedIndex]) {
         navigate(`/product/${results[selectedIndex].handle}`);
         handleClose();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev < results.length - 1 ? prev + 1 : prev));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
       }
-    } else if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setSelectedIndex(prev => prev < results.length - 1 ? prev + 1 : prev);
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setSelectedIndex(prev => prev > 0 ? prev - 1 : -1);
-    }
-  }, [selectedIndex, results, handleClose, navigate]);
+    },
+    [selectedIndex, results, handleClose, navigate]
+  );
 
   if (!isOpen) return null;
 
+  const trendingTags = ["Tables", "Seating", "Lighting", "Linen", "Ceramics", "Decor"];
+
   return (
-    <div
-      ref={modalRef}
-      className="fixed inset-0 z-[120] bg-stone-50/95 dark:bg-stone-900/95 opacity-0 flex flex-col pt-[12vh] px-6 md:px-12 lg:px-24 xl:px-32"
-      onKeyDown={handleKeyDown}
-    >
-      {/* Dynamic Background Elements */}
-      <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
-        <motion.div 
-          animate={{ x: [0, 20, 0], y: [0, -20, 0] }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-[5%] -left-[5%] w-[45%] h-[45%] bg-stone-200/40 dark:bg-amber-100/5 blur-[120px] rounded-full" 
-        />
-        <motion.div 
-          animate={{ x: [0, -30, 0], y: [0, 30, 0] }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-          className="absolute bottom-[10%] -right-[5%] w-[35%] h-[40%] bg-stone-100/40 dark:bg-stone-800/20 blur-[120px] rounded-full" 
-        />
-      </div>
-
-      {/* Close Action */}
-      <button
-        onClick={handleClose}
-        className="absolute top-10 right-10 md:top-14 md:right-14 p-2 text-stone-400 hover:text-stone-900 dark:hover:text-white transition-all duration-500 group z-[130]"
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.4 }}
+        className="fixed inset-0 z-[120] flex flex-col"
+        onKeyDown={handleKeyDown}
       >
-        <span className="sr-only">Close Search</span>
-        <X size={32} strokeWidth={1} className="transition-transform duration-500 group-hover:rotate-90" />
-      </button>
+        {/* Backdrop / Background */}
+        <div 
+          className="absolute inset-0 -z-10"
+          style={{ background: "linear-gradient(180deg, #fafaf9 0%, #f5f5f4 40%, #e7e5e4 100%)" }}
+        />
+        
+        {/* Subtle grain texture overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.03] -z-10"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E")`,
+          }}
+        />
 
-      <div className="search-content w-full max-w-7xl mx-auto flex flex-col h-full">
-        {/* Editorial Search Bar */}
-        <div className="relative mb-20">
-          <div className="flex items-center gap-8 border-b border-stone-200 dark:border-white/10 pb-8 group">
-            <Search className="w-8 h-8 md:w-10 md:h-10 text-stone-400 group-focus-within:text-stone-900 transition-colors duration-500" strokeWidth={1} />
-            <input
-              ref={inputRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search our atelier..."
-              className="w-full bg-transparent text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-light text-stone-900 dark:text-white placeholder-stone-300 dark:placeholder-white/10 outline-none font-serif italic tracking-tight"
-            />
+        {/* Header - Fixed at top */}
+        <div className="flex items-center justify-between px-6 md:px-16 lg:px-24 xl:px-32 py-10 md:py-16 shrink-0 z-20">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-px bg-stone-300" />
+            <span className="text-[10px] uppercase tracking-[0.35em] text-stone-400 font-medium">Search</span>
           </div>
-          <div className="flex items-center justify-between mt-6">
-            <p className="text-xs uppercase tracking-[0.3em] text-stone-500 font-semibold">
-              {loading ? "Scanning all archival indices..." : "Explore Objects across our curated collections"}
-            </p>
-            {query && (
-               <button 
-                 onClick={() => setQuery("")}
-                 className="text-xs uppercase tracking-[0.1em] text-stone-600 hover:text-stone-900 border-b border-stone-200 hover:border-stone-900 transition-all font-medium"
-               >
-                 Clear Inquiry
-               </button>
-            )}
-          </div>
+          <button
+            onClick={handleClose}
+            className="group flex items-center gap-3 px-4 py-2 rounded-full border border-stone-200/60 hover:border-stone-400 hover:bg-white/60 transition-all duration-500"
+          >
+            <span className="text-[10px] uppercase tracking-[0.15em] text-stone-500 font-medium hidden sm:inline">Close</span>
+            <X size={16} strokeWidth={1.5} className="text-stone-500 group-hover:text-stone-900 transition-colors group-hover:rotate-90 transition-transform duration-500" />
+          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto hide-scrollbar pb-32">
-          <AnimatePresence mode="wait">
-            {!query.trim() ? (
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -30 }}
-                className="grid grid-cols-1 lg:grid-cols-12 gap-20"
-              >
-                {/* Visual Navigation */}
-                <div className="lg:col-span-8 space-y-16">
-                  <div className="space-y-8">
-                    <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-stone-900 dark:text-white flex items-center gap-4">
-                      <Compass size={16} strokeWidth={1.5} /> Primary Collections
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      {featuredCategories.map((cat, i) => (
-                        <button
-                          key={cat.id || i}
-                          onClick={() => {
-                            navigate(`/shop/category/${cat.handle}`);
-                            handleClose();
-                          }}
-                          className="group relative h-64 overflow-hidden rounded-none bg-stone-100 dark:bg-stone-800 flex flex-col justify-end p-8 text-left border border-stone-200/50 hover:border-stone-900 transition-all duration-700"
-                        >
-                          <img 
-                            src={cat.image || "https://placehold.co/800x600/f5f5f7/999"} 
-                            alt={cat.name} 
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2s] ease-out group-hover:scale-110 opacity-80 group-hover:opacity-100" 
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-stone-900/90 via-stone-900/10 to-transparent opacity-60" />
-                          <h4 className="relative z-10 text-white text-3xl font-serif italic tracking-wide leading-tight">{cat.name}</h4>
-                          <span className="relative z-10 text-xs uppercase tracking-[0.3em] text-white/70 mt-3 font-medium">Explore Archive</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Suggestions & Trends */}
-                <div className="lg:col-span-4 space-y-16">
-                  <div className="space-y-8">
-                    <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-stone-900 dark:text-white flex items-center gap-4">
-                      <TrendingUp size={16} strokeWidth={1.5} /> Trending Now
-                    </h3>
-                    <div className="flex flex-col gap-5">
-                      {['Monolith Tables', 'Hand-Knotted Rugs', 'Sculptural Lighting', 'Raw Linen'].map(tag => (
-                        <button 
-                          key={tag}
-                          onClick={() => setQuery(tag)}
-                          className="w-fit text-xl font-serif italic text-stone-500 hover:text-stone-900 transition-colors flex items-center gap-4 group"
-                        >
-                          <span className="w-5 h-[1px] bg-stone-300 group-hover:w-10 group-hover:bg-stone-900 transition-all duration-500" />
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-8">
-                    <h3 className="text-xs uppercase tracking-[0.2em] font-bold text-stone-400 dark:text-stone-600 flex items-center gap-4">
-                      <History size={16} strokeWidth={1.5} /> Inquiry History
-                    </h3>
-                    <p className="text-stone-500 italic text-base font-serif font-light leading-relaxed">Your collection inquiry history is currently private and secure.</p>
-                  </div>
-                </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="space-y-16"
-              >
-                {results.length > 0 ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-x-8 gap-y-14">
-                    {results.map((product, index) => (
-                      <motion.div
-                        key={product.id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.04 }}
-                        onClick={() => {
-                          navigate(`/product/${product.handle}`);
-                          handleClose();
-                        }}
-                        className={`group cursor-pointer space-y-5 ${selectedIndex === index ? "scale-105" : "hover:scale-[1.02]"} transition-transform duration-500`}
-                      >
-                        <div className="relative aspect-[3/4] overflow-hidden rounded-none bg-stone-100 dark:bg-stone-800 border border-stone-200/40 dark:border-white/5">
-                          <img 
-                            src={product.thumbnail} 
-                            alt={product.title} 
-                            className="w-full h-full object-cover transition-transform duration-[1.8s] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-110" 
-                          />
-                          <div className="absolute inset-0 bg-stone-900/0 group-hover:bg-stone-900/5 transition-colors duration-700" />
-                          
-                          {selectedIndex === index && (
-                             <div className="absolute inset-0 border-2 border-stone-900/20 pointer-events-none" />
-                          )}
-                        </div>
-                        <div className="space-y-3">
-                          <h4 
-                            className="text-xl font-serif italic text-stone-900 dark:text-white leading-tight underline-offset-4 decoration-stone-200" 
-                            dangerouslySetInnerHTML={{ __html: product._highlightedTitle }} 
-                          />
-                          <div className="flex items-center justify-between gap-4 pt-2 border-t border-stone-100 dark:border-white/5">
-                            <span className="text-[10px] uppercase tracking-[0.25em] text-stone-500 font-bold truncate">{product.collection || "Atelier Object"}</span>
-                            <span className="text-sm font-medium text-stone-900 dark:text-white/80 shrink-0">{product.price}</span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                ) : !loading && (
-                  <div className="py-32 text-center space-y-8 flex flex-col items-center">
-                    <div className="w-20 h-px bg-stone-200" />
-                    <p className="text-4xl md:text-5xl font-serif italic text-stone-300 dark:text-stone-700 font-light max-w-2xl mx-auto">
-                      No archival objects found matching your inquiry.
-                    </p>
-                    <button 
-                      onClick={() => setQuery("")} 
-                      className="text-[10px] uppercase tracking-[0.4em] text-stone-900 dark:text-white border-b border-stone-900 dark:border-white pb-2 hover:opacity-60 transition-opacity font-bold"
+        {/* Scrollable container */}
+        <div 
+          className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 overscroll-contain"
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
+          <div className="max-w-5xl mx-auto px-6 md:px-16 lg:px-24 xl:px-32 pb-32">
+            
+            {/* Search input container */}
+            <motion.div 
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1, duration: 0.6 }}
+              className="w-full mb-16 md:mb-24"
+            >
+              <div className="relative">
+                <div className="flex items-center gap-5 md:gap-8">
+                  <Search className="w-6 h-6 md:w-7 md:h-7 text-stone-300 shrink-0" strokeWidth={1.5} />
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="What are you looking for?"
+                    className="w-full bg-transparent text-3xl md:text-5xl lg:text-6xl font-light text-stone-900 placeholder-stone-300 outline-none tracking-tight leading-tight"
+                    style={{ fontFamily: "'EB Garamond', 'Georgia', serif" }}
+                  />
+                  {query && (
+                    <button
+                      onClick={() => { setQuery(""); setResults([]); }}
+                      className="shrink-0 text-xs uppercase tracking-[0.15em] text-stone-400 hover:text-stone-700 border-b border-transparent hover:border-stone-400 pb-px transition-all"
                     >
-                      Reset Discovery
+                      Clear
                     </button>
-                  </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
+                  )}
+                </div>
+                <div className="mt-5 h-px w-full bg-gradient-to-r from-stone-200 via-stone-300 to-stone-200" />
+              </div>
 
-      <style jsx>{`
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
-    </div>
+              {/* Status indicator */}
+              <div className="flex items-center gap-3 mt-5">
+                {loading ? (
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400" />
+                    </span>
+                    <span className="text-[10px] uppercase tracking-[0.2em] text-stone-400">Searching...</span>
+                  </div>
+                ) : query ? (
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-stone-400">
+                    {results.length} {results.length === 1 ? "result" : "results"} found
+                  </span>
+                ) : (
+                  <span className="text-[10px] uppercase tracking-[0.2em] text-stone-300">
+                    Type to begin searching
+                  </span>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Content area */}
+            <div className="w-full">
+              <AnimatePresence mode="wait">
+                {!query.trim() ? (
+                  /* ---- Empty state: Discovery view ---- */
+                  <motion.div
+                    key="discovery"
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -16 }}
+                    transition={{ duration: 0.4 }}
+                    className="space-y-20"
+                  >
+                    {/* Trending tags */}
+                    <div className="space-y-8">
+                      <div className="flex items-center gap-3">
+                        <TrendingUp size={14} strokeWidth={1.5} className="text-stone-400" />
+                        <h3 className="text-[10px] uppercase tracking-[0.3em] text-stone-400 font-semibold">Trending Searches</h3>
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        {trendingTags.map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => setQuery(tag)}
+                            className="px-5 py-2.5 rounded-full border border-stone-200 text-sm text-stone-600 hover:text-stone-900 hover:border-stone-400 hover:bg-white/70 hover:shadow-sm transition-all duration-400"
+                            style={{ fontFamily: "'EB Garamond', 'Georgia', serif" }}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Featured categories */}
+                    {featuredCategories.length > 0 && (
+                      <div className="space-y-8">
+                        <h3 className="text-[10px] uppercase tracking-[0.3em] text-stone-400 font-semibold">Explore Collections</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                          {featuredCategories.map((cat, i) => (
+                            <button
+                              key={cat.id || i}
+                              onClick={() => {
+                                navigate(`/shop/category/${cat.handle}`);
+                                handleClose();
+                              }}
+                              className="group relative overflow-hidden rounded-2xl aspect-[3/4] bg-stone-100"
+                            >
+                              <img
+                                src={cat.image || "https://placehold.co/600x800/f5f5f4/a8a29e?text="}
+                                alt={cat.name}
+                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-110"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-stone-900/70 via-stone-900/10 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-700" />
+                              <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
+                                <h4
+                                  className="text-white text-lg md:text-xl font-medium leading-snug mb-1"
+                                  style={{ fontFamily: "'EB Garamond', 'Georgia', serif" }}
+                                >
+                                  {cat.name}
+                                </h4>
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500">
+                                  <span className="text-[9px] uppercase tracking-[0.2em] text-white/70">Explore</span>
+                                  <ArrowRight size={10} className="text-white/70" strokeWidth={1.5} />
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </motion.div>
+                ) : (
+                  /* ---- Results view ---- */
+                  <motion.div
+                    key="results"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {results.length > 0 ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-8">
+                        {results.map((product, index) => (
+                          <motion.div
+                            key={product.id}
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.04, duration: 0.5 }}
+                            onClick={() => {
+                              navigate(`/product/${product.handle}`);
+                              handleClose();
+                            }}
+                            className={`group cursor-pointer ${selectedIndex === index ? "ring-2 ring-stone-300 rounded-2xl" : ""}`}
+                          >
+                            <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-stone-100 mb-4">
+                              <img
+                                src={product.thumbnail}
+                                alt={product.title}
+                                className="w-full h-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-105"
+                              />
+                              <div className="absolute inset-0 bg-gradient-to-t from-stone-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                              {/* Quick view hint */}
+                              <div className="absolute bottom-3 left-3 right-3 flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-500">
+                                <span className="px-4 py-2 bg-white/90 backdrop-blur-sm rounded-full text-[10px] uppercase tracking-[0.15em] text-stone-700 font-medium shadow-sm">
+                                  View Product
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="px-1 space-y-1.5">
+                              <h4
+                                className="text-base md:text-lg text-stone-900 leading-snug line-clamp-2"
+                                style={{ fontFamily: "'EB Garamond', 'Georgia', serif" }}
+                                dangerouslySetInnerHTML={{ __html: product._highlightedTitle }}
+                              />
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[9px] uppercase tracking-[0.2em] text-stone-400 font-medium truncate">
+                                  {product.collection || "Aroha"}
+                                </span>
+                                {product.price && (
+                                  <span className="text-xs text-stone-600 font-medium shrink-0">{product.price}</span>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    ) : (
+                      !loading && (
+                        <div className="flex flex-col items-center justify-center py-32 space-y-8">
+                          <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center">
+                            <Search size={24} className="text-stone-300" strokeWidth={1.5} />
+                          </div>
+                          <div className="text-center space-y-3">
+                            <p
+                              className="text-2xl md:text-3xl text-stone-300 font-light"
+                              style={{ fontFamily: "'EB Garamond', 'Georgia', serif" }}
+                            >
+                              No results for "{query}"
+                            </p>
+                            <p className="text-sm text-stone-400">Try a different search term or browse our collections</p>
+                          </div>
+                          <button
+                            onClick={() => setQuery("")}
+                            className="px-6 py-2.5 rounded-full border border-stone-200 text-xs uppercase tracking-[0.15em] text-stone-600 hover:border-stone-400 hover:bg-white/60 transition-all duration-400"
+                          >
+                            Clear Search
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

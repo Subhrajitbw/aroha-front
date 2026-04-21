@@ -1,4 +1,3 @@
-// src/components/MobileMenu.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { gsap } from "gsap";
@@ -16,6 +15,7 @@ import {
   Star,
   Zap,
 } from "lucide-react";
+import useLockBodyScroll from "../../hooks/useLockBodyScroll";
 
 const MobileMenu = ({
   isOpen,
@@ -34,6 +34,8 @@ const MobileMenu = ({
   const overlayRef = useRef(null);
   const mainContentRef = useRef(null);
   const subContentRef = useRef(null);
+
+  useLockBodyScroll(isOpen);
 
   // Quick access links
   const quickLinks = [
@@ -124,7 +126,6 @@ const MobileMenu = ({
 
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = "hidden";
       gsap.to(overlayRef.current, { autoAlpha: 1, duration: 0.5, ease: "power2.out" });
       gsap.fromTo(
         menuRef.current,
@@ -145,7 +146,6 @@ const MobileMenu = ({
       duration: 0.6,
       ease: "power3.inOut",
       onComplete: () => {
-        document.body.style.overflow = "";
         setCurrentView("main");
         setActiveCategory(null);
         onClose();
@@ -207,7 +207,9 @@ const MobileMenu = ({
           {/* Main Menu Context */}
           <div
             ref={mainContentRef}
-            className="absolute inset-0 overflow-y-auto hide-scrollbar"
+            className="absolute inset-0 overflow-y-auto hide-scrollbar overscroll-contain"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-10 space-y-12">
               
@@ -310,38 +312,52 @@ const MobileMenu = ({
               {/* Account Section */}
               <div className="space-y-6 pt-6 border-t border-stone-200">
                 {isLoggedIn && user ? (
-                  <>
-                    <h3 className="text-xs tracking-[0.3em] uppercase text-stone-400 font-medium pb-2">
-                      Identity
-                    </h3>
-                    <div className="flex items-center gap-4 mb-8">
-                      <span className="text-lg font-serif text-stone-900">
-                        {user.name || "Client"}
-                      </span>
+                  <div className="space-y-8">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <h3 className="text-[10px] tracking-[0.3em] uppercase text-stone-400 font-medium pb-2">
+                          Authenticated Client
+                        </h3>
+                        <p className="text-2xl font-serif text-stone-900 leading-tight">
+                          {user.name}
+                        </p>
+                      </div>
+                      <Link 
+                        to="/account" 
+                        onClick={onClose}
+                        className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center text-stone-900 border border-stone-200"
+                      >
+                        <User size={20} strokeWidth={1} />
+                      </Link>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-6">
-                      {accountSections.flatMap(s => s.items).map((item) => (
-                        <Link
-                          key={item.name}
-                          to={item.href}
-                          onClick={handleClose}
-                          className="flex items-center gap-3 text-stone-500 hover:text-stone-900 transition-colors"
-                        >
-                          <item.icon size={14} strokeWidth={1.5} />
-                          <span className="text-sm uppercase tracking-[0.1em] font-medium">{item.name}</span>
-                        </Link>
-                      ))}
+                    <div className="grid grid-cols-2 gap-4">
+                      <Link
+                        to="/account/orders"
+                        onClick={onClose}
+                        className="flex flex-col gap-3 p-5 rounded-2xl bg-white border border-stone-100 shadow-sm"
+                      >
+                        <Package size={16} className="text-stone-400" />
+                        <span className="text-[10px] uppercase tracking-widest text-stone-900 font-bold">My Orders</span>
+                      </Link>
+                      <Link
+                        to="/account/wishlist"
+                        onClick={onClose}
+                        className="flex flex-col gap-3 p-5 rounded-2xl bg-white border border-stone-100 shadow-sm"
+                      >
+                        <Heart size={16} className="text-stone-400" />
+                        <span className="text-[10px] uppercase tracking-widest text-stone-900 font-bold">Wishlist</span>
+                      </Link>
                     </div>
 
                     <button
-                      onClick={() => { onLogout(); handleClose(); }}
-                      className="w-full flex items-center justify-between pt-8 mt-8 border-t border-stone-200 text-stone-900 group/out"
+                      onClick={() => { onLogout(); onClose(); }}
+                      className="w-full flex items-center justify-between py-4 text-stone-400 hover:text-red-400 transition-colors group"
                     >
-                      <span className="text-sm uppercase tracking-[0.2em] font-medium">Sign Out</span>
-                      <LogOut size={16} strokeWidth={1} className="group-hover/out:translate-x-1 transition-transform" />
+                      <span className="text-[10px] uppercase tracking-[0.2em] font-medium">Log out of account</span>
+                      <LogOut size={16} strokeWidth={1} className="group-hover:translate-x-1 transition-transform" />
                     </button>
-                  </>
+                  </div>
                 ) : (
                   <div className="pb-8">
                     <button
@@ -364,8 +380,10 @@ const MobileMenu = ({
           {/* Sub Menu Overlay */}
           <div
             ref={subContentRef}
-            className="absolute inset-0 overflow-y-auto bg-[#fafafa] hide-scrollbar"
+            className="absolute inset-0 overflow-y-auto bg-[#fafafa] hide-scrollbar overscroll-contain"
             style={{ transform: "translateX(100%)" }}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             {activeCategory && (
               <div className="px-6 py-10 space-y-10">

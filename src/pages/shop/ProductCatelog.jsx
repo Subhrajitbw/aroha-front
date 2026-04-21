@@ -9,6 +9,7 @@ import { FilterSidebar } from "../../components/shop/FilterSidebar";
 import { MobileFilterDrawer } from "../../components/shop/MobileFilterDrawer";
 import { ProductInfoCard } from "../../components/shop/ProductInfoCard";
 import CategoryTab from "../../components/sections/category/CategoryTab";
+import Breadcrumbs from "../../components/ui/Breadcrumbs";
 
 export default function ProductCatalog() {
   // State management
@@ -367,6 +368,28 @@ export default function ProductCatalog() {
     ? categoryByHandle.get(selectedCategoryHandle)
     : null;
 
+  // Hierarchical breadcrumbs logic
+  const categoryBreadcrumbs = useMemo(() => {
+    if (!selectedCategoryNode) return [{ label: "Shop", path: "/shop", isLast: true }];
+    
+    const hierarchy = [];
+    let current = selectedCategoryNode;
+    
+    while (current) {
+      hierarchy.unshift({
+        label: current.name,
+        path: `/shop/category/${current.handle}`,
+        isLast: current === selectedCategoryNode
+      });
+      current = current.parent_category_id ? categoryById.get(current.parent_category_id) : null;
+    }
+    
+    return [
+      { label: "Shop", path: "/shop" },
+      ...hierarchy
+    ];
+  }, [selectedCategoryNode, categoryById]);
+
   const subCategories =
     selectedCategoryNode?.children && selectedCategoryNode.children.length > 0
       ? selectedCategoryNode.children
@@ -644,65 +667,57 @@ export default function ProductCatalog() {
       {/* Main content */}
       <div className="max-w-[2200px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-16 pb-10 sm:pb-14 lg:pb-20">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 xl:gap-12 2xl:gap-16">
-          {/* Desktop filters */}
-          <FilterSidebar
-            filters={filters}
-            onFiltersChange={(val) => {
-              setFilters(val);
-              setPage(1); // Reset page on filter change
-            }}
-            collections={collections}
-            categories={categories}
-            tags={availableTags}
-            priceBounds={priceBounds}
-            className="hidden lg:block lg:w-72 xl:w-80 2xl:w-96 shrink-0"
-          />
+          
+          {/* Desktop filters sidebar */}
+          <aside className="hidden lg:block lg:w-72 xl:w-80 2xl:w-96 shrink-0 pt-0">
+             <FilterSidebar
+                filters={filters}
+                onFiltersChange={(val) => {
+                  setFilters(val);
+                  setPage(1);
+                }}
+                collections={collections}
+                categories={categories}
+                tags={availableTags}
+                priceBounds={priceBounds}
+                className="sticky top-24"
+              />
+          </aside>
 
-          {/* Products */}
-          <main className="flex-1 min-w-0 w-full">
+          {/* Products Viewport */}
+          <main className="flex-1 min-w-0 w-full order-1 lg:order-2">
+            
+            {/* Hierarchical Breadcrumbs */}
+            <Breadcrumbs 
+              className="mb-8" 
+              items={categoryBreadcrumbs}
+            />
+
             <AnimatePresence mode="wait">
               <motion.div
-                key={`products-${dimensions.width}-page-${page}-sort-${sort}-cat-${selectedCategoryHandle}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+                key={`products-grid-cat-${selectedCategoryHandle}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.4 }}
               >
                 {filteredProducts.length === 0 && !loading ? (
-                  <motion.div
-                    initial={{ opacity: 0, y: 40 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center justify-center py-16 sm:py-20 lg:py-24 xl:py-32 px-4"
-                  >
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 bg-stone-100 rounded-full flex items-center justify-center mb-6 sm:mb-8">
-                      <LayoutGrid className="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 text-stone-400" />
+                  <div className="flex flex-col items-center justify-center py-24 sm:py-32">
+                    <div className="w-20 h-20 bg-stone-100 rounded-full flex items-center justify-center mb-8">
+                      <LayoutGrid className="w-10 h-10 text-stone-400" />
                     </div>
-                    <h3 className="text-xl sm:text-2xl lg:text-3xl font-light text-stone-900 mb-3 sm:mb-4 text-center">
-                      No products found
-                    </h3>
-                    <p className="text-stone-500 text-center max-w-sm sm:max-w-md lg:max-w-lg font-light leading-relaxed text-sm sm:text-base">
-                      Try changing or clearing some filters to see more products.
-                    </p>
-                  </motion.div>
+                    <h3 className="text-2xl font-light text-stone-900 mb-4">No products found</h3>
+                    <p className="text-stone-500 font-light text-center max-w-md">Try adjusting your filters or exploring a different collection.</p>
+                  </div>
                 ) : (
                   <>
-                    <div
-                      className="
-                        grid 
-                        grid-cols-2 
-                        md:grid-cols-3 
-                        lg:grid-cols-3 
-                        xl:grid-cols-4 
-                        gap-x-4 sm:gap-x-8 lg:gap-x-12
-                        gap-y-10 sm:gap-y-12 lg:gap-y-16
-                      "
-                    >
+                    <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-6 sm:gap-x-10 gap-y-12 sm:gap-y-16">
                       {loading ? (
-                        Array.from({ length: limit }).map((_, i) => (
+                        Array.from({ length: 8 }).map((_, i) => (
                           <div key={i} className="animate-pulse">
-                            <div className="aspect-[3/4] bg-stone-200 rounded-full mb-3 sm:mb-4"></div>
-                            <div className="h-4 bg-stone-200 rounded mb-2 w-3/4 mx-auto"></div>
-                            <div className="h-3 bg-stone-200 rounded w-1/2 mx-auto"></div>
+                            <div className="aspect-[3/4] bg-stone-100 rounded-2xl mb-4"></div>
+                            <div className="h-4 bg-stone-100 rounded mb-2 w-3/4"></div>
+                            <div className="h-3 bg-stone-100 rounded w-1/2"></div>
                           </div>
                         ))
                       ) : (
@@ -711,29 +726,20 @@ export default function ProductCatalog() {
                             key={product.id}
                             product={product}
                             isFluid={true}
-                            cardSize="default"
                           />
                         ))
                       )}
                     </div>
 
-                    {/* Pagination - Luxury Discover More */}
+                    {/* Pagination */}
                     {!loading && hasMore && (
-                      <div className="mt-16 sm:mt-24 mb-8 flex flex-col items-center justify-center">
-                        <div className="text-xs text-stone-400 font-light tracking-wider mb-6">
-                          Showing {currentProducts.length} of {totalFilteredCount}
-                        </div>
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
+                      <div className="mt-20 flex flex-col items-center">
+                        <button
                           onClick={() => setPage((p) => p + 1)}
-                          className="group relative px-8 py-3 bg-transparent overflow-hidden"
+                          className="group relative px-12 py-4 bg-stone-900 text-white rounded-full transition-all hover:bg-stone-800"
                         >
-                          <div className="absolute inset-x-0 bottom-0 h-[1px] bg-stone-300 group-hover:bg-stone-900 transition-colors duration-500"></div>
-                          <span className="relative z-10 text-xs sm:text-sm tracking-[0.2em] uppercase text-stone-600 group-hover:text-stone-900 transition-colors duration-500">
-                            Discover More
-                          </span>
-                        </motion.button>
+                          <span className="uppercase tracking-widest text-xs font-bold">Discover More</span>
+                        </button>
                       </div>
                     )}
                   </>
@@ -744,14 +750,14 @@ export default function ProductCatalog() {
         </div>
       </div>
 
-      {/* Mobile filters */}
+      {/* Mobile filters drawer */}
       <MobileFilterDrawer
         isOpen={mobileFilterOpen}
         onClose={() => setMobileFilterOpen(false)}
         filters={filters}
         onFiltersChange={(val) => {
           setFilters(val);
-          setPage(1); // Reset page on filter change
+          setPage(1);
         }}
         collections={collections}
         categories={categories}

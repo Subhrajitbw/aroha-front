@@ -1,6 +1,7 @@
-import Footer from "../components/layout/Footer";
 import { useEffect } from "react";
 import NavBar from "../components/layout/NavBar";
+import Breadcrumbs from "../components/ui/Breadcrumbs";
+import Footer from "../components/layout/Footer";
 
 const Contact = () => {
 
@@ -13,6 +14,7 @@ const Contact = () => {
     window.Webflow && window.Webflow.require("ix2").init();
     document.dispatchEvent(new Event("readystatechange"));
   }, []);
+
   return (
     <div className="page-wrapper">
       <header className="header absolute">
@@ -24,6 +26,7 @@ const Contact = () => {
             <div className="container-xlarge">
               <div className="padding-vertical padding-xhuge">
                 <div className="margin-bottom margin-xhuge">
+                  <Breadcrumbs className="mb-12" />
                   <div className="text-align-center">
                     <h1
                       id="w-node-_8f9a79e3-2eb4-b69d-9ad5-b8b1ad4db742-791d7459"
@@ -337,7 +340,6 @@ const Contact = () => {
       </main>
       <Footer />
     </div>
-
   );
 };
 

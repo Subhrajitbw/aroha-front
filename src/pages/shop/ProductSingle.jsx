@@ -6,6 +6,7 @@ import { sanityClient } from "../../lib/sanityClient";
 import { PortableText } from '@portabletext/react';
 import { ProductInfoCard } from "../../components/shop/ProductInfoCard";
 import CustomDropdown from "../../components/ui/CustomDropdown";
+import Breadcrumbs from "../../components/ui/Breadcrumbs";
 
 const ProductPage = () => {
   const { handle } = useParams();
@@ -553,6 +554,7 @@ const ProductPage = () => {
         {/* RIGHT: SCROLLABLE DETAILS - Responsive spacing and font scaling */}
         <div className="w-full lg:w-5/12 bg-stone-50 px-5 sm:px-10 lg:px-12 xl:px-16 py-10 lg:py-20 xl:py-24 border-l border-stone-200/50">
           <div className="max-w-xl mx-auto space-y-8 sm:space-y-10 lg:space-y-12 pb-20">
+            <Breadcrumbs className="mb-0" />
             <header className="space-y-4">
               <p className="text-[9px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em] uppercase text-stone-400 font-bold">{sanityContent.brandName || "Aroha House"}</p>
               <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl xl:text-6xl leading-tight text-stone-900 font-bold tracking-tight">

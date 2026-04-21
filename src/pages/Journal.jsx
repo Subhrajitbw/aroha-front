@@ -1,9 +1,10 @@
 // pages/JournalsPage.jsx
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom"; // Add this import
+import { Link } from "react-router-dom";
 import { sanityClient } from "../lib/sanityClient";
 import { ArrowRight, Calendar } from "lucide-react";
 import Masonry from "react-masonry-css";
+import Breadcrumbs from "../components/ui/Breadcrumbs";
 
 const JournalsPage = () => {
   const [posts, setPosts] = useState([]);
@@ -68,6 +69,7 @@ const JournalsPage = () => {
       {/* Hero Section */}
       <section className="pt-32 pb-16 px-8 md:px-12">
         <div className="max-w-[1400px] mx-auto">
+          <Breadcrumbs className="mb-8" />
           <div className="flex items-center gap-6 mb-8">
             <div className="h-[1px] w-20 bg-stone-300"></div>
             <span className="text-[10px] uppercase tracking-[0.3em] text-stone-400 font-light">

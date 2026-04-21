@@ -8,6 +8,7 @@ import { sanityClient } from "../../lib/sanityClient";
 import { sdk } from "../../lib/medusaClient";
 import LoadingOverlay from "../../components/ui/LoadingOverlay";
 import { ProductInfoCard } from "../../components/shop/ProductInfoCard";
+import Breadcrumbs from "../../components/ui/Breadcrumbs";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -224,6 +225,8 @@ const RoomGrid = ({ label, products, meta }) => {
           <p className="text-sm md:text-base text-stone-600 max-w-sm leading-relaxed">{meta.desc}</p>
         </div>
 
+        <Breadcrumbs className="mb-12" />
+
         {/* Product Grid using ProductInfoCard — Editorial Asymmetrical Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-x-8 lg:gap-x-16 gap-y-24 md:gap-y-32 mt-16 md:mt-24 pb-12">
           {products.slice(0, visibleCount).map((product, idx) => {
@@ -357,6 +360,7 @@ const RoomDirectory = ({ rooms }) => {
             Each room is a thesis in restraint. Browse curated environments and discover objects that speak to the architecture of your life.
           </p>
         </div>
+        <Breadcrumbs className="mt-8 mb-0 dir-reveal" />
         <div className="dir-reveal h-[1px] bg-stone-300 mt-10 md:mt-14" />
       </div>
 
