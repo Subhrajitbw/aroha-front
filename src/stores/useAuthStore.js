@@ -154,12 +154,14 @@ export const useAuthStore = create((set, get) => ({
   initiateSocialAuth: async (provider) => {
     set({ isLoading: true, error: null });
     try {
-      const callbackUrl = `${window.location.origin}/oauth/callback`;
+      const origin = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
+      const callbackUrl = `${origin}/oauth/callback`;
       const res = await sdk.auth.login("customer", provider, {
         callback_url: callbackUrl,
       });
       if (res?.location) window.location.href = res.location;
     } catch (error) {
+      console.error("[AuthStore] Social Auth Error:", error);
       set({ isLoading: false, error: "Social handshake failed" });
     }
   },
