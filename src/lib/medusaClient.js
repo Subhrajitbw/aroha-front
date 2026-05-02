@@ -1,25 +1,34 @@
 import Medusa from "@medusajs/js-sdk";
 
-/**
- * Medusa Client Initialization
- * Configured for Medusa v2.13+ with JWT authentication.
- *
- * IMPORTANT: The SDK automatically injects the publishableKey as
- * the header "x-publishable-api-key" (not "x-publishable-key").
- * Do NOT manually override sdk.client.config.headers — doing so
- * can replace the SDK's correct header with the wrong key name.
- */
+const baseUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000";
+const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY;
+
 export const sdk = new Medusa({
-  baseUrl: import.meta.env.VITE_MEDUSA_BACKEND_URL || "http://localhost:9000",
-  debug: import.meta.env.DEV,
-  publishableKey: import.meta.env.VITE_MEDUSA_PUBLISHABLE_KEY,
+  baseUrl,
+  debug: process.env.NODE_ENV === "development",
+  publishableKey,
   auth: {
     type: "jwt",
   },
 });
 
-// Auto-initialize token from localStorage on boot
-const savedToken = localStorage.getItem('medusa_auth_token');
-if (savedToken) {
-  sdk.client.setToken(savedToken);
+// Helper for client-side token persistence
+if (typeof window !== "undefined") {
+  const savedToken = localStorage.getItem('medusa_auth_token');
+  if (savedToken) {
+    sdk.client.setToken(savedToken);
+  }
 }
+
+/**
+ * Helper to get cart ID from cookies (server) or localStorage (client)
+ */
+export const getCartId = () => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("cart_id");
+  }
+  // On server, we would use cookies() from next/headers
+  // but we can't import it here directly as this is a shared lib.
+  // We'll pass it from components when needed.
+  return null;
+};

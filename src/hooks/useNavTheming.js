@@ -1,16 +1,25 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { rafThrottle, sampleBackgroundAtPoint, getColorAnalysis } from "../utils/backgroundSampler";
+import { useMenuStore } from "../stores/useMenuStore";
 
-export const useNavTheming = (navRef, variant, location, isMobile) => {
-  const [scrolled, setScrolled] = useState(false);
+export const useNavTheming = (navRef, variant, pathname, isMobile) => {
+  const currentSection = useMenuStore((state) => state.currentSection);
+  const isAppReady = useMenuStore((state) => state.isAppReady);
+  const navThemeOverride = useMenuStore((state) => state.navThemeOverride);
+  const [localScrolled, setLocalScrolled] = useState(false);
+  
+  const scrolled = localScrolled || currentSection > 0;
   const [navTheme, setNavTheme] = useState(variant === "dark" ? "dark" : "light");
   const [colorAnalysis, setColorAnalysis] = useState(null);
   const [samplingActive, setSamplingActive] = useState(true);
-  const [lastSampleTime, setLastSampleTime] = useState(0);
+  const lastSampleTime = useRef(0);
   const [themeFrozen, setThemeFrozen] = useState(false);
 
   const isDark = variant === "dark";
-  const shouldUseBackgroundSampling = variant === "light" || location.pathname.startsWith("/products/");
+  const isFrontpage = pathname === "/" || pathname === "/home";
+  // Enable sampling on frontpage (sections change between dark/light),
+  // light-variant pages, and product pages
+  const shouldUseBackgroundSampling = isFrontpage || variant === "light" || (pathname && pathname.startsWith("/product/"));
 
   useEffect(() => {
     setNavTheme(variant === "dark" ? "dark" : "light");
@@ -18,10 +27,10 @@ export const useNavTheming = (navRef, variant, location, isMobile) => {
     if (!shouldUseBackgroundSampling) {
       setColorAnalysis(null);
     }
-  }, [variant, location.pathname, shouldUseBackgroundSampling]);
+  }, [variant, pathname, shouldUseBackgroundSampling]);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
+    const handleScroll = () => setLocalScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -30,35 +39,43 @@ export const useNavTheming = (navRef, variant, location, isMobile) => {
     if (!samplingActive || !navRef.current || themeFrozen) return;
 
     const now = Date.now();
-    if (now - lastSampleTime < 100) return;
-    setLastSampleTime(now);
+    if (now - lastSampleTime.current < 100) return;
+    lastSampleTime.current = now;
 
     try {
       const rect = navRef.current.getBoundingClientRect();
       const y = rect.bottom + 2;
-      const x = Math.max(10, Math.min(window.innerWidth - 10, Math.floor(window.innerWidth / 2)));
+      
+      // Sample 3 points: Left (10%), Center (50%), Right (90%)
+      const sampleXPoints = [
+        Math.floor(window.innerWidth * 0.1),
+        Math.floor(window.innerWidth * 0.5),
+        Math.floor(window.innerWidth * 0.9)
+      ];
 
       const samplingOptions = {
         log: false,
         sampleRadius: isMobile ? 6 : 10,
-        sampleCount: isMobile ? 5 : 9,
+        sampleCount: isMobile ? 3 : 5,
         clusterThreshold: 25,
       };
 
-      const result = await sampleBackgroundAtPoint(x, y, samplingOptions);
-      if (!result) return;
+      const results = await Promise.all(sampleXPoints.map(x => sampleBackgroundAtPoint(x, y, samplingOptions)));
+      
+      const themes = results.map(r => r.theme);
+      const darkCount = themes.filter(t => t === "dark").length;
+      const finalTheme = darkCount >= 1 ? "dark" : "light";
 
-      const analysis = getColorAnalysis(result);
-      if (result.theme !== navTheme) {
-        setNavTheme(result.theme);
-        setColorAnalysis(analysis);
+      if (finalTheme !== navTheme) {
+        setNavTheme(finalTheme);
+        setColorAnalysis(getColorAnalysis(results[1]));
       }
     } catch {
       if (navTheme !== variant) {
         setNavTheme(variant);
       }
     }
-  }, [samplingActive, navRef, navTheme, lastSampleTime, isMobile, variant, themeFrozen]);
+  }, [samplingActive, navRef, navTheme, isMobile, variant, themeFrozen]);
 
   useEffect(() => {
     let active = true;
@@ -94,18 +111,29 @@ export const useNavTheming = (navRef, variant, location, isMobile) => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
-  }, [location.pathname, performBackgroundSampling]);
+  }, [pathname, performBackgroundSampling]);
 
+  // Re-sample when sections change on the frontpage (globalScrolled updates),
+  // when isAppReady fires (loading overlay dismissed), or on route change.
+  // Uses staggered timers to catch late-loading content (videos buffering).
   useEffect(() => {
     if (!shouldUseBackgroundSampling) return;
     setSamplingActive(true);
-    const timer = setTimeout(() => {
-      performBackgroundSampling();
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [location.pathname, performBackgroundSampling, shouldUseBackgroundSampling]);
+    
+    // Staggered samples: immediate, then 500ms, 2s, 5s
+    // The later samples catch videos that need time to buffer their first frame
+    const timers = [
+      setTimeout(performBackgroundSampling, 0),
+      setTimeout(performBackgroundSampling, 500),
+      setTimeout(performBackgroundSampling, 2000),
+      setTimeout(performBackgroundSampling, 5000)
+    ];
+    
+    return () => timers.forEach(clearTimeout);
+  }, [pathname, isAppReady, currentSection, shouldUseBackgroundSampling]); // currentSection changes on every section transition
 
-  const effectiveTheme = navTheme;
+  // Override takes priority (instant, set by FrontpageClient), then sampling, then variant default
+  const effectiveTheme = navThemeOverride || navTheme;
 
   const colors = useMemo(() => {
     if (scrolled) {

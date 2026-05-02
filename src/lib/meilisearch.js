@@ -2,8 +2,8 @@ import { MeiliSearch } from 'meilisearch';
 
 // Initialize MeiliSearch client
 export const searchClient = new MeiliSearch({
-  host: import.meta.env.VITE_MEILISEARCH_HOST || 'http://localhost:7700',
-  apiKey: import.meta.env.VITE_MEILISEARCH_KEY || '', // Optional: for production
+  host: process.env.NEXT_PUBLIC_MEILISEARCH_HOST || 'http://localhost:7700',
+  apiKey: process.env.NEXT_PUBLIC_MEILISEARCH_KEY || '', // Optional: for production
 });
 
 // Index name (should match your backend setup)

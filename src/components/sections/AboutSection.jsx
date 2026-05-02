@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import { useInView } from "react-intersection-observer";
-import { sanityClient } from "../../lib/sanityClient";
+import { sanityClient } from  "@/lib/sanityClient";
 
 function AboutSection({ onVideoClick }) {
   const { ref, inView } = useInView({
@@ -63,7 +64,7 @@ function AboutSection({ onVideoClick }) {
     );
   }
 
-  const videoUrl = about?.heroVideo?.asset?.url || about?.heroVideoUrl || "./demo.mp4";
+  const videoUrl = about?.heroVideo?.asset?.url || about?.heroVideoUrl || "https://assets.mixkit.co/videos/4046/4046-720.mp4";
   const posterUrl = about?.heroImage?.asset?.url;
 
   return (
@@ -78,13 +79,13 @@ function AboutSection({ onVideoClick }) {
       >
         {!isVideoExpanded && (
           <>
-            <motion.h1
+            <motion.h2
               initial={{ opacity: 1, y: 0 }}
               animate={{ opacity: 1, y: 0 }}
               className="text-4xl md:text-7xl text-[#333] text-center font-serif"
             >
               {about?.heroTitle || "About Us"}
-            </motion.h1>
+            </motion.h2>
 
             <motion.div
               initial={{ opacity: 1, y: 0 }}

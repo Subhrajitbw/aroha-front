@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X, Search, ArrowRight, TrendingUp } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useSearchStore } from "../../stores/searchStore";
-import { searchClient, PRODUCTS_INDEX } from "../../lib/meilisearch";
-import { medusaApi } from "../../lib/react-query";
+import { useRouter } from "next/navigation";
+import { useSearchStore } from  "@/stores/searchStore";
+import { searchClient, PRODUCTS_INDEX } from  "@/lib/meilisearch";
+import { medusaApi } from  "@/lib/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import useLockBodyScroll from "../../hooks/useLockBodyScroll";
+import useLockBodyScroll from  "@/hooks/useLockBodyScroll";
 
 const SearchModal = () => {
   const inputRef = useRef();
@@ -17,7 +17,7 @@ const SearchModal = () => {
   const [featuredCategories, setFeaturedCategories] = useState([]);
 
   const { isOpen, close } = useSearchStore();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   useLockBodyScroll(isOpen);
 
@@ -106,7 +106,7 @@ const SearchModal = () => {
     (e) => {
       if (e.key === "Escape") handleClose();
       else if (e.key === "Enter" && selectedIndex >= 0 && results[selectedIndex]) {
-        navigate(`/product/${results[selectedIndex].handle}`);
+        router.push(`/product/${results[selectedIndex].handle}`);
         handleClose();
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -116,7 +116,7 @@ const SearchModal = () => {
         setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
       }
     },
-    [selectedIndex, results, handleClose, navigate]
+    [selectedIndex, results, handleClose, router]
   );
 
   if (!isOpen) return null;
@@ -265,7 +265,7 @@ const SearchModal = () => {
                             <button
                               key={cat.id || i}
                               onClick={() => {
-                                navigate(`/shop/category/${cat.handle}`);
+                                router.push(`/shop/category/${encodeURIComponent(cat.handle)}`);
                                 handleClose();
                               }}
                               className="group relative overflow-hidden rounded-2xl aspect-[3/4] bg-stone-100"
@@ -312,7 +312,7 @@ const SearchModal = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.04, duration: 0.5 }}
                             onClick={() => {
-                              navigate(`/product/${product.handle}`);
+                              router.push(`/product/${product.handle}`);
                               handleClose();
                             }}
                             className={`group cursor-pointer ${selectedIndex === index ? "ring-2 ring-stone-300 rounded-2xl" : ""}`}

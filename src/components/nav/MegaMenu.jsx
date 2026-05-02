@@ -1,6 +1,6 @@
 // src/components/nav/MegaMenu.jsx
 import React, { useRef, useEffect, forwardRef } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { gsap } from "gsap";
 import { ChevronRight, ArrowRight } from "lucide-react";
 
@@ -10,54 +10,67 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
   const contentRef = useRef(null);
 
   useEffect(() => {
-    if (isOpen) {
-      gsap.set(backdropRef.current, { display: "block" });
-      gsap.to(backdropRef.current, {
-        autoAlpha: 1,
-        duration: 0.25,
-        ease: "power2.out",
-      });
+    const ctx = gsap.context(() => {
+      if (isOpen) {
+        if (!backdropRef.current || !menuRef.current) return;
 
-      gsap.fromTo(
-        menuRef.current,
-        { y: -12, autoAlpha: 0 },
-        {
-          y: 0,
+        gsap.set(backdropRef.current, { display: "block" });
+        gsap.to(backdropRef.current, {
           autoAlpha: 1,
-          duration: 0.35,
-          ease: "power3.out",
-        }
-      );
-
-      gsap.fromTo(
-        contentRef.current?.querySelectorAll(".mega-column") || [],
-        { y: 16, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.45,
-          stagger: 0.05,
+          duration: 0.25,
           ease: "power2.out",
-          delay: 0.1,
-        }
-      );
-    } else {
-      gsap.to(menuRef.current, {
-        y: -8,
-        autoAlpha: 0,
-        duration: 0.2,
-        ease: "power2.in",
-      });
+        });
 
-      gsap.to(backdropRef.current, {
-        autoAlpha: 0,
-        duration: 0.18,
-        ease: "power2.in",
-        onComplete: () => {
-          gsap.set(backdropRef.current, { display: "none" });
-        },
-      });
-    }
+        gsap.fromTo(
+          menuRef.current,
+          { y: -12, autoAlpha: 0 },
+          {
+            y: 0,
+            autoAlpha: 1,
+            duration: 0.35,
+            ease: "power3.out",
+          }
+        );
+
+        const columns = contentRef.current?.querySelectorAll(".mega-column");
+        if (columns?.length) {
+          gsap.fromTo(
+            columns,
+            { y: 16, opacity: 0 },
+            {
+              y: 0,
+              opacity: 1,
+              duration: 0.45,
+              stagger: 0.05,
+              ease: "power2.out",
+              delay: 0.1,
+            }
+          );
+        }
+      } else {
+        if (!menuRef.current || !backdropRef.current) return;
+
+        gsap.to(menuRef.current, {
+          y: -8,
+          autoAlpha: 0,
+          duration: 0.2,
+          ease: "power2.in",
+        });
+
+        gsap.to(backdropRef.current, {
+          autoAlpha: 0,
+          duration: 0.18,
+          ease: "power2.in",
+          onComplete: () => {
+            if (backdropRef.current) {
+              gsap.set(backdropRef.current, { display: "none" });
+            }
+          },
+        });
+      }
+    });
+
+    return () => ctx.revert();
   }, [isOpen]);
 
   const handleMenuClick = (e) => e.stopPropagation();
@@ -119,14 +132,8 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
             className="relative z-10 flex mx-auto max-w-[1400px] px-8 md:px-16 pt-12 pb-14"
           >
             {/* ─── LEFT PANE: Directory ─── */}
-            <div className="w-[55%] lg:w-[60%] pr-10 lg:pr-20 border-r border-stone-200/80 flex flex-col">
-              {/* Section label */}
-              <div className="flex items-center gap-3 mb-8">
-                <span className="text-[10px] font-bold tracking-[0.25em] uppercase text-stone-500">
-                  Collections
-                </span>
-                <div className="flex-1 h-px bg-gradient-to-r from-stone-200 to-transparent" />
-              </div>
+            <div className="w-full  flex flex-col">
+
 
               {/* Columns grid */}
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-10">
@@ -134,7 +141,7 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
                   <div key={idx} className="mega-column flex flex-col">
                     {/* Column heading */}
                     <Link
-                      to={column.href}
+                      href={column.href}
                       onClick={onClose}
                       className="group inline-flex items-center gap-1.5 mb-4"
                     >
@@ -153,7 +160,7 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
                       {column.items?.slice(0, 6).map((item, itemIdx) => (
                         <Link
                           key={itemIdx}
-                          to={item.href}
+                          href={item.href}
                           onClick={onClose}
                           className="group flex items-center gap-2.5 py-1.5 rounded-lg hover:bg-stone-50 px-2 -mx-2 transition-colors duration-150"
                         >
@@ -167,7 +174,7 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
 
                     {column.items?.length > 6 && (
                       <Link
-                        to={column.href}
+                        href={column.href}
                         onClick={onClose}
                         className="inline-flex items-center gap-1.5 mt-3 group px-2 -mx-2"
                       >
@@ -187,8 +194,8 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
             </div>
 
             {/* ─── RIGHT PANE: Featured ─── */}
-            <div className="w-[45%] lg:w-[40%] pl-10 lg:pl-20 flex flex-col">
-              {/* Section label */}
+            {/* <div className="w-[45%] lg:w-[40%] pl-10 lg:pl-20 flex flex-col">
+              {/* Section label 
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] font-bold tracking-[0.25em] uppercase text-stone-500">
@@ -197,7 +204,7 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
                   <div className="w-10 h-px bg-gradient-to-r from-stone-200 to-transparent" />
                 </div>
                 <Link
-                  to="/lookbook"
+                  href="/lookbook"
                   onClick={onClose}
                   className="text-[10px] tracking-wider uppercase font-semibold text-stone-400 hover:text-stone-900 transition-colors duration-200 flex items-center gap-1"
                 >
@@ -205,29 +212,29 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
                 </Link>
               </div>
 
-              {/* Featured cards */}
+              {/* Featured cards 
               <div className="flex-1 grid grid-cols-2 gap-4 min-h-[280px]">
                 {content.featured?.slice(0, 2).map((item, idx) => (
                   <Link
-                    to={item.href}
+                    href={item.href}
                     onClick={onClose}
                     key={idx}
                     className="mega-column group relative overflow-hidden flex flex-col justify-end rounded-2xl"
                   >
-                    {/* Image */}
+                    {/* Image 
                     <img
                       src={item.image}
                       alt={item.title}
                       className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                     />
 
-                    {/* Gradient overlay */}
+                    {/* Gradient overlay 
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-                    {/* Subtle border on hover */}
+                    {/* Subtle border on hover 
                     <div className="absolute inset-0 rounded-2xl border-2 border-transparent group-hover:border-white/30 transition-colors duration-500 pointer-events-none z-20" />
 
-                    {/* Card content */}
+                    {/* Card content *
                     <div className="relative z-10 p-5 lg:p-6 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-500">
                       <p className="text-[9px] tracking-[0.3em] uppercase text-white/60 mb-1.5 font-semibold">
                         No. 0{idx + 1}
@@ -244,7 +251,7 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
                   </Link>
                 ))}
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* ── Footer strip ── */}
@@ -261,7 +268,7 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
               ].map((link) => (
                 <Link
                   key={link.label}
-                  to={link.href}
+                  href={link.href}
                   onClick={onClose}
                   className="group inline-flex items-center gap-1.5"
                 >

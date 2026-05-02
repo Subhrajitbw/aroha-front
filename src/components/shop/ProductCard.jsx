@@ -1,11 +1,16 @@
 import { useState, useMemo } from "react";
 import { Heart, ShoppingCart, Eye, Star, Sparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import gsap from "gsap";
 
 export default function ProductCard({ product }) {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+
+  const cardRef = useRef(null);
+  const favBtnRef = useRef(null);
+  const cartBtnRef = useRef(null);
+  const viewBtnRef = useRef(null);
 
   // Price calculation
   const { originalPrice, finalPrice, hasDiscount, discountBadge } = useMemo(() => {
@@ -34,17 +39,21 @@ export default function ProductCard({ product }) {
   const handleFavorite = () => {
     setIsFavorited((p) => !p);
     if ("vibrate" in navigator) navigator.vibrate(30);
-    gsap.fromTo(
-      ".fav-pop",
-      { scale: 0.85, opacity: 0.4 },
-      { scale: 1, opacity: 1, duration: 0.25, ease: "back.out(2)" }
-    );
+    if (favBtnRef.current) {
+      gsap.fromTo(
+        favBtnRef.current,
+        { scale: 0.85, opacity: 0.4 },
+        { scale: 1, opacity: 1, duration: 0.25, ease: "back.out(2)" }
+      );
+    }
   };
 
   const handleAddToCart = async () => {
     if (isAdding) return;
     setIsAdding(true);
-    gsap.to(".cart-btn", { y: -2, duration: 0.15, ease: "power2.out", yoyo: true, repeat: 1 });
+    if (cartBtnRef.current) {
+      gsap.to(cartBtnRef.current, { y: -2, duration: 0.15, ease: "power2.out", yoyo: true, repeat: 1 });
+    }
     // TODO: Integrate cart action here
     setTimeout(() => setIsAdding(false), 700);
   };
@@ -85,10 +94,11 @@ export default function ProductCard({ product }) {
 
         {/* Favorite */}
         <button
+          ref={favBtnRef}
           onClick={handleFavorite}
           aria-label="Add to favorites"
           className={`
-            fav-pop inline-flex items-center justify-center w-9 h-9 rounded-full
+            inline-flex items-center justify-center w-9 h-9 rounded-full
             border transition-all duration-300
             ${isFavorited
               ? "bg-rose-100 border-rose-200 text-rose-600"
@@ -103,7 +113,7 @@ export default function ProductCard({ product }) {
 
       {/* Image */}
       <Link
-        to={`/products/${product?._id || product?.id || ""}`}
+        href={`/product/${product?.handle || product?._id || product?.id || ""}`}
         className="relative block"
       >
         <div className="relative w-full aspect-[4/3] overflow-hidden">
@@ -122,7 +132,7 @@ export default function ProductCard({ product }) {
       <div className="relative z-10 px-5 pt-2 pb-5">
         {/* Title */}
         <Link
-          to={`/products/${product?._id || product?.id || ""}`}
+          href={`/product/${product?.handle || product?._id || product?.id || ""}`}
           className="block text-[15px] sm:text-base text-neutral-900/90 font-medium tracking-tight line-clamp-2 hover:text-neutral-900 transition-colors"
         >
           {product?.name || "Untitled product"}
@@ -160,7 +170,8 @@ export default function ProductCard({ product }) {
         <div className="mt-4 flex items-center gap-2">
           {/* View */}
           <Link
-            to={`/products/${product?._id || product?.id || ""}`}
+            ref={viewBtnRef}
+            href={`/product/${product?.handle || product?._id || product?.id || ""}`}
             className="
               inline-flex items-center justify-center gap-2
               h-11 px-4 rounded-xl
@@ -181,9 +192,10 @@ export default function ProductCard({ product }) {
 
           {/* Add to Cart */}
           <button
+            ref={cartBtnRef}
             onClick={handleAddToCart}
             className={`
-              cart-btn inline-flex items-center justify-center gap-2
+              inline-flex items-center justify-center gap-2
               h-11 px-4 rounded-xl
               bg-neutral-900 text-white hover:bg-neutral-800
               transition-all duration-300 hover:-translate-y-0.5

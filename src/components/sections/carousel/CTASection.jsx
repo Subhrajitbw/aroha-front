@@ -1,14 +1,14 @@
 
 // components/carousel/CTASection.jsx
 import { forwardRef } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 const CTASection = forwardRef(({ linkState }, ref) => {
   return (
     <div ref={ref} className="text-center opacity-0">
       <Link
-        to="/shop"
+        href="/shop"
         state={linkState}
         className="group inline-flex items-center gap-2 md:gap-3 px-4 md:px-6 py-1 md:py-3 text-xs md:text-sm font-medium text-amber-700 bg-white/90 backdrop-blur-sm hover:bg-amber-50 hover:border-amber-300 transition-all duration-300  transform-gpu hover:scale-105"
       >

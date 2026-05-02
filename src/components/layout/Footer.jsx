@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { ArrowRight, ChevronDown, MapPin, Phone, Mail } from "lucide-react";
 
 const Footer = () => {
@@ -52,14 +52,14 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="relative w-full min-h-screen bg-stone-900 text-white overflow-hidden font-sans flex flex-col justify-between">
+    <footer className="relative w-full min-h-screen bg-stone-900 text-white overflow-hidden font-sans flex flex-col lg:justify-between">
 
       {/* ─── Top Section ─── */}
-      <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pt-16 sm:pt-20 lg:pt-24 pb-12 sm:pb-16">
+      <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pt-2 sm:pt-20 lg:pt-24 pb-12 sm:pb-16">
 
         {/* ─── Hero Row: Brand + Newsletter ─── */}
         <div className="flex flex-col lg:flex-row justify-between items-start gap-10 lg:gap-20 mb-14 sm:mb-16 lg:mb-20">
-          
+
           {/* Brand */}
           <div className="max-w-md">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-serif tracking-tight leading-tight mb-4">
@@ -113,7 +113,7 @@ const Footer = () => {
                   {section.links.map((link, i) => (
                     <li key={i}>
                       <Link
-                        to={link.href}
+                        href={link.href}
                         className="text-sm text-stone-400 hover:text-white transition-colors duration-200 inline-block"
                       >
                         {link.label}
@@ -139,21 +139,19 @@ const Footer = () => {
                   </h4>
                   <ChevronDown
                     size={16}
-                    className={`text-stone-600 transform transition-transform duration-200 ${
-                      expandedSection === idx ? "rotate-180" : ""
-                    }`}
+                    className={`text-stone-600 transform transition-transform duration-200 ${expandedSection === idx ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
                 <div
-                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                    expandedSection === idx ? "max-h-80 pb-5" : "max-h-0"
-                  }`}
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedSection === idx ? "max-h-80 pb-5" : "max-h-0"
+                    }`}
                 >
                   <ul className="space-y-3 pl-1">
                     {section.links.map((link, i) => (
                       <li key={i}>
                         <Link
-                          to={link.href}
+                          href={link.href}
                           className="text-sm text-stone-500 hover:text-white transition-colors duration-200 inline-block"
                         >
                           {link.label}
@@ -255,7 +253,17 @@ const Footer = () => {
 
       {/* ─── Bottom Bar ─── */}
       <div className="relative z-10 border-t border-stone-800">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div
+          className="footer-bottom-bar max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-5 flex flex-col sm:flex-row items-center justify-between gap-3"
+          style={{ paddingBottom: 'max(1.25rem, env(safe-area-inset-bottom, 0px) + 1.25rem)' }}
+        >
+          {/* Extra bottom spacer only on mobile where navbar floats at bottom */}
+          <style dangerouslySetInnerHTML={{
+            __html: `
+            @media (max-width: 1023px) {
+              .footer-bottom-bar { padding-bottom: calc(var(--nav-height, 56px) + 1.5rem) !important; }
+            }
+          `}} />
           <span className="text-[11px] text-stone-600 text-center sm:text-left">
             © {new Date().getFullYear()} Aroha House. All rights reserved.
           </span>
@@ -268,7 +276,7 @@ const Footer = () => {
             ].map((link) => (
               <Link
                 key={link.label}
-                to={link.href}
+                href={link.href}
                 className="text-[11px] text-stone-600 hover:text-stone-300 transition-colors"
               >
                 {link.label}

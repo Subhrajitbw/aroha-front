@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { ArrowUpRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowUpRight, Heart } from "lucide-react";
+import { useRouter } from "next/navigation";
 import gsap from "gsap";
-import { useResponsive } from "../../hooks/useResponsive";
+import { useResponsive } from  "@/hooks/useResponsive";
 
 export const ProductInfoCard = ({
   product,
@@ -14,6 +14,7 @@ export const ProductInfoCard = ({
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   const containerRef = useRef(null);
   const imageWrapperRef = useRef(null);
@@ -22,7 +23,7 @@ export const ProductInfoCard = ({
   const textContainerRef = useRef(null);
 
   const { isMobile, isTablet, isDesktop } = useResponsive();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const finalTextColor = type === "sec" ? "#fff" : textColor || "#1a1a1a";
 
@@ -32,8 +33,12 @@ export const ProductInfoCard = ({
     setIsTouchDevice(hasTouch);
   }, []);
 
-  // Initial animation
+  // Initial animation and cached image check
   useEffect(() => {
+    if (imageRef.current && imageRef.current.complete) {
+      setImageLoaded(true);
+    }
+
     if (!containerRef.current) return;
 
     const ctx = gsap.context(() => {
@@ -55,7 +60,7 @@ export const ProductInfoCard = ({
 
   // Touch interaction - show button on tap
   const handleTouchStart = () => {
-    if (!isTouchDevice || !buttonRef.current) return;
+    if (!isTouchDevice || !buttonRef.current || !imageRef.current) return;
     
     gsap.to(imageRef.current, {
       scale: 1.05,
@@ -72,7 +77,7 @@ export const ProductInfoCard = ({
   };
 
   const handleTouchEnd = () => {
-    if (!isTouchDevice) return;
+    if (!isTouchDevice || !buttonRef.current || !imageRef.current) return;
     
     gsap.to(imageRef.current, {
       scale: 1,
@@ -90,14 +95,15 @@ export const ProductInfoCard = ({
 
   const handleProductClick = () => {
     if (product?.handle) {
-      navigate(`/products/${product.handle}`);
+      router.push(`/product/${product.handle}`);
     } else if (product?.id) {
-      navigate(`/products/${product.id}`);
+      router.push(`/product/${product.id}`);
     }
   };
 
   const productName = product?.title || "Product Name";
   const productPrice = product?.price || "₹0";
+  const productDescription = product?.shortIntro || product?.description || product?.subtitle || "";
   const productImage =
     product?.image ||
     product?.thumbnail ||
@@ -152,7 +158,20 @@ export const ProductInfoCard = ({
           )}
 
           {/* Hover/active overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-500 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-500 pointer-events-none z-10" />
+
+          {/* Wishlist Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsWishlisted(!isWishlisted);
+            }}
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 p-2 sm:p-2.5 rounded-full bg-white/80 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-white shadow-sm"
+          >
+            <Heart 
+              className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-stone-600'}`} 
+            />
+          </button>
 
           {/* Action button - larger touch target */}
           <div
@@ -188,6 +207,12 @@ export const ProductInfoCard = ({
             style={{ backgroundColor: finalTextColor }}
           />
         </h3>
+
+        {productDescription && (
+          <p className="text-[10px] xs:text-xs text-stone-500 font-light line-clamp-1 xs:line-clamp-2 opacity-80 mt-1 max-w-[90%] mx-auto hidden sm:block">
+            {productDescription}
+          </p>
+        )}
 
         {/* Price Row */}
         <div className="flex items-baseline justify-center gap-1.5 xs:gap-2 sm:gap-3 mt-0.5 xs:mt-1">

@@ -142,6 +142,7 @@ const GlassSurface = ({
   }, [width, height]);
 
   const supportsSVGFilters = () => {
+    if (typeof window === 'undefined') return false;
     if (typeof navigator === 'undefined') return false;
     
     const isWebkit = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);

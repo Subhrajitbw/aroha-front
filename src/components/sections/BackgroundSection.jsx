@@ -1,7 +1,7 @@
 
 // components/sections/BackgroundSection.jsx
 import { animated } from "@react-spring/web";
-import { useBackgroundSpring } from "../../hooks/useBackgroundSpring";
+import { useBackgroundSpring } from  "@/hooks/useBackgroundSpring";
 import { useRef } from "react";
 
 const BackgroundSection = ({ background, children, className = "" }) => {

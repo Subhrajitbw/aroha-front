@@ -83,6 +83,7 @@ export const useResponsive = () => {
   }, []);
 
   useEffect(() => {
+    updateViewport();
     // Enhanced debounce resize handler with orientation change support
     let timeoutId;
     let orientationTimeoutId;
@@ -123,74 +124,32 @@ export const useResponsive = () => {
     };
   }, [updateViewport]);
 
-  const getInitialViewport = () => {
-    if (typeof window === 'undefined') {
-      return {
-        width: 1024,
-        height: 768,
-        // Basic device detection
-        isMobile: false,
-        isTablet: false,
-        isDesktop: true,
-        // Extended breakpoints
-        isXs: false,
-        isSm: false,
-        isMd: false,
-        isLg: false,
-        isXl: false,
-        isXxl: false,
-        // Orientation
-        isLandscape: true,
-        isPortrait: false,
-        // Current breakpoint
-        breakpoint: 'lg',
-        // Device categorization
-        deviceType: 'desktop',
-        screenType: 'desktop',
-        // Additional properties
-        aspectRatio: 1.33,
-        pixelRatio: 1,
-        isRetina: false,
-        touchDevice: false,
-      };
-    }
-
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-    const pixelRatio = window.devicePixelRatio || 1;
-    const aspectRatio = width / height;
-
+  const getSSRViewport = () => {
     return {
-      width,
-      height,
-      // Basic device detection (your original logic)
-      isMobile: width < 768,
-      isTablet: width >= 768 && width < 1024,
-      isDesktop: width >= 1024,
-      // Extended breakpoints following Tailwind/Bootstrap standards
-      isXs: width < 576,      // Extra small devices
-      isSm: width >= 576 && width < 768,   // Small devices
-      isMd: width >= 768 && width < 992,   // Medium devices  
-      isLg: width >= 992 && width < 1200,  // Large devices
-      isXl: width >= 1200 && width < 1400, // Extra large devices
-      isXxl: width >= 1400,  // Extra extra large devices
-      // Orientation
-      isLandscape: width > height,
-      isPortrait: width <= height,
-      // Current breakpoint
-      breakpoint: getBreakpoint(width),
-      // Device categorization
-      deviceType: getDeviceType(width),
-      screenType: getScreenType(width, height),
-      // Additional properties
-      aspectRatio: parseFloat(aspectRatio.toFixed(2)),
-      pixelRatio,
-      isRetina: pixelRatio > 1,
-      touchDevice: detectTouchDevice(),
+      width: 1024,
+      height: 768,
+      isMobile: false,
+      isTablet: false,
+      isDesktop: true,
+      isXs: false,
+      isSm: false,
+      isMd: false,
+      isLg: false,
+      isXl: false,
+      isXxl: false,
+      isLandscape: true,
+      isPortrait: false,
+      breakpoint: 'lg',
+      deviceType: 'desktop',
+      screenType: 'desktop',
+      aspectRatio: 1.33,
+      pixelRatio: 1,
+      isRetina: false,
+      touchDevice: false,
     };
   };
 
-  const [viewport, setViewport] = useState(getInitialViewport);
+  const [viewport, setViewport] = useState(getSSRViewport);
 
   // Helper function to determine breakpoint
 

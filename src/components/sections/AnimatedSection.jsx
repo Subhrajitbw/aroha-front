@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 import { animated } from "@react-spring/web";
 import { motion } from "framer-motion";
-import { useResponsive } from "../../hooks/useResponsive";
-import { useRegion } from "../../hooks/useRegion";
-import { useBackgroundSpring } from "../../hooks/useBackgroundSpring";
-import { useContentAnimation } from "../../hooks/useContentAnimation";
+import { useResponsive } from  "@/hooks/useResponsive";
+import { useRegion } from  "@/hooks/useRegion";
+import { useBackgroundSpring } from  "@/hooks/useBackgroundSpring";
+import { useContentAnimation } from  "@/hooks/useContentAnimation";
 import { useQuery } from "@tanstack/react-query";
-import { medusaApi, medusa, prefetchImage } from "../../lib/react-query";
+import { medusaApi, medusa, prefetchImage } from  "@/lib/react-query";
 
 // Sub-components
 import SliderColumn from "./SliderColumn";
@@ -162,10 +162,6 @@ const AnimatedSection = ({
           linear-gradient(to bottom, rgba(69, 69, 69, 0.4), rgba(69, 69, 69,0.7)),
           url(${collection?.metadata?.image || defaultBackground || 'https://media.designcafe.com/wp-content/uploads/2022/08/04164549/brown-leather-reading-chair.jpg'})
         `,
-        backgroundAttachment:
-          /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
-            ? "scroll"
-            : "fixed",
         backgroundRepeat: "no-repeat",
         backgroundSize: "cover",
         backgroundPosition: "center"

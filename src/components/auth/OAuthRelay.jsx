@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../stores/useAuthStore";
-import { sdk } from "../../lib/medusaClient";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from  "@/stores/useAuthStore";
+import { sdk } from  "@/lib/medusaClient";
 
 /**
  * OAuthRelay
@@ -9,7 +9,7 @@ import { sdk } from "../../lib/medusaClient";
  * Bridges Google Identities with Customer Profiles.
  */
 const OAuthRelay = () => {
-  const navigate = useNavigate();
+  const router = useRouter();
   const { getCurrentUser } = useAuthStore();
   const hasRun = useRef(false);
   const [status, setStatus] = useState("Synchronizing Maison...");
@@ -114,16 +114,16 @@ const OAuthRelay = () => {
         }
 
         setStatus("Welcome Back ✨");
-        setTimeout(() => navigate("/account"), 1200);
+        setTimeout(() => router.push("/account"), 1200);
 
       } catch (err) {
         console.error("[OAuthRelay] Handshake Failed:", err.message);
-        navigate(`/auth?error=${encodeURIComponent(err.message)}`);
+        router.push(`/auth?error=${encodeURIComponent(err.message)}`);
       }
     };
 
     finalizeAuth();
-  }, [getCurrentUser, navigate]);
+  }, [getCurrentUser, router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-stone-50">

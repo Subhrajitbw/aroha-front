@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import useLockBodyScroll from "../../hooks/useLockBodyScroll";
+import useLockBodyScroll from  "@/hooks/useLockBodyScroll";
 
 const LuxuryLoadingOverlay = ({ 
   isVisible = true, 
@@ -10,10 +10,12 @@ const LuxuryLoadingOverlay = ({
 }) => {
   const [animationPhase, setAnimationPhase] = useState("loading");
   const [showOverlay, setShowOverlay] = useState(true);
+  const [hasMounted, setHasMounted] = useState(false);
 
   useLockBodyScroll(showOverlay);
 
   useEffect(() => {
+    setHasMounted(true);
     let exitTimeout;
     let durationTimeout;
 
@@ -178,7 +180,7 @@ const LuxuryLoadingOverlay = ({
             </motion.div>
 
             <div className="absolute inset-0 pointer-events-none">
-              {[...Array(6)].map((_, i) => (
+              {hasMounted && [...Array(6)].map((_, i) => (
                 <motion.div
                   key={i}
                   className="absolute w-1 h-1 bg-amber-100/30 rounded-full"

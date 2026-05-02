@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
-import { sanityClient } from "../../lib/sanityClient"
+import { sanityClient } from  "@/lib/sanityClient"
 import gsap from "gsap"
 
 // 4 video slides — Mixkit interior / home decor videos (verified 200 OK)
@@ -117,23 +117,34 @@ const HeroSection = () => {
 
   // ── Progress bar + text animation ──
   useEffect(() => {
-    if (!slides.length) return
+    if (loading || !slides.length) return
     const duration = slides[current]?.autoPlayDuration ? slides[current].autoPlayDuration / 1000 : 8
 
     // Reset & animate progress
-    gsap.set(progressRef.current, { scaleX: 0 })
-    gsap.to(progressRef.current, { scaleX: 1, duration, ease: "linear" })
+    if (progressRef.current) {
+      gsap.set(progressRef.current, { scaleX: 0 })
+      gsap.to(progressRef.current, { scaleX: 1, duration, ease: "linear" })
+    }
 
     // Animate text in
     const ctx = gsap.context(() => {
-      gsap.fromTo(".hero-heading", { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: "power3.out", delay: 0.1 })
-      gsap.fromTo(".hero-sub", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out", delay: 0.35 })
-      gsap.fromTo(".hero-cta", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out", delay: 0.55 })
-      gsap.fromTo(".hero-badge", { x: -20, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6, ease: "power3.out", delay: 0.2 })
-    }, heroRef)
+      // Check if elements exist in scope before animating to avoid warnings
+      if (document.querySelector(".hero-heading")) {
+        gsap.fromTo(".hero-heading", { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: "power3.out", delay: 0.1 })
+      }
+      if (document.querySelector(".hero-sub")) {
+        gsap.fromTo(".hero-sub", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out", delay: 0.35 })
+      }
+      if (document.querySelector(".hero-cta")) {
+        gsap.fromTo(".hero-cta", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out", delay: 0.55 })
+      }
+      if (document.querySelector(".hero-badge")) {
+        gsap.fromTo(".hero-badge", { x: -20, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6, ease: "power3.out", delay: 0.2 })
+      }
+    }, heroRef.current) // Pass .current as the scope
 
     return () => ctx.revert()
-  }, [current, slides])
+  }, [current, slides, loading])
 
   // ── Autoplay ──
   useEffect(() => {

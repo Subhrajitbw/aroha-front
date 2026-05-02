@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { MoveRight, ChevronLeft, ChevronRight } from "lucide-react";
@@ -7,14 +8,19 @@ import { MoveRight, ChevronLeft, ChevronRight } from "lucide-react";
 gsap.registerPlugin(ScrollTrigger);
 
 import { useQuery } from '@tanstack/react-query';
-import { medusaApi, prefetchImage } from "../../lib/react-query";
+import { medusaApi, prefetchImage } from  "@/lib/react-query";
 
 const CategorySection = () => {
   const [activeSlide, setActiveSlide] = useState(0);
+  const [hasMounted, setHasMounted] = useState(false);
 
   const sectionRef = useRef(null);
   const headerRef = useRef(null);
   const sliderRef = useRef(null);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   // --- TANSTACK QUERY INTEGRATION ---
   // getCuratedCategories() already returns the array directly
@@ -87,12 +93,13 @@ const CategorySection = () => {
   const scrollLeft = () => scrollToSlide(Math.max(0, activeSlide - 1));
   const scrollRight = () => scrollToSlide(Math.min(categoryChunks.length - 1, activeSlide + 1));
 
-  if (loading) return (
-    <section className="h-full w-full flex items-center justify-center bg-[#fdfbf9]">
-      <div className="w-6 h-6 border-t border-stone-800 rounded-full animate-spin" />
-    </section>
-  );
-  console.log(categoryChunks)
+  if (!hasMounted || loading) {
+    return (
+      <section className="h-full w-full flex items-center justify-center bg-[#fdfbf9]">
+        <div className="w-6 h-6 border-t border-stone-800 rounded-full animate-spin" />
+      </section>
+    );
+  }
 
   if (categoryChunks.length === 0) {
     return (
@@ -142,25 +149,24 @@ const CategorySection = () => {
   return (
     <section
       ref={sectionRef}
-      // RESPONSIVE PADDING ADJUSTMENTS
-      className="relative h-full w-full flex flex-col pt-6 pb-6 md:pt-16 md:pb-12 lg:pt-24 lg:pb-16 overflow-hidden bg-[#fdfbf9] text-stone-900 justify-start md:justify-center group/section"
+      className="relative h-full w-full flex flex-col pt-20 pb-20 md:pt-24 md:pb-12 lg:pt-32 lg:pb-16 overflow-hidden bg-[#fdfbf9] text-stone-900 justify-center group/section"
     >
-      <div className="flex flex-col gap-4 md:gap-6 w-full h-[85vh] min-h-0 max-h-[850px] max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 relative">
+      <div className="flex flex-col gap-2 md:gap-6 w-full h-full max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 relative min-h-0">
 
         {/* HEADER AREA */}
         <div ref={headerRef} className="flex-none flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] md:text-xs uppercase tracking-[0.4em] font-medium text-stone-400">
+          <div className="flex flex-col gap-0">
+            <span className="text-[8px] md:text-xs uppercase tracking-[0.4em] font-medium text-stone-400">
               The Curated Edit
             </span>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif italic tracking-tight text-stone-800">
+            <h2 className="text-xl md:text-4xl lg:text-5xl font-serif italic tracking-tight text-stone-800">
               Shop the Sanctuary
             </h2>
           </div>
 
           <div className="flex flex-col md:flex-row items-end md:items-center gap-4 md:gap-8">
             <Link
-              to="/categories"
+              href="/categories"
               className="group flex items-center gap-2 text-[10px] md:text-xs uppercase tracking-[0.25em] font-medium text-stone-600 hover:text-stone-900 transition-colors duration-300 pb-1"
             >
               All Collections
@@ -205,7 +211,7 @@ const CategorySection = () => {
               key={`chunk-${chunkIdx}`}
               className="w-full h-full min-h-0 shrink-0 snap-center px-1"
             >
-              <div className={`w-full h-full grid ${mobileGridCols} ${desktopGridCols} grid-flow-dense gap-4 md:gap-6`}>
+              <div className={`w-full h-full grid ${mobileGridCols} ${desktopGridCols} grid-flow-dense gap-3 md:gap-6`}>
                 {chunk.map((cat, idx) => (
                   <div
                     key={cat.id}
@@ -214,6 +220,7 @@ const CategorySection = () => {
                     <CategoryCard
                       category={cat}
                       isLarge={getMasonryClass(idx, chunk.length, chunkIdx).includes('row-span-2') && getMasonryClass(idx, chunk.length, chunkIdx).includes('col-span-2')}
+                      priority={chunkIdx === 0}
                     />
                   </div>
                 ))}
@@ -241,32 +248,36 @@ const CategorySection = () => {
         )}
       </div>
 
-      <style jsx>{`
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+        `
+      }} />
     </section>
   );
 };
 
 /* LUXURY CARD COMPONENT */
-const CategoryCard = ({ category, isLarge = false }) => {
+const CategoryCard = ({ category, isLarge = false, priority = false }) => {
   return (
     <div
       className="group relative w-full h-full min-h-0 flex overflow-hidden rounded-[1.25rem] md:rounded-[2rem] bg-stone-200 shadow-sm isolation-auto cursor-pointer border border-stone-200"
     >
       <Link
-        to={`/shop/category/${category.handle}`}
+        href={`/shop/category/${encodeURIComponent(category.handle)}`}
         className="absolute inset-0 z-0"
         aria-label={`View ${category.name} category`}
       />
 
-      <img
+      <Image
         src={category.image}
         alt={category.name}
-        className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] ease-out will-change-transform md:group-hover:scale-105"
-        loading="lazy"
+        fill
+        priority={priority}
+        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+        className="object-cover transition-transform duration-[1500ms] ease-out will-change-transform md:group-hover:scale-105"
       />
 
       {/* Persistent gradient — matches ProductCarousel hero for consistent readability */}
@@ -279,14 +290,14 @@ const CategoryCard = ({ category, isLarge = false }) => {
         <div className="transform transition-all duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform 
           translate-y-0 md:translate-y-0 md:group-hover:-translate-y-24 lg:group-hover:-translate-y-28
           flex flex-col items-start md:block">
-          <h3 className={`text-white/95 font-serif italic font-light ${isLarge ? "text-2xl md:text-4xl lg:text-5xl" : "text-xl md:text-2xl"}`} style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
+          <h3 className={`text-white/95 font-serif italic font-light ${isLarge ? "text-xl md:text-4xl lg:text-5xl" : "text-lg md:text-2xl"}`} style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
             {category.name}
           </h3>
           <div className="h-[2px] bg-white/60 mt-3 transition-all duration-700 w-12 md:w-0 md:group-hover:w-16 shadow-sm" />
 
           {/* Mobile only explore pill since we lack mini-products */}
           <Link
-            to={`/shop/category/${category.handle}`}
+            href={`/shop/category/${encodeURIComponent(category.handle)}`}
             className="mt-4 md:hidden inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] uppercase font-medium tracking-[0.2em] text-white/90 hover:bg-white/20 transition-colors pointer-events-auto relative z-20"
           >
             Explore <MoveRight size={12} />
@@ -303,19 +314,25 @@ const CategoryCard = ({ category, isLarge = false }) => {
               category.featuredProducts.map((prod, i) => (
                 <Link
                   key={prod.id}
-                  to={`/product/${prod.handle}`}
+                  href={`/product/${prod.handle}`}
                   className="group/mini relative h-[65px] md:h-[80px] lg:h-[90px] aspect-[3/4] rounded-lg md:rounded-xl overflow-hidden bg-stone-200 shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] border border-white/30 will-change-transform"
                   style={{ transitionDelay: `${i * 30}ms` }}
                   title={prod.title}
                 >
-                  <img src={prod.thumbnail || `https://placehold.co/150x200/e7e5e4/a8a29e?text=Image`} alt={prod.title} className="w-full h-full object-cover" />
+                  <Image
+                    src={prod.thumbnail || `https://placehold.co/150x200/e7e5e4/a8a29e?text=Image`}
+                    alt={prod.title}
+                    fill
+                    sizes="100px"
+                    className="object-cover"
+                  />
                   <div className="absolute inset-0 bg-black/0 group-hover/mini:bg-black/20 transition-colors" />
                 </Link>
               ))
             )}
 
             <Link
-              to={`/shop/category/${category.handle}`}
+              href={`/shop/category/${encodeURIComponent(category.handle)}`}
               className="group/mini ml-auto md:m-0 relative flex items-center justify-center h-[65px] md:h-[80px] lg:h-[90px] aspect-[3/4] rounded-lg md:rounded-xl overflow-hidden bg-white/10 backdrop-blur-md shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] border border-white/30 text-white hover:bg-white hover:text-stone-900 will-change-transform"
               style={{ transitionDelay: `${category.featuredProducts?.length * 30}ms` }}
               aria-label={`View all ${category.name}`}

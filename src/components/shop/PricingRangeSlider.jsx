@@ -32,7 +32,8 @@ export function PriceRangeSlider({
     <div className="space-y-3">
       {/* Visual Slider Track and Thumbs */}
       <div className="relative h-px bg-stone-200 mt-6 mb-4 w-full">
-        <style>{`
+        <style dangerouslySetInnerHTML={{
+          __html: `
           .custom-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
@@ -55,7 +56,7 @@ export function PriceRangeSlider({
             pointer-events: auto;
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
           }
-        `}</style>
+        `}} />
 
         {/* Active Track Highlight */}
         <div 

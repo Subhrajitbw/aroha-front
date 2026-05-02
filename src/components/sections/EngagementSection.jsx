@@ -4,7 +4,8 @@ import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import { ArrowRight } from "lucide-react";
-import { sanityClient } from "../../lib/sanityClient";
+import { sanityClient } from "@/lib/sanityClient";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -136,10 +137,12 @@ const EngagementSection = () => {
                   className="group block bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all duration-500"
                 >
                   <div className="relative w-full aspect-[4/3] overflow-hidden bg-stone-100">
-                    <img 
+                    <Image 
                       src={item.image}
                       alt={item.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover transition-transform duration-700 group-hover:scale-105"
                     />
                   </div>
                   <div className="p-6">
@@ -169,12 +172,14 @@ const EngagementSection = () => {
               >
                 {/* Image */}
                 <div className="relative w-full aspect-[4/3] overflow-hidden bg-stone-100">
-                  <img 
+                  <Image 
                     src={item.image}
                     alt={item.title}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-stone-900/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-stone-900/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
                 </div>
 
                 {/* Content */}
@@ -198,7 +203,8 @@ const EngagementSection = () => {
         )}
       </div>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{
+        __html: `
         .line-clamp-2 {
           display: -webkit-box;
           -webkit-line-clamp: 2;
@@ -222,7 +228,7 @@ const EngagementSection = () => {
           background: #1c1917;
           border-radius: 4px;
         }
-      `}</style>
+      `}} />
     </section>
   );
 };

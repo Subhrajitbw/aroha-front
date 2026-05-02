@@ -1,4 +1,4 @@
-import { useLayoutEffect } from 'react';
+import { useEffect } from 'react';
 
 // Global state for nested lock management
 let lockCount = 0;
@@ -11,8 +11,8 @@ let scrollY = 0;
  * @param {boolean} isLocked Whether scrolling should be locked.
  */
 function useLockBodyScroll(isLocked) {
-  useLayoutEffect(() => {
-    if (!isLocked) return;
+  useEffect(() => {
+    if (!isLocked || typeof window === 'undefined') return;
 
     lockCount++;
 

@@ -10,9 +10,29 @@ export const useNavData = () => {
   useEffect(() => {
     const fetchNavigationData = async () => {
       try {
-        const { product_categories } = await sdk.store.category.list({ limit: 1000 });
-        const categoriesByHandle = new Map((product_categories || []).map((cat) => [cat.handle, cat]));
+        // 1. Fetch categories and products for counts
+        const [categoriesRes, productsRes] = await Promise.all([
+          sdk.store.category.list({ limit: 1000 }),
+          sdk.store.product.list({ limit: 1000, fields: "id,categories.id" })
+        ]);
 
+        const product_categories = categoriesRes.product_categories || [];
+        const products = productsRes.products || [];
+        const categoriesByHandle = new Map(product_categories.map((cat) => [cat.handle, cat]));
+        
+        // Find the 'furniture' root to include its main children
+        const furnitureRoot = product_categories.find(c => c.handle === 'furniture');
+        const furnitureRootId = furnitureRoot?.id;
+
+        // Calculate counts
+        const categoryCounts = {};
+        products.forEach(p => {
+          (p.categories || []).forEach(c => {
+            categoryCounts[c.id] = (categoryCounts[c.id] || 0) + 1;
+          });
+        });
+
+        // 2. Fetch Sanity config
         let navConfig = null;
         try {
           navConfig = await sanityClient.fetch(`
@@ -34,25 +54,66 @@ export const useNavData = () => {
           console.error("Sanity fetch failed:", err);
         }
 
-        const items = navConfig?.items || [];
+        const sanityItems = navConfig?.items || [];
 
-        if (!items.length) {
-          const topLevel = (product_categories || []).filter((cat) => !cat.parent_category_id);
-          const fallbackNavItems = topLevel.map((cat, idx) => ({
-            id: cat.id,
-            name: cat.name,
-            href: `/shop/category/${cat.handle}`,
-            handle: cat.handle,
-            priority: idx,
-            hasMega: (cat.category_children || []).length > 0,
-          }));
+        // 3. Identify automatic categories (count >= 5)
+        // Rule: Top-level OR direct child of 'furniture' root
+        const autoCategories = product_categories.filter(cat => {
+          const count = categoryCounts[cat.id] || 0;
+          const isTopLevel = !cat.parent_category_id;
+          const isFurnitureChild = furnitureRootId && cat.parent_category_id === furnitureRootId;
+          
+          return (isTopLevel || isFurnitureChild) && 
+                 count >= 5 && 
+                 cat.handle !== 'furniture'; // Exclude the root container itself
+        });
 
-          const fallbackMega = {};
-          topLevel.forEach((cat) => {
-            const href = `/shop/category/${cat.handle}`;
-            const children = cat.category_children || [];
-            if (!children.length) return;
+        // 4. Merge Sanity and Auto items
+        const seenHandles = new Set();
+        const mergedItems = [];
 
+        // Add sanity items first
+        sanityItems.forEach(item => {
+          const cat = categoriesByHandle.get(item.categoryHandle);
+          if (cat) {
+            mergedItems.push({
+              id: cat.id,
+              name: item.label || cat.name,
+              href: `/shop/category/${cat.handle}`,
+              handle: cat.handle,
+              priority: item.priority ?? 100,
+              hasMega: (cat.category_children || []).length > 0,
+              sanityFeatured: item.featured
+            });
+            seenHandles.add(cat.handle);
+          }
+        });
+
+        // Add auto items if not already seen
+        autoCategories.forEach((cat, idx) => {
+          if (!seenHandles.has(cat.handle)) {
+            mergedItems.push({
+              id: cat.id,
+              name: cat.name,
+              href: `/shop/category/${cat.handle}`,
+              handle: cat.handle,
+              priority: 200 + idx,
+              hasMega: (cat.category_children || []).length > 0,
+            });
+          }
+        });
+
+        const sortedNavItems = mergedItems.sort((a, b) => a.priority - b.priority);
+
+        // 5. Build Mega Menu content
+        const mappedMegaMenuContent = {};
+        sortedNavItems.forEach((item) => {
+          const cat = categoriesByHandle.get(item.handle);
+          if (!cat) return;
+          const href = `/shop/category/${cat.handle}`;
+          const children = cat.category_children || [];
+          
+          if (children.length > 0) {
             const columns = children.map((child) => ({
               title: child.name,
               href: `/shop/category/${child.handle}`,
@@ -62,71 +123,21 @@ export const useNavData = () => {
               })),
             }));
 
-            fallbackMega[href] = {
+            mappedMegaMenuContent[href] = {
               columns,
               featured: [
                 {
-                  title: `${cat.name} Collection`,
-                  subtitle: "",
-                  href,
-                  image: cat.metadata?.image || "https://placehold.co/800x600/f5f5f5/111?text=Collection",
+                  title: item.sanityFeatured?.title || `${cat.name} Collection`,
+                  subtitle: item.sanityFeatured?.subtitle || "",
+                  href: item.sanityFeatured?.href || href,
+                  image: cat.metadata?.image || item.sanityFeatured?.imageUrl || "https://placehold.co/800x600/f5f5f5/111?text=Collection",
                 },
               ],
             };
-          });
-
-          setNavItems(fallbackNavItems);
-          setMegaMenuContent(fallbackMega);
-          return;
-        }
-
-        const mappedNavItems = items
-          .map((item) => {
-            const cat = categoriesByHandle.get(item.categoryHandle);
-            if (!cat) return null;
-            return {
-              id: cat.id,
-              name: item.label || cat.name,
-              href: `/shop/category/${cat.handle}`,
-              handle: cat.handle,
-              priority: item.priority ?? 0,
-              hasMega: (cat.category_children || []).length > 0,
-            };
-          })
-          .filter(Boolean)
-          .sort((a, b) => a.priority - b.priority);
-
-        const mappedMegaMenuContent = {};
-        items.forEach((item) => {
-          const cat = categoriesByHandle.get(item.categoryHandle);
-          if (!cat) return;
-          const href = `/shop/category/${cat.handle}`;
-          const children = cat.category_children || [];
-          if (!children.length) return;
-
-          const columns = children.map((child) => ({
-            title: child.name,
-            href: `/shop/category/${child.handle}`,
-            items: (child.category_children || []).map((grandChild) => ({
-              name: grandChild.name,
-              href: `/shop/category/${grandChild.handle}`,
-            })),
-          }));
-
-          mappedMegaMenuContent[href] = {
-            columns,
-            featured: [
-              {
-                title: item.featured?.title || `${cat.name} Collection`,
-                subtitle: item.featured?.subtitle || "",
-                href: item.featured?.href || href,
-                image: cat.metadata?.image || item.featured?.imageUrl || "https://placehold.co/800x600/f5f5f5/111?text=Collection",
-              },
-            ],
-          };
+          }
         });
 
-        setNavItems(mappedNavItems);
+        setNavItems(sortedNavItems);
         setMegaMenuContent(mappedMegaMenuContent);
       } catch (err) {
         console.error("Failed to fetch navigation data:", err);

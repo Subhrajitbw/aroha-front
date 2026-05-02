@@ -27,7 +27,7 @@ export const useAuthStore = create((set, get) => ({
     const promise = (async () => {
       set({ isLoading: true });
       try {
-        const token = localStorage.getItem("medusa_auth_token");
+        const token = typeof window !== "undefined" ? localStorage.getItem("medusa_auth_token") : null;
         if (token) {
           // Verify JWT haven't expired before calling /me
           const isExpired = get().isTokenExpired(token);
@@ -75,7 +75,7 @@ export const useAuthStore = create((set, get) => ({
       const token = typeof res === "string" ? res : res?.token;
 
       if (token) {
-        localStorage.setItem("medusa_auth_token", token);
+        if (typeof window !== "undefined") localStorage.setItem("medusa_auth_token", token);
         sdk.client.setToken(token);
         await get().getCurrentUser();
         return { success: true };
@@ -146,7 +146,7 @@ export const useAuthStore = create((set, get) => ({
   // ✅ LOGOUT
   logout: () => {
     sdk.client.setToken(null);
-    localStorage.removeItem("medusa_auth_token");
+    if (typeof window !== "undefined") localStorage.removeItem("medusa_auth_token");
     set({ user: null, isAuthenticated: false, isInitialized: true, isLoading: false });
   },
 
@@ -154,7 +154,7 @@ export const useAuthStore = create((set, get) => ({
   initiateSocialAuth: async (provider) => {
     set({ isLoading: true, error: null });
     try {
-      const origin = import.meta.env.VITE_FRONTEND_URL || window.location.origin;
+      const origin = process.env.NEXT_PUBLIC_FRONTEND_URL || (typeof window !== "undefined" ? window.location.origin : "http://localhost:3000");
       const callbackUrl = `${origin}/oauth/callback`;
       const res = await sdk.auth.login("customer", provider, {
         callback_url: callbackUrl,

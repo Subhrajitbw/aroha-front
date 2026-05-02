@@ -1,6 +1,6 @@
 // components/category/CategoryCTA.jsx
 import { forwardRef } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 const CategoryCTA = forwardRef(({ selectedCategory, linkState = {} }, ref) => {
@@ -8,12 +8,12 @@ const CategoryCTA = forwardRef(({ selectedCategory, linkState = {} }, ref) => {
 
   const handle = selectedCategory.handle;
   // Fallback if handle doesn't exist to shop root to prevent broken links
-  const targetRoute = handle ? `/shop/category/${handle}` : '/shop';
+  const targetRoute = handle ? `/shop/category/${encodeURIComponent(handle)}` : '/shop';
   
   return (
     <div ref={ref} className="text-center">
       <Link
-        to={targetRoute}
+        href={targetRoute}
         state={{ initialCategoryHandle: handle, ...linkState }}
         className="group inline-flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2.5 md:py-3 text-xs md:text-sm font-medium text-amber-700 bg-white/90 backdrop-blur-sm transition-all duration-300 transform-gpu hover:scale-105"
       >

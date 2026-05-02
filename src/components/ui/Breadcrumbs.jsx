@@ -1,10 +1,11 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronRight, Home } from "lucide-react";
 
 const Breadcrumbs = ({ className = "", items = null }) => {
-  const location = useLocation();
-  const pathnames = location.pathname.split("/").filter((x) => x);
+  const pathname = usePathname();
+  const pathnames = pathname.split("/").filter((x) => x);
 
   // Map route segments to readable labels
   const labelMap = {
@@ -61,7 +62,7 @@ const Breadcrumbs = ({ className = "", items = null }) => {
       <ol className="flex items-center space-x-2">
         <li className="flex items-center">
           <Link
-            to="/"
+            href="/"
             className="text-stone-400 hover:text-stone-900 transition-colors flex items-center"
           >
             <Home size={12} className="mt-[-1px]" />
@@ -79,7 +80,7 @@ const Breadcrumbs = ({ className = "", items = null }) => {
                 </span>
               ) : (
                 <Link
-                  to={item.path}
+                  href={item.path}
                   className="text-[10px] uppercase tracking-[0.2em] font-bold text-stone-400 hover:text-stone-900 transition-colors whitespace-nowrap"
                 >
                   {item.label}

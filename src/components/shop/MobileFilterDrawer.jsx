@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, SlidersHorizontal } from "lucide-react";
 import { FilterSidebar } from "./FilterSidebar";
-import useLockBodyScroll from "../../hooks/useLockBodyScroll";
+import useLockBodyScroll from  "@/hooks/useLockBodyScroll";
 
 export const MobileFilterDrawer = ({
   isOpen,

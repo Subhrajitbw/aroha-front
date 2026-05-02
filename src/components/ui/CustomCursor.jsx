@@ -20,30 +20,42 @@ const CustomCursor = () => {
     document.head.appendChild(style);
 
     const onMouseMove = (e) => {
-      gsap.to(cursorRef.current, {
-        x: e.clientX,
-        y: e.clientY,
-        duration: 0.1,
-        ease: "power2.out",
-      });
-      gsap.to(ringRef.current, {
-        x: e.clientX,
-        y: e.clientY,
-        duration: 0.6,
-        ease: "power3.out",
-      });
+      if (cursorRef.current) {
+        gsap.to(cursorRef.current, {
+          x: e.clientX,
+          y: e.clientY,
+          duration: 0.1,
+          ease: "power2.out",
+        });
+      }
+      if (ringRef.current) {
+        gsap.to(ringRef.current, {
+          x: e.clientX,
+          y: e.clientY,
+          duration: 0.6,
+          ease: "power3.out",
+        });
+      }
     };
 
     const handleMouseEnter = () => {
       setIsHovering(true);
-      gsap.to(ringRef.current, { scale: 1.8, backgroundColor: "rgba(255, 255, 255, 0.1)", duration: 0.3 });
-      gsap.to(cursorRef.current, { scale: 0, duration: 0.2 });
+      if (ringRef.current) {
+        gsap.to(ringRef.current, { scale: 1.8, backgroundColor: "rgba(255, 255, 255, 0.1)", duration: 0.3 });
+      }
+      if (cursorRef.current) {
+        gsap.to(cursorRef.current, { scale: 0, duration: 0.2 });
+      }
     };
 
     const handleMouseLeave = () => {
       setIsHovering(false);
-      gsap.to(ringRef.current, { scale: 1, backgroundColor: "transparent", duration: 0.3 });
-      gsap.to(cursorRef.current, { scale: 1, duration: 0.2 });
+      if (ringRef.current) {
+        gsap.to(ringRef.current, { scale: 1, backgroundColor: "transparent", duration: 0.3 });
+      }
+      if (cursorRef.current) {
+        gsap.to(cursorRef.current, { scale: 1, duration: 0.2 });
+      }
     };
 
     const attachHoverEvents = () => {

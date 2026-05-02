@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { MoveRight, ArrowUpRight, ChevronUp, ChevronDown } from "lucide-react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useQuery } from "@tanstack/react-query";
-import { medusaApi, prefetchImage } from "../../lib/react-query";
-import { sdk } from "../../lib/medusaClient";
-import { useResponsive } from "../../hooks/useResponsive";
+import { medusaApi, prefetchImage } from "@/lib/react-query";
+import { sdk } from "@/lib/medusaClient";
+import { useResponsive } from "@/hooks/useResponsive";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -15,6 +17,7 @@ export default function ProductCarousel() {
   const [activeProductId, setActiveProductId] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0); // Track guided interaction state
 
+  const router = useRouter();
   const { isDesktop } = useResponsive();
   const sectionRef = useRef(null);
   const headlineRef = useRef(null);
@@ -164,14 +167,14 @@ export default function ProductCarousel() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full bg-[#fdfbf9] py-10 md:py-16 lg:py-24 selection:bg-stone-200 flex flex-col justify-start min-h-screen lg:min-h-0"
+      className="relative w-full bg-[#fdfbf9] pt-20 pb-20 md:py-16 lg:py-24 selection:bg-stone-200 flex flex-col justify-center h-full overflow-hidden"
     >
       <div className="max-w-[1600px] w-full mx-auto px-4 md:px-8 lg:px-12 flex flex-col gap-8 lg:gap-10 h-full min-h-0">
 
         {/* HEADER */}
         <div
           ref={headlineRef}
-          className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-stone-200 pb-4"
+          className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-stone-200 pb-3"
         >
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-4">
@@ -183,11 +186,11 @@ export default function ProductCarousel() {
             </div>
 
             <div className="flex items-center gap-6">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-serif italic tracking-tight text-stone-900">
+              <h2 className="text-xl md:text-4xl lg:text-5xl font-serif italic tracking-tight text-stone-900">
                 The Showcase
               </h2>
               <Link
-                to="/store"
+                href="/store"
                 className="group hidden md:flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] font-medium text-stone-400 hover:text-stone-900 transition-colors duration-300 mt-2"
               >
                 Shop All
@@ -227,27 +230,30 @@ export default function ProductCarousel() {
         {!isLoading && displayProducts.length > 0 && activeProduct && (
           <div
             ref={showcaseRef}
-            className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 w-full lg:h-[70vh]"
+            className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-8 w-full h-full lg:h-[70vh] min-h-0"
           >
             {/* LEFT HERO */}
-            <div className="flex col-span-1 lg:col-span-8 relative rounded-2xl lg:rounded-[2rem] overflow-hidden bg-stone-100 group h-[50vh] lg:h-full shadow-sm">
-              <img
+            <div className="flex col-span-1 lg:col-span-8 relative rounded-xl lg:rounded-[2rem] overflow-hidden bg-stone-100 group h-[30vh] sm:h-[40vh] lg:h-full shadow-sm">
+              <Image
                 key={activeProduct.id}
                 src={activeProduct.image}
                 alt={activeProduct.title}
-                className="absolute inset-0 w-full h-full object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105"
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 66vw"
+                className="object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105"
               />
 
-              <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+              <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none z-10" />
 
-              <div className="absolute inset-0 p-5 lg:p-8 flex flex-col justify-between pointer-events-none">
+              <div className="absolute inset-0 p-5 lg:p-8 flex flex-col justify-between pointer-events-none z-20">
                 <div className="self-end px-4 py-1.5 bg-black/50 backdrop-blur-md rounded-full border border-white/20 text-white text-[10px] uppercase tracking-widest font-medium">
                   {activeProduct.status === "new" ? "Latest Arrival" : "On Sale"}
                 </div>
 
                 <div className="w-full text-white/95 flex flex-col md:flex-row justify-between md:items-end gap-4 md:gap-8" style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
                   <div className="flex flex-col max-w-xl">
-                    <h4 className="text-2xl sm:text-3xl lg:text-5xl font-serif italic font-light leading-snug line-clamp-2">
+                    <h4 className="text-xl sm:text-3xl lg:text-5xl font-serif italic text-white leading-snug line-clamp-2">
                       {activeProduct.title}
                     </h4>
                   </div>
@@ -262,7 +268,7 @@ export default function ProductCarousel() {
                           {activeProduct.originalPrice}
                         </span>
                       )}
-                      <span className="text-lg lg:text-2xl font-light tracking-wide whitespace-nowrap">
+                      <span className="text-base lg:text-2xl font-light tracking-wide whitespace-nowrap">
                         {activeProduct.price}
                       </span>
                     </div>
@@ -271,7 +277,7 @@ export default function ProductCarousel() {
               </div>
 
               <Link
-                to={`/product/${activeProduct.handle}`}
+                href={`/product/${activeProduct.handle}`}
                 className="absolute inset-0 z-10"
               />
             </div>
@@ -310,12 +316,18 @@ export default function ProductCarousel() {
                         >
                           <div
                             className={`transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${isActive
-                              ? 'w-6 h-8 rounded-sm ring-1 ring-stone-800 shadow-md overflow-hidden'
+                              ? 'w-6 h-8 rounded-sm ring-1 ring-stone-800 shadow-md overflow-hidden relative'
                               : 'w-2 h-2 rounded-full bg-stone-300 hover:bg-stone-500 hover:scale-150'
                               }`}
                           >
                             {isActive && (
-                              <img src={product.image} alt="" className="w-full h-full object-cover" />
+                              <Image 
+                                src={product.image} 
+                                alt="" 
+                                fill 
+                                sizes="24px"
+                                className="object-cover" 
+                              />
                             )}
                           </div>
                         </button>
@@ -364,7 +376,13 @@ export default function ProductCarousel() {
                   return (
                     <div
                       key={product.id}
-                      onClick={() => goToIndex(i)}
+                      onClick={() => {
+                        if (isActive) {
+                          router.push(`/product/${product.handle}`);
+                        } else {
+                          goToIndex(i);
+                        }
+                      }}
                       onMouseEnter={() =>
                         window.innerWidth >= 1024 &&
                         setActiveProductId(product.id)
@@ -373,7 +391,7 @@ export default function ProductCarousel() {
                   relative flex-none cursor-pointer
                   transition-all duration-500 ease-out overflow-hidden snap-center
 
-                  w-[68px] h-[68px] sm:w-[76px] sm:h-[76px] rounded-xl
+                  w-[60px] h-[60px] sm:w-[76px] sm:h-[76px] rounded-lg
                   lg:w-full lg:h-auto lg:min-h-[120px] lg:flex lg:flex-row lg:rounded-2xl
 
                   border bg-white
@@ -384,10 +402,12 @@ export default function ProductCarousel() {
                 `}
                     >
                       <div className="absolute inset-0 lg:relative lg:w-[120px] lg:h-full lg:shrink-0 bg-stone-100">
-                        <img
+                        <Image
                           src={product.image}
                           alt={product.title}
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="(max-width: 1024px) 70px, 120px"
+                          className="object-cover"
                         />
                       </div>
 
@@ -423,7 +443,8 @@ export default function ProductCarousel() {
         )}
       </div>
 
-      <style jsx>{`
+      <style dangerouslySetInnerHTML={{
+        __html: `
     .scrollbar-hide::-webkit-scrollbar {
       display: none;
     }
@@ -450,7 +471,7 @@ export default function ProductCarousel() {
         background: rgba(0,0,0,0.3); 
       }
     }
-  `}</style>
+  `}} />
     </section>
   );
 }

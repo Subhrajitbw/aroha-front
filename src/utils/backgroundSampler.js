@@ -374,161 +374,143 @@ export const sampleBackgroundAtPoint = async (
   // Generate sampling points around the target
   const samplePoints = generateSamplePoints(clientX, clientY, sampleRadius, sampleCount);
   const sampledColors = [];
-  const elementLayers = [];
+
+  // Create a reusable canvas for image/video sampling
+  const canvas = document.createElement("canvas");
+  const canvasCtx = canvas.getContext("2d", { willReadFrequently: true });
 
   // Sample each point and collect colors from all layers
   for (const point of samplePoints) {
-    let el = document.elementFromPoint(point.x, point.y);
-    if (!el) continue;
+    // Get all elements at this point from top to bottom
+    const elements = document.elementsFromPoint(point.x, point.y);
+    if (!elements || elements.length === 0) continue;
 
     const layerColors = [];
 
-    // Walk up the DOM tree collecting colors from each layer
-    while (el && el !== document.documentElement) {
+    // Process each element layer
+    for (const el of elements) {
+      if (el === document.documentElement || el === document.body) continue;
+      
       const styles = window.getComputedStyle(el);
       const bgImg = styles.backgroundImage;
       const bgColor = styles.backgroundColor;
+      const opacity = parseFloat(styles.opacity || "1");
 
-      // Handle background images (gradients + images)
+      if (opacity <= 0.01) continue;
+
+      // 1. Handle background images (gradients + images)
       if (bgImg && bgImg !== "none") {
         if (isGradientBackground(bgImg) && !bgImg.includes('url(')) {
-          // Pure gradient
           const luminance = calculateGradientLuminance(bgImg);
           layerColors.push({
             r: Math.round(luminance * 255),
             g: Math.round(luminance * 255),
             b: Math.round(luminance * 255),
-            a: 255,
-            source: "gradient",
-            element: el
+            a: Math.round(opacity * 255),
+            source: "gradient"
           });
         } else {
-          // Try to sample image
           const url = extractImageUrl(bgImg);
           if (url) {
             try {
               const img = await loadImage(url);
-              const coords = computeBackgroundPixelCoord(el, point.x, point.y, img, styles);
-              if (coords) {
-                const pixels = sampleImagePixels(img, { element: el }, styles, [point]);
-                if (pixels.length > 0) {
-                  let color = pixels[0];
-                  
-                  // Blend with gradient overlay if present
-                  if (isGradientBackground(bgImg)) {
-                    const gradientColors = parseGradientColors(bgImg);
-                    if (gradientColors.length > 0) {
-                      const [gr, gg, gb, ga] = gradientColors[0];
-                      const alpha = ga || 0.5;
-                      color = blendColors(color, { r: gr, g: gg, b: gb, a: 255 }, alpha);
-                    }
+              const pixels = sampleImagePixels(img, { element: el }, styles, [point]);
+              if (pixels.length > 0) {
+                let color = pixels[0];
+                if (isGradientBackground(bgImg)) {
+                  const gradientColors = parseGradientColors(bgImg);
+                  if (gradientColors.length > 0) {
+                    const [gr, gg, gb, ga] = gradientColors[0];
+                    color = blendColors(color, { r: gr, g: gg, b: gb, a: 255 }, ga || 0.5);
                   }
-                  
-                  layerColors.push({
-                    ...color,
-                    source: "image",
-                    element: el
-                  });
                 }
+                layerColors.push({ ...color, a: Math.round(color.a * opacity), source: "bg-image" });
               }
-            } catch (e) {
-              // Fallback to gradient if image fails
-              if (isGradientBackground(bgImg)) {
-                const luminance = calculateGradientLuminance(bgImg);
-                layerColors.push({
-                  r: Math.round(luminance * 255),
-                  g: Math.round(luminance * 255),
-                  b: Math.round(luminance * 255),
-                  a: 255,
-                  source: "gradient-fallback",
-                  element: el
-                });
-              }
-            }
+            } catch (e) {}
           }
         }
       }
 
-      // Handle solid background colors
+      // 2. Handle solid background colors
       if (bgColor && bgColor !== "rgba(0, 0, 0, 0)" && bgColor !== "transparent") {
         const nums = bgColor.match(/[\d.]+/g) || [];
         const r = parseFloat(nums[0] || "0");
         const g = parseFloat(nums[1] || "0");
         const b = parseFloat(nums[2] || "0");
-        const a = Math.round(parseFloat(nums[3] || "1") * 255);
-        
-        layerColors.push({
-          r, g, b, a,
-          source: "color",
-          element: el
-        });
+        const a = parseFloat(nums[3] || "1");
+        layerColors.push({ r, g, b, a: Math.round(a * opacity * 255), source: "color" });
       }
 
-      el = el.parentElement;
+      // 3. Handle <img> tags directly
+      if (el.tagName === "IMG" && el.complete && el.naturalWidth > 0) {
+        try {
+          const pixels = sampleImagePixels(el, { element: el }, styles, [point]);
+          if (pixels.length > 0) {
+            layerColors.push({ ...pixels[0], a: Math.round(pixels[0].a * opacity), source: "img-tag" });
+          }
+        } catch (e) {}
+      }
+
+      // 4. Handle <video> tags
+      if (el.tagName === "VIDEO" && el.readyState >= 2) {
+        try {
+          canvas.width = 1;
+          canvas.height = 1;
+          // Calculate source coordinates based on object-fit
+          const rect = el.getBoundingClientRect();
+          const xInVideo = ((point.x - rect.left) / rect.width) * el.videoWidth;
+          const yInVideo = ((point.y - rect.top) / rect.height) * el.videoHeight;
+          
+          canvasCtx.drawImage(el, xInVideo, yInVideo, 1, 1, 0, 0, 1, 1);
+          const data = canvasCtx.getImageData(0, 0, 1, 1).data;
+          layerColors.push({
+            r: data[0],
+            g: data[1],
+            b: data[2],
+            a: Math.round(data[3] * opacity),
+            source: "video-tag"
+          });
+        } catch (e) {}
+      }
     }
 
-    // Composite all layers for this sample point
+    // Composite all layers for this sample point (from bottom to top)
     if (layerColors.length > 0) {
-      let compositeColor = layerColors[layerColors.length - 1]; // Start with bottom layer
+      // elementsFromPoint returns top-to-bottom, so we reverse it to blend correctly
+      let compositeColor = { r: 255, g: 255, b: 255, a: 255 }; // Default base is white
       
-      // Blend layers from bottom to top
-      for (let i = layerColors.length - 2; i >= 0; i--) {
-        const layerColor = layerColors[i];
-        const alpha = layerColor.a / 255;
-        compositeColor = blendColors(compositeColor, layerColor, alpha);
+      for (let i = layerColors.length - 1; i >= 0; i--) {
+        const layer = layerColors[i];
+        const alpha = layer.a / 255;
+        compositeColor = blendColors(compositeColor, layer, alpha);
       }
       
       sampledColors.push(compositeColor);
     }
   }
 
-  // If no colors found, fallback
+  // Fallback if no colors sampled
   if (sampledColors.length === 0) {
-    const bodyColor = window.getComputedStyle(document.body).backgroundColor;
-    const nums = bodyColor.match(/[\d.]+/g) || [];
-    const r = parseFloat(nums[0] || "255");
-    const g = parseFloat(nums[1] || "255");
-    const b = parseFloat(nums[2] || "255");
-    const a = Math.round(parseFloat(nums[3] || "1") * 255);
-    const theme = rgbToTheme(r, g, b);
-    return { 
-      r, g, b, a, theme, 
-      source: "fallback-body", 
-      element: document.body,
-      analysis: {
-        sampleCount: 0,
-        clusters: [],
-        distribution: "fallback"
-      }
-    };
+    return { r: 255, g: 255, b: 255, a: 255, theme: "light", source: "fallback" };
   }
 
-  // Cluster similar colors
+  // Cluster and find dominant theme
   const clusters = clusterColors(sampledColors, clusterThreshold);
-  
-  // Calculate adaptive theme based on color distribution
   const adaptiveTheme = calculateAdaptiveTheme(clusters);
-  
-  // Return the dominant color with enhanced analysis
   const dominantColor = clusters[0].representative;
   
   return {
     ...dominantColor,
     theme: adaptiveTheme,
-    source: "multi-sample",
-    element: clusters[0].colors[0].element,
+    source: "multi-layer-sample",
     analysis: {
       sampleCount: sampledColors.length,
-      clusters: clusters.map(cluster => ({
-        color: cluster.representative,
-        weight: cluster.weight,
-        percentage: (cluster.weight / sampledColors.length * 100).toFixed(1)
+      clusters: clusters.map(c => ({ 
+        color: c.representative, 
+        percentage: (c.weight / sampledColors.length * 100).toFixed(1) 
       })),
-      distribution: clusters.length > 1 ? "mixed" : "uniform",
       contrastInfo: {
-        hasHighContrast: clusters.length > 1 && 
-          colorDistance(clusters[0].representative, clusters[1]?.representative || clusters[0].representative) > 100,
-        dominantClusterPercentage: (clusters[0].weight / sampledColors.length * 100).toFixed(1)
+        hasHighContrast: clusters.length > 1 && colorDistance(clusters[0].representative, clusters[1].representative) > 100
       }
     }
   };

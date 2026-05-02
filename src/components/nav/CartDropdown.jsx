@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ShoppingBag, X, ArrowRight, Minus, Plus, Trash2 } from "lucide-react";
-import { Link } from "react-router-dom";
-import { sdk } from "../../lib/medusaClient";
+import Link from "next/link";
+import { sdk } from  "@/lib/medusaClient";
 import { AnimatePresence, motion } from "framer-motion";
 
 /**

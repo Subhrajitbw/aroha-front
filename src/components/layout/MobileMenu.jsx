@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { gsap } from "gsap";
 import {
   X,
@@ -15,7 +15,7 @@ import {
   Star,
   Zap,
 } from "lucide-react";
-import useLockBodyScroll from "../../hooks/useLockBodyScroll";
+import useLockBodyScroll from  "@/hooks/useLockBodyScroll";
 
 const MobileMenu = ({
   isOpen,
@@ -41,15 +41,13 @@ const MobileMenu = ({
   const quickLinks = [
     { 
       name: "New Arrivals", 
-      href: "/shop", 
-      icon: Star,
-      filterKey: "newOnly" 
+      href: "/shop?filter=newOnly", 
+      icon: Star
     },
     { 
       name: "On Sale", 
-      href: "/shop", 
-      icon: Zap,
-      filterKey: "discountedOnly" 
+      href: "/shop?filter=discountedOnly", 
+      icon: Zap
     },
   ];
 
@@ -185,7 +183,7 @@ const MobileMenu = ({
             </button>
           ) : (
             <Link
-              to="/"
+              href="/"
               onClick={handleClose}
               className="text-2xl tracking-[0.3em] uppercase text-stone-900"
               style={{ fontFamily: 'Playfair Display, serif' }}
@@ -240,7 +238,7 @@ const MobileMenu = ({
                             </button>
                           ) : (
                             <Link
-                              to={category.href}
+                              href={category.href}
                               onClick={handleClose}
                               className="w-full flex items-center justify-between py-2 group/btn"
                             >
@@ -266,8 +264,7 @@ const MobileMenu = ({
                 {quickLinks.map((link) => (
                   <Link
                     key={link.name}
-                    to={link.href}
-                    state={{ applyFilter: link.filterKey }}
+                    href={link.href}
                     onClick={handleClose}
                     className="flex flex-col items-center justify-center py-8 border border-stone-200 hover:border-stone-900 hover:bg-stone-900 hover:text-white transition-colors duration-500 group/box"
                   >
@@ -292,7 +289,7 @@ const MobileMenu = ({
                   ].map((item) => (
                     <Link
                       key={item.href}
-                      to={item.href}
+                      href={item.href}
                       onClick={handleClose}
                       className="flex items-center justify-between group/link"
                     >
@@ -323,7 +320,7 @@ const MobileMenu = ({
                         </p>
                       </div>
                       <Link 
-                        to="/account" 
+                        href="/account" 
                         onClick={onClose}
                         className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center text-stone-900 border border-stone-200"
                       >
@@ -333,7 +330,7 @@ const MobileMenu = ({
 
                     <div className="grid grid-cols-2 gap-4">
                       <Link
-                        to="/account/orders"
+                        href="/account/orders"
                         onClick={onClose}
                         className="flex flex-col gap-3 p-5 rounded-2xl bg-white border border-stone-100 shadow-sm"
                       >
@@ -341,7 +338,7 @@ const MobileMenu = ({
                         <span className="text-[10px] uppercase tracking-widest text-stone-900 font-bold">My Orders</span>
                       </Link>
                       <Link
-                        to="/account/wishlist"
+                        href="/account/wishlist"
                         onClick={onClose}
                         className="flex flex-col gap-3 p-5 rounded-2xl bg-white border border-stone-100 shadow-sm"
                       >
@@ -401,7 +398,7 @@ const MobileMenu = ({
                         {column.items?.map((item, itemIdx) => (
                           <Link
                             key={itemIdx}
-                            to={item.href}
+                            href={item.href}
                             onClick={handleClose}
                             className="block text-base text-stone-900 hover:text-stone-600 tracking-wide font-normal transition-colors py-1"
                           >
@@ -414,7 +411,7 @@ const MobileMenu = ({
                 </div>
 
                 <Link
-                  to={activeCategory.href}
+                  href={activeCategory.href}
                   onClick={handleClose}
                   className="group flex items-center justify-between w-full py-5 border-t border-stone-200 mt-12"
                 >

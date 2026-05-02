@@ -1,17 +1,20 @@
 // components/ProtectedRoute.jsx
-import { useAuthStore } from "../../stores/useAuthStore";
-import { useAuthModalStore } from "../../stores/useAuthModalStore";
+import { useAuthStore } from  "@/stores/useAuthStore";
+import { useAuthModalStore } from  "@/stores/useAuthModalStore";
 import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isInitialized } = useAuthStore();
   const { open } = useAuthModalStore();
 
+  const pathname = usePathname();
+
   useEffect(() => {
     if (isInitialized && !isAuthenticated) {
-      open('login', window.location.pathname);
+      open('login', pathname);
     }
-  }, [isAuthenticated, isInitialized, open]);
+  }, [isAuthenticated, isInitialized, open, pathname]);
 
   if (!isInitialized) {
     return (

@@ -1,15 +1,23 @@
 // components/auth/AuthModal.jsx
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { useAuthModalStore } from "../../stores/useAuthModalStore";
+import { useAuthModalStore } from  "@/stores/useAuthModalStore";
 import { X } from 'lucide-react';
-import AuthPage from "../../pages/AuthPage";
+import AuthContent from "./AuthContent";
 import { motion, AnimatePresence } from "framer-motion";
-import useLockBodyScroll from "../../hooks/useLockBodyScroll";
+import useLockBodyScroll from  "@/hooks/useLockBodyScroll";
 
 const AuthModal = () => {
   const { isOpen, close } = useAuthModalStore();
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   useLockBodyScroll(isOpen);
+
+  if (!isMounted) return null;
 
   return createPortal(
     <AnimatePresence>
@@ -61,7 +69,7 @@ const AuthModal = () => {
                   onWheel={(e) => e.stopPropagation()}
                   onTouchMove={(e) => e.stopPropagation()}
                 >
-                  <AuthPage />
+                  <AuthContent />
                 </div>
               </motion.div>
             </div>
