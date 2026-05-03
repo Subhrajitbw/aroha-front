@@ -94,21 +94,22 @@ export default function PwaPrompt() {
             {promptType === 'android' ? (
               <button
                 onClick={handleAndroidInstall}
-                className="w-full py-3.5 bg-stone-900 text-white rounded-2xl text-xs uppercase tracking-[0.2em] font-bold flex items-center justify-center gap-2 hover:bg-stone-800 transition-all active:scale-95"
+                className="w-full py-4 bg-stone-900 text-white rounded-2xl text-[13px] uppercase tracking-[0.2em] font-bold flex items-center justify-center gap-3 hover:bg-stone-800 transition-all active:scale-95 shadow-lg shadow-stone-900/20"
               >
-                <Download size={14} />
-                Install Now
+                <Download size={16} />
+                Install App Directly
               </button>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center gap-4 text-xs text-stone-600">
-                  <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
+                <p className="text-[10px] uppercase tracking-[0.15em] text-stone-400 font-semibold mb-2">Direct Instructions</p>
+                <div className="flex items-center gap-4 text-xs text-stone-600 bg-stone-50 p-3 rounded-xl border border-stone-100">
+                  <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 shadow-sm">
                     <Share size={14} />
                   </div>
-                  <span>Tap the <strong>Share</strong> button in Safari</span>
+                  <span>Tap <strong>Share</strong> in your Safari toolbar</span>
                 </div>
-                <div className="flex items-center gap-4 text-xs text-stone-600">
-                  <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-4 text-xs text-stone-600 bg-stone-50 p-3 rounded-xl border border-stone-100">
+                  <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shrink-0 shadow-sm">
                     <PlusSquare size={14} />
                   </div>
                   <span>Select <strong>"Add to Home Screen"</strong></span>

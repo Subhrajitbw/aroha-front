@@ -35,12 +35,7 @@ export default function ClientLayout({ children, isMobile, isNotDesktop }) {
   const needsNavSpacer = !["/", "/home", "/lookbook"].includes(pathname);
 
   return (
-    <div 
-      className="app-container min-h-[100dvh] flex flex-col"
-      style={{ 
-        paddingBottom: isNotDesktop ? 'calc(var(--nav-height, 64px) + 2rem)' : '0'
-      }}
-    >
+    <div className="app-container min-h-[100dvh] flex flex-col">
       <CustomCursor />
       <NavBar 
         variant={getNavBarVariant()} 

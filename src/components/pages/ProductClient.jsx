@@ -181,7 +181,7 @@ const ProductClient = ({ initialData }) => {
     <div className="min-h-[100dvh] text-stone-900 font-sans">
       <main className="min-h-[100dvh] max-w-[1920px] mx-auto flex flex-col lg:flex-row">
         {/* LEFT: IMAGE GALLERY */}
-        <div className="w-full lg:w-7/12 relative flex flex-col items-center justify-center pt-6 sm:pt-8 lg:pt-0 px-0 lg:px-12 xl:px-24 min-h-[50dvh] lg:h-[100dvh] lg:sticky lg:top-0 bg-white">
+        <div className="w-full lg:w-7/12 relative flex flex-col items-center justify-center pt-2 sm:pt-4 lg:pt-0 px-0 lg:px-12 xl:px-24 min-h-[50dvh] lg:h-[100dvh] lg:sticky lg:top-0 bg-white">
           <div className="relative w-full max-w-[650px] aspect-square sm:rounded-[40px] overflow-hidden lg:shadow-sm lg:border border-stone-100/50">
             {images[currentImageIndex]?.url ? (
               <img src={images[currentImageIndex]?.url} className="w-full h-full object-cover animate-in fade-in duration-700" alt={product.title} />

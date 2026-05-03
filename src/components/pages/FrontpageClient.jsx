@@ -269,7 +269,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     };
   }, [currentSection, isLoading, collections.length, animatedScrollToSection, isMenuOpen]);
 
-  const sectionClass = "h-[100dvh] w-full overflow-hidden bg-transparent pb-[calc(var(--nav-height,56px)+1.5rem)] lg:pb-0";
+  const sectionClass = "h-[100dvh] w-full overflow-hidden bg-transparent lg:pb-0";
   const sectionStyle = { contain: 'layout style paint', isolation: 'isolate' };
 
   // ---------------------------------------------------------

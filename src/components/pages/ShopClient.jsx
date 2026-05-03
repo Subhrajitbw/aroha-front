@@ -253,8 +253,8 @@ export default function ShopClient({ initialData }) {
   };
 
   return (
-    <div className="min-h-screen pt-4 sm:pt-6 lg:pt-8 bg-gradient-to-br from-stone-50/30 via-white to-stone-100/30">
-      <div className="pt-8 sm:pt-10 lg:pt-12 pb-6 sm:pb-8 px-3 sm:px-4 md:px-6 lg:px-8 xl:px-16">
+    <div className="min-h-screen pt-2 sm:pt-4 bg-gradient-to-br from-stone-50/30 via-white to-stone-100/30">
+      <div className="pt-4 sm:pt-6 pb-6 sm:pb-8 px-3 sm:px-4 md:px-6 lg:px-8 xl:px-16">
         <div className="max-w-[2200px] mx-auto text-center space-y-4 sm:space-y-6">
           <motion.h1 
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
