@@ -193,65 +193,7 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
               </div>
             </div>
 
-            {/* ─── RIGHT PANE: Featured ─── */}
-            {/* <div className="w-[45%] lg:w-[40%] pl-10 lg:pl-20 flex flex-col">
-              {/* Section label 
-              <div className="flex items-center justify-between mb-8">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-bold tracking-[0.25em] uppercase text-stone-500">
-                    Featured
-                  </span>
-                  <div className="w-10 h-px bg-gradient-to-r from-stone-200 to-transparent" />
-                </div>
-                <Link
-                  href="/lookbook"
-                  onClick={onClose}
-                  className="text-[10px] tracking-wider uppercase font-semibold text-stone-400 hover:text-stone-900 transition-colors duration-200 flex items-center gap-1"
-                >
-                  Lookbook <ArrowRight size={10} />
-                </Link>
-              </div>
 
-              {/* Featured cards 
-              <div className="flex-1 grid grid-cols-2 gap-4 min-h-[280px]">
-                {content.featured?.slice(0, 2).map((item, idx) => (
-                  <Link
-                    href={item.href}
-                    onClick={onClose}
-                    key={idx}
-                    className="mega-column group relative overflow-hidden flex flex-col justify-end rounded-2xl"
-                  >
-                    {/* Image 
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                      className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                    />
-
-                    {/* Gradient overlay 
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-
-                    {/* Subtle border on hover 
-                    <div className="absolute inset-0 rounded-2xl border-2 border-transparent group-hover:border-white/30 transition-colors duration-500 pointer-events-none z-20" />
-
-                    {/* Card content *
-                    <div className="relative z-10 p-5 lg:p-6 transform translate-y-1 group-hover:translate-y-0 transition-transform duration-500">
-                      <p className="text-[9px] tracking-[0.3em] uppercase text-white/60 mb-1.5 font-semibold">
-                        No. 0{idx + 1}
-                      </p>
-                      <h4 className="font-serif text-lg lg:text-xl text-white tracking-wide leading-snug">
-                        {item.title}
-                      </h4>
-                      {item.subtitle && (
-                        <p className="text-[10px] tracking-wider uppercase text-white/50 mt-2 group-hover:text-white/70 transition-colors duration-500">
-                          {item.subtitle}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </div> */}
           </div>
 
           {/* ── Footer strip ── */}

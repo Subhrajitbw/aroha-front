@@ -26,7 +26,17 @@ async function getInitialData() {
   }
 }
 
+import { Suspense } from 'react';
+
 export default async function ShopPage() {
   const data = await getInitialData();
-  return <ShopClient initialData={data} />;
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
+        <div className="animate-pulse text-stone-400 font-serif text-xl tracking-widest uppercase">Loading Collections...</div>
+      </div>
+    }>
+      <ShopClient initialData={data} />
+    </Suspense>
+  );
 }
