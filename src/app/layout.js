@@ -3,6 +3,7 @@ import './globals.css';
 import { Providers } from './providers';
 import ClientLayout from '@/components/layout/ClientLayout';
 import JsonLd from '@/components/seo/JsonLd';
+import PwaPrompt from '@/components/layout/PwaPrompt';
 
 export const viewport = {
   themeColor: '#1c1917',
@@ -10,10 +11,17 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover',
 };
 
 export const metadata = {
   metadataBase: new URL('https://arohahouse.com'),
+  manifest: '/manifest',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Aroha',
+  },
   title: {
     default: 'Aroha | Premium Furniture',
     template: '%s | Aroha',
@@ -94,12 +102,35 @@ export default async function RootLayout({ children }) {
     <html lang="en">
       <head>
         <JsonLd data={organizationSchema} />
+        {/* PWA / Mobile optimization */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Aroha" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+        
+        {/* Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').then(
+                    function(registration) { console.log('Service Worker registered'); },
+                    function(err) { console.log('Service Worker registration failed: ', err); }
+                  );
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className="antialiased">
         <Providers>
           <ClientLayout isMobile={isMobile} isNotDesktop={isNotDesktop}>
             {children}
           </ClientLayout>
+          <PwaPrompt />
         </Providers>
       </body>
     </html>

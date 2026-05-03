@@ -35,7 +35,12 @@ export default function ClientLayout({ children, isMobile, isNotDesktop }) {
   const needsNavSpacer = !["/", "/home", "/lookbook"].includes(pathname);
 
   return (
-    <div className="app-container">
+    <div 
+      className="app-container min-h-[100dvh] flex flex-col"
+      style={{ 
+        paddingBottom: isNotDesktop ? 'calc(var(--nav-height, 64px) + 2rem)' : '0'
+      }}
+    >
       <CustomCursor />
       <NavBar 
         variant={getNavBarVariant()} 
@@ -46,15 +51,17 @@ export default function ClientLayout({ children, isMobile, isNotDesktop }) {
       <SearchModal isOpen={isSearchOpen} onClose={closeSearch} />
       <AuthModal isOpen={isAuthOpen} onClose={closeAuth} />
       
-      {/* Spacer: occupies the same height as the fixed navbar so page content starts below it */}
-      {needsNavSpacer && (
+      {/* Top Spacer: only for top-fixed nav on desktop/non-floating states */}
+      {needsNavSpacer && !isNotDesktop && (
         <div 
           aria-hidden="true"
           style={{ height: 'var(--nav-height, 64px)' }} 
         />
       )}
       
-      <main>{children}</main>
+      <main className="flex-1">
+        {children}
+      </main>
       
       {shouldShowFooter && <Footer />}
     </div>

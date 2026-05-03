@@ -31,7 +31,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
   const lastTouchY = useRef(0);
   const lastTouchX = useRef(0);
   const touchStartTime = useRef(0);
-  const animationDuration = 1.5; // Extended for butter-smooth feel
+  const animationDuration = 1.2; // Optimized for snappier luxury feel
 
   // ---------------------------------------------------------
   // 2. DATA FETCHING (TANSTACK QUERY)
@@ -124,7 +124,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     const t = setTimeout(() => {
       setIsLoading(false);
       setAppReady(true);
-    }, 2500);
+    }, 1200);
     return () => clearTimeout(t);
   }, [setAppReady]);
 
@@ -150,7 +150,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     gsap.to(wrapperRef.current, {
       duration: animationDuration,
       ease: "power2.inOut", // Gentlest S-curve — no harsh acceleration
-      y: `${-index * 100}vh`,
+      y: `${-index * 100}dvh`,
       force3D: true,
       rotationZ: 0.01, // Force GPU sub-pixel antialiasing
       onComplete: () => {
@@ -269,7 +269,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     };
   }, [currentSection, isLoading, collections.length, animatedScrollToSection, isMenuOpen]);
 
-  const sectionClass = "h-[100vh] w-full overflow-hidden bg-transparent";
+  const sectionClass = "h-[100dvh] w-full overflow-hidden bg-transparent pb-[calc(var(--nav-height,56px)+1.5rem)] lg:pb-0";
   const sectionStyle = { contain: 'layout style paint', isolation: 'isolate' };
 
   // ---------------------------------------------------------
@@ -286,7 +286,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
       />
       <div
         className="fixed inset-0 overflow-hidden"
-        style={{ height: '100vh', width: '100vw' }}
+        style={{ height: '100dvh', width: '100vw' }}
       >
         <div
           ref={wrapperRef}
@@ -294,51 +294,66 @@ const FrontpageClient = ({ initialCollections = [] }) => {
             transform: 'translateY(0)',
             backfaceVisibility: 'hidden',
             perspective: 1000,
-            willChange: 'transform',
           }}
         >
           {/* 0. Hero */}
           <div className={sectionClass} style={sectionStyle}>
-            <HeroSection />
+            {(currentSection === 0 || currentSection === 1) && <HeroSection />}
           </div>
 
           {/* 1. Category Section */}
           <div className={sectionClass} style={sectionStyle}>
-            <CategorySection />
+            {(currentSection >= 0 && currentSection <= 2) && <CategorySection />}
           </div>
 
           {/* 2. Product Carousel (New/Sale/Best) */}
           <div className={sectionClass} style={sectionStyle}>
-            <ProductCarousel />
+            {(currentSection >= 1 && currentSection <= 3) && <ProductCarousel />}
           </div>
 
           {/* 3, 4, 5... Dynamic Collections (Animated Sections) */}
-          {collections.map((collection, index) => (
-            <div
-              key={collection.id}
-              className={sectionClass}
-              style={sectionStyle}
-            >
-              <AnimatedSection
-                collectionHandle={collection.handle}
-                defaultBackground={collection.metadata?.image}
-                desktopViewMode={(index + 1) % 2 === 0 ? "invert" : "normal"}
-                title={collection.title}
-                description={collection.metadata?.description}
-              />
-            </div>
-          ))}
+          {collections.map((collection, index) => {
+            const sectionIndex = 3 + index;
+            const isNear = Math.abs(currentSection - sectionIndex) <= 1;
+            return (
+              <div
+                key={collection.id}
+                className={sectionClass}
+                style={sectionStyle}
+              >
+                {isNear && (
+                  <AnimatedSection
+                    collectionHandle={collection.handle}
+                    defaultBackground={collection.metadata?.image}
+                    desktopViewMode={(index + 1) % 2 === 0 ? "invert" : "normal"}
+                    title={collection.title}
+                    description={collection.metadata?.description}
+                  />
+                )}
+              </div>
+            );
+          })}
 
           {/* Static Sections After Collections */}
-          <div className={sectionClass} style={sectionStyle}>
-            <AboutSection />
-          </div>
-          <div className={sectionClass} style={sectionStyle}>
-            <EngagementSection />
-          </div>
-          <div className={sectionClass} style={sectionStyle}>
-            <Footer />
-          </div>
+          {(() => {
+            const aboutIndex = 3 + collections.length;
+            const engagementIndex = 4 + collections.length;
+            const footerIndex = 5 + collections.length;
+            
+            return (
+              <>
+                <div className={sectionClass} style={sectionStyle}>
+                  {Math.abs(currentSection - aboutIndex) <= 1 && <AboutSection />}
+                </div>
+                <div className={sectionClass} style={sectionStyle}>
+                  {Math.abs(currentSection - engagementIndex) <= 1 && <EngagementSection />}
+                </div>
+                <div className={sectionClass} style={sectionStyle}>
+                  {Math.abs(currentSection - footerIndex) <= 1 && <Footer />}
+                </div>
+              </>
+            );
+          })()}
         </div>
       </div>
     </>

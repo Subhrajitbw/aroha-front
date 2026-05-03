@@ -260,9 +260,7 @@ const Footer = () => {
           {/* Extra bottom spacer only on mobile where navbar floats at bottom */}
           <style dangerouslySetInnerHTML={{
             __html: `
-            @media (max-width: 1023px) {
-              .footer-bottom-bar { padding-bottom: calc(var(--nav-height, 56px) + 1.5rem) !important; }
-            }
+            .footer-bottom-bar { border-top: 1px solid rgba(0,0,0,0.05); }
           `}} />
           <span className="text-[11px] text-stone-600 text-center sm:text-left">
             © {new Date().getFullYear()} Aroha House. All rights reserved.

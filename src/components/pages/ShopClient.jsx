@@ -88,7 +88,7 @@ export default function ShopClient({ initialData }) {
         let orderParam = sort === "newest" ? "-created_at" : undefined;
         const queryParams = {
           limit: 100,
-          fields: "id,title,subtitle,description,handle,thumbnail,*images,*options,*variants,*variants.calculated_price,*variants.prices,*variants.options,*variants.sku,*variants.manage_inventory,*variants.inventory_quantity,*collection,*type,*tags,material,weight,origin_country,metadata",
+          fields: "id,title,handle,thumbnail,variants.calculated_price,variants.inventory_quantity,collection.title,created_at",
           region_id: regionId,
           ...(orderParam && { order: orderParam }),
           ...(filters.collections?.length > 0 && { "collection_id[]": filters.collections }),

@@ -1,18 +1,29 @@
 import { useState, useEffect, useMemo } from "react";
 import { sdk } from "../lib/medusaClient";
 import { sanityClient } from "../lib/sanityClient";
+import { useNavStore } from "../stores/useNavStore";
 
 export const useNavData = () => {
-  const [navItems, setNavItems] = useState([]);
+  const { 
+    navItems, 
+    megaMenuContent, 
+    isLoaded, 
+    isLoading, 
+    setNavData, 
+    setLoading 
+  } = useNavStore();
   const [roomCategories, setRoomCategories] = useState([]);
-  const [megaMenuContent, setMegaMenuContent] = useState({});
 
   useEffect(() => {
     const fetchNavigationData = async () => {
+      // If already loaded, skip to avoid "slow" feeling on re-mounts
+      if (isLoaded || isLoading) return;
+
       try {
+        setLoading(true);
         // 1. Fetch categories and products for counts
         const [categoriesRes, productsRes] = await Promise.all([
-          sdk.store.category.list({ limit: 1000 }),
+          sdk.store.category.list({ limit: 1000, fields: "id,name,handle,parent_category_id,metadata,category_children" }),
           sdk.store.product.list({ limit: 1000, fields: "id,categories.id" })
         ]);
 
@@ -137,9 +148,9 @@ export const useNavData = () => {
           }
         });
 
-        setNavItems(sortedNavItems);
-        setMegaMenuContent(mappedMegaMenuContent);
+        setNavData(sortedNavItems, mappedMegaMenuContent);
       } catch (err) {
+        setNavData([], {}); // Set empty on error to prevent infinite loading state
         console.error("Failed to fetch navigation data:", err);
       }
     };

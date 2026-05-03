@@ -27,7 +27,7 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
           {
             y: 0,
             autoAlpha: 1,
-            duration: 0.35,
+            duration: 0.3,
             ease: "power3.out",
           }
         );
@@ -40,10 +40,10 @@ const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) =>
             {
               y: 0,
               opacity: 1,
-              duration: 0.45,
-              stagger: 0.05,
+              duration: 0.35,
+              stagger: 0.03,
               ease: "power2.out",
-              delay: 0.1,
+              delay: 0.08,
             }
           );
         }

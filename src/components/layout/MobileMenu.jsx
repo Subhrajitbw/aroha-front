@@ -87,7 +87,7 @@ const MobileMenu = ({
     gsap.to(mainContentRef.current, {
       x: "-20%",
       opacity: 0,
-      duration: 0.5,
+      duration: 0.35,
       ease: "power3.inOut",
     });
     
@@ -96,7 +96,7 @@ const MobileMenu = ({
       { x: "100%" },
       {
         x: "0%",
-        duration: 0.5,
+        duration: 0.35,
         ease: "power3.out",
         onComplete: () => setCurrentView(category.name),
       }
@@ -106,14 +106,14 @@ const MobileMenu = ({
   const slideBackToMain = () => {
     gsap.to(subContentRef.current, {
       x: "100%",
-      duration: 0.5,
+      duration: 0.35,
       ease: "power3.inOut",
     });
     
     gsap.to(mainContentRef.current, {
       x: "0%",
       opacity: 1,
-      duration: 0.5,
+      duration: 0.35,
       ease: "power3.out",
       onComplete: () => {
         setCurrentView("main");
@@ -124,13 +124,13 @@ const MobileMenu = ({
 
   useEffect(() => {
     if (isOpen) {
-      gsap.to(overlayRef.current, { autoAlpha: 1, duration: 0.5, ease: "power2.out" });
+      gsap.to(overlayRef.current, { autoAlpha: 1, duration: 0.3, ease: "power2.out" });
       gsap.fromTo(
         menuRef.current,
         { x: "-100%" }, // Slide from left for a luxury feel
         {
           x: "0%",
-          duration: 0.7,
+          duration: 0.45,
           ease: "power3.out",
         }
       );
@@ -138,10 +138,10 @@ const MobileMenu = ({
   }, [isOpen]);
 
   const handleClose = () => {
-    gsap.to(overlayRef.current, { autoAlpha: 0, duration: 0.4 });
+    gsap.to(overlayRef.current, { autoAlpha: 0, duration: 0.25 });
     gsap.to(menuRef.current, {
       x: "-100%",
-      duration: 0.6,
+      duration: 0.4,
       ease: "power3.inOut",
       onComplete: () => {
         setCurrentView("main");

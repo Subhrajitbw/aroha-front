@@ -241,7 +241,7 @@ export default function ProductCarousel() {
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 66vw"
-                className="object-cover transition-transform duration-[2000ms] ease-out group-hover:scale-105"
+                className="object-cover transition-transform duration-[1000ms] ease-out group-hover:scale-105"
               />
 
               <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none z-10" />

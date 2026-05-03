@@ -152,7 +152,7 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
     <>
       <nav
         ref={navRef}
-        className={`fixed z-50 transition-all duration-500 ease-out ${floatingPosition} ${scrolled ? "rounded-full shadow-xl" : ""
+        className={`fixed z-50 transition-all duration-300 ease-out ${floatingPosition} ${scrolled ? "rounded-full shadow-xl" : ""
           } px-6 lg:px-12 py-4 lg:py-2`}
         style={floatingStyles}
         onMouseLeave={handleNavAreaLeave}

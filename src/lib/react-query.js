@@ -46,10 +46,16 @@ export const sanity = sanityClient;
 export const sanityUrlFor = urlFor;
 
 // -----------------------------
-// Image Prefetch
+// Image Prefetch (Optimized to prevent RAM bloat)
 // -----------------------------
+const prefetchedUrls = new Set();
 export const prefetchImage = (url) => {
-  if (!url || typeof window === "undefined") return;
+  if (!url || typeof window === "undefined" || prefetchedUrls.has(url)) return;
+  
+  // Cap prefetching to prevent RAM explosion (1GB+ RAM issues)
+  if (prefetchedUrls.size > 100) return; 
+
+  prefetchedUrls.add(url);
   const img = new Image();
   img.src = url;
 };
