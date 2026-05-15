@@ -187,7 +187,7 @@ const CategorySection = () => {
 
           <div className="flex flex-col md:flex-row items-end md:items-center gap-4 md:gap-8">
             <Link
-              href="/categories"
+              href="/shop"
               className="group flex items-center gap-2 text-[10px] md:text-xs uppercase tracking-[0.25em] font-medium text-stone-600 hover:text-stone-900 transition-colors duration-300 pb-1"
             >
               All Collections
@@ -288,7 +288,7 @@ const CategoryCard = ({ category, isLarge = false, priority = false }) => {
       className="group relative w-full h-full min-h-0 flex overflow-hidden rounded-[1.25rem] md:rounded-[2rem] bg-stone-200 shadow-sm isolation-auto cursor-pointer border border-stone-200"
     >
       <Link
-        href={`/shop/category/${encodeURIComponent(category.handle)}`}
+        href={`/product-categories/${category.handle}`}
         className="absolute inset-0 z-0"
         aria-label={`View ${category.name} category`}
       />
@@ -321,7 +321,7 @@ const CategoryCard = ({ category, isLarge = false, priority = false }) => {
 
           {/* Mobile only explore pill since we lack mini-products */}
           <Link
-            href={`/shop/category/${encodeURIComponent(category.handle)}`}
+            href={`/product-categories/${category.handle}`}
             className="mt-4 md:hidden inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] uppercase font-medium tracking-[0.2em] text-white/90 hover:bg-white/20 transition-colors pointer-events-auto relative z-20"
           >
             Explore <MoveRight size={12} />
@@ -356,7 +356,7 @@ const CategoryCard = ({ category, isLarge = false, priority = false }) => {
             )}
 
             <Link
-              href={`/shop/category/${encodeURIComponent(category.handle)}`}
+              href={`/product-categories/${category.handle}`}
               className="group/mini ml-auto md:m-0 relative flex items-center justify-center h-[65px] md:h-[80px] lg:h-[90px] aspect-[3/4] rounded-lg md:rounded-xl overflow-hidden bg-white/10 backdrop-blur-md shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] border border-white/30 text-white hover:bg-white hover:text-stone-900 will-change-transform"
               style={{ transitionDelay: `${category.featuredProducts?.length * 30}ms` }}
               aria-label={`View all ${category.name}`}

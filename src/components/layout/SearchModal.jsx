@@ -265,7 +265,7 @@ const SearchModal = () => {
                             <button
                               key={cat.id || i}
                               onClick={() => {
-                                router.push(`/shop/category/${encodeURIComponent(cat.handle)}`);
+                                router.push(`/product-categories/${cat.handle}`);
                                 handleClose();
                               }}
                               className="group relative overflow-hidden rounded-2xl aspect-[3/4] bg-stone-100"

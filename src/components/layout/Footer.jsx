@@ -15,18 +15,18 @@ const Footer = () => {
       title: "Shop",
       links: [
         { label: "All Collections", href: "/shop" },
-        { label: "New Arrivals", href: "/shop" },
+        { label: "New Arrivals", href: "/shop?filter=newOnly" },
         { label: "Bestsellers", href: "/shop" },
         { label: "Lookbook", href: "/lookbook" },
         { label: "Design Services", href: "/contact" },
       ],
     },
     {
-      title: "About",
+      title: "Explore",
       links: [
-        { label: "Our Story", href: "/about" },
-        { label: "Design Process", href: "/about" },
+        { label: "Rooms", href: "/rooms" },
         { label: "Journal", href: "/journal" },
+        { label: "Lookbook", href: "/lookbook" },
         { label: "Contact", href: "/contact" },
       ],
     },
@@ -35,9 +35,8 @@ const Footer = () => {
       links: [
         { label: "Contact Us", href: "/contact" },
         { label: "Shipping & Delivery", href: "/shipping-policy" },
-        { label: "Returns & Refunds", href: "/return-and-refund-policy" },
-        { label: "FAQ", href: "/contact" },
-        { label: "Track Your Order", href: "/account?tab=orders" },
+        { label: "Returns & Refunds", href: "/refund-policy" },
+        { label: "Track Your Order", href: "/account" },
       ],
     },
     {
@@ -45,7 +44,7 @@ const Footer = () => {
       links: [
         { label: "Terms of Use", href: "/terms-of-use" },
         { label: "Privacy Policy", href: "/privacy-policy" },
-        { label: "Return & Refund Policy", href: "/return-and-refund-policy" },
+        { label: "Refund Policy", href: "/refund-policy" },
         { label: "Shipping Policy", href: "/shipping-policy" },
       ],
     },
@@ -269,7 +268,7 @@ const Footer = () => {
             {[
               { label: "Terms", href: "/terms-of-use" },
               { label: "Privacy", href: "/privacy-policy" },
-              { label: "Returns", href: "/return-and-refund-policy" },
+              { label: "Refunds", href: "/refund-policy" },
               { label: "Shipping", href: "/shipping-policy" },
             ].map((link) => (
               <Link

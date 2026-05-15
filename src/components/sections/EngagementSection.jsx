@@ -6,6 +6,7 @@ import "swiper/css/pagination";
 import { ArrowRight } from "lucide-react";
 import { sanityClient } from "@/lib/sanityClient";
 import Image from "next/image";
+import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -104,13 +105,13 @@ const EngagementSection = () => {
           <h2 className="font-serif text-3xl md:text-4xl text-stone-900">
             Journal
           </h2>
-          <a 
-            href="/blog"
+          <Link
+            href="/journal"
             className="group hidden md:flex items-center gap-2 text-xs uppercase tracking-widest text-stone-600 hover:text-stone-900 transition-colors"
           >
             View All
             <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-          </a>
+          </Link>
         </div>
 
         {/* Content */}
@@ -132,8 +133,8 @@ const EngagementSection = () => {
           >
             {items.map((item) => (
               <SwiperSlide key={item.id}>
-                <a 
-                  href={`/blog/${item.slug}`}
+                <Link 
+                  href="/journal"
                   className="group block bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all duration-500"
                 >
                   <div className="relative w-full aspect-[4/3] overflow-hidden bg-stone-100 flex-none">
@@ -157,17 +158,17 @@ const EngagementSection = () => {
                       <ArrowRight className="w-3 h-3" />
                     </span>
                   </div>
-                </a>
+                </Link>
               </SwiperSlide>
             ))}
           </Swiper>
         ) : (
           <div className="grid grid-cols-3 gap-6">
             {items.map((item, index) => (
-              <a 
+              <Link
                 key={item.id}
                 ref={(el) => (cardsRef.current[index] = el)}
-                href={`/blog/${item.slug}`}
+                href="/journal"
                 className="group block bg-white overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500"
               >
                 {/* Image */}
@@ -197,7 +198,7 @@ const EngagementSection = () => {
                     <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
                   </span>
                 </div>
-              </a>
+              </Link>
             ))}
           </div>
         )}

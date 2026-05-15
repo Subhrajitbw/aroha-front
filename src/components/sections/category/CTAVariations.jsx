@@ -29,7 +29,7 @@ export const PremiumCTA = ({ selectedCategory, stats }) => (
       </div>
       
       <Link
-        href={`/category/${selectedCategory.slug}`}
+        href={`/product-categories/${selectedCategory.handle || selectedCategory.slug}`}
         className="inline-flex items-center gap-3 px-8 py-4 bg-gray-900 text-white rounded-2xl hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl transform-gpu hover:scale-105"
       >
         <ShoppingBag className="w-5 h-5" />

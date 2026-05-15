@@ -191,7 +191,7 @@ export default function ProductCarousel() {
                 The Showcase
               </h2>
               <Link
-                href="/store"
+                href="/shop"
                 className="group hidden md:flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] font-medium text-stone-400 hover:text-stone-900 transition-colors duration-300 mt-2"
               >
                 Shop All
