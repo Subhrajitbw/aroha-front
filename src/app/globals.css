@@ -110,7 +110,8 @@ body {
 
 html {
   font-size: 16px;
-  /* Stabilize viewport with dynamic units to avoid address bar jitter */
+  /* Fill the complete viewport including home-indicator area */
+  height: 100%;
   min-height: 100dvh;
   height: -webkit-fill-available;
 }
@@ -121,10 +122,23 @@ body {
   -moz-osx-font-smoothing: grayscale;
   color: #1c1917; /* stone-900 */
   text-rendering: optimizeLegibility;
+  /* Stretch body to fill the full screen — prevents white gap at bottom in PWA standalone */
+  min-height: 100%;
   min-height: 100dvh;
-  /* Do NOT apply safe-area-inset padding to body globally —
-     it breaks fixed/absolute full-screen layouts (e.g. landing page).
-     Safe area is handled per-component (NavBar, MobileMenu). */
+  /* Bottom safe area padding prevents content clipping behind home indicator.
+     Top is intentionally excluded — NavBar already handles safe-area-inset-top
+     to avoid double-padding the status bar area. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  box-sizing: border-box;
+}
+
+/* Override body safe-area for full-bleed sections: add this class to wrappers that should
+   stretch edge-to-edge (hero videos, landing page, etc.) */
+.full-bleed {
+  margin-left: calc(-1 * env(safe-area-inset-left, 0px));
+  margin-right: calc(-1 * env(safe-area-inset-right, 0px));
 }
 
 /* Stabilize global font weights for luxury readability */

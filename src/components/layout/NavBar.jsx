@@ -1,5 +1,5 @@
 // src/components/layout/NavBar.jsx
-import React, { useRef, useState, useCallback, useEffect } from "react";
+import React, { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, Search as SearchIcon, ChevronDown, User, ShoppingBag, Heart } from "lucide-react";
@@ -180,26 +180,73 @@ const NavBar = ({ variant = "light" }) => {
 
   const { items: wishlistItems, isHydrated: wishlistHydrated } = useWishlistStore();
 
-  const isBottom = floatingPosition.includes("bottom");
+  // ---------------------------------------------------------------------------
+  // Derive final nav styles based on scroll/device state
+  // ---------------------------------------------------------------------------
+  const navStyle = useMemo(() => {
+    const base = {
+      ...floatingStyles,
+      position: 'fixed',
+      zIndex: 50,
+      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+    };
+
+    if (!scrolled) {
+      // Full-width top banner (un-scrolled state)
+      return {
+        ...base,
+        top: 0,
+        left: 0,
+        right: 0,
+        width: '100%',
+        borderRadius: 0,
+        paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))',
+        paddingBottom: '0.5rem',
+        paddingLeft: isMobileDevice ? '1.25rem' : '3rem',
+        paddingRight: isMobileDevice ? '1.25rem' : '3rem',
+      };
+    }
+
+    if (isMobileDevice) {
+      // Floating pill at bottom on mobile (scrolled)
+      return {
+        ...base,
+        bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 'calc(100% - 2rem)',
+        maxWidth: '440px',
+        borderRadius: '9999px',
+        boxShadow: '0 10px 40px rgba(0,0,0,0.18)',
+        paddingTop: '0.5rem',
+        paddingBottom: '0.5rem',
+        paddingLeft: '1.25rem',
+        paddingRight: '1.25rem',
+      };
+    }
+
+    // Floating pill at top on desktop (scrolled)
+    return {
+      ...base,
+      top: '0.75rem',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      width: 'calc(100% - 3rem)',
+      maxWidth: '1280px',
+      borderRadius: '9999px',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+      paddingTop: '0.375rem',
+      paddingBottom: '0.375rem',
+      paddingLeft: '2rem',
+      paddingRight: '2rem',
+    };
+  }, [scrolled, isMobileDevice, floatingStyles]);
 
   return (
     <>
       <nav
         ref={navRef}
-        className={`fixed z-50 transition-all duration-500 ease-in-out ${floatingPosition} ${
-          scrolled ? "rounded-full shadow-2xl" : "left-0 right-0"
-        } px-5 lg:px-12 py-1.5 lg:py-2 
-        ${!scrolled ? "pt-[calc(1rem+env(safe-area-inset-top,0px))]" : ""}
-        ${isBottom ? "pb-[calc(0.4rem+env(safe-area-inset-bottom,0px))] pt-2" : ""}
-        ${scrolled && !isBottom ? "mt-2" : ""}
-        `}
-        style={{
-          ...floatingStyles,
-          width: scrolled ? 'calc(100% - 2rem)' : '100%',
-          maxWidth: scrolled ? '480px' : 'none',
-          left: scrolled ? '50%' : '0',
-          transform: scrolled ? 'translateX(-50%)' : 'none',
-        }}
+        style={navStyle}
         onMouseLeave={handleNavAreaLeave}
         data-theme={effectiveTheme}
       >

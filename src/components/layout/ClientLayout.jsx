@@ -45,12 +45,21 @@ export default function ClientLayout({ children }) {
       <SearchModal isOpen={isSearchOpen} onClose={closeSearch} />
       <AuthModal isOpen={isAuthOpen} onClose={closeAuth} />
       
-      {/* Top Spacer: only for top-fixed nav on desktop/non-floating states */}
+      {/* Top Spacer: only for top-fixed nav on desktop non-floating states */}
       {needsNavSpacer && (
         <div 
           aria-hidden="true"
           className="hidden lg:block"
           style={{ height: 'var(--nav-height, 64px)' }} 
+        />
+      )}
+
+      {/* Bottom Spacer: only for mobile where nav floats at bottom when scrolled */}
+      {needsNavSpacer && (
+        <div 
+          aria-hidden="true"
+          className="block lg:hidden"
+          style={{ height: 'calc(var(--nav-height, 56px) + 1.5rem + env(safe-area-inset-bottom, 0px))' }} 
         />
       )}
       
