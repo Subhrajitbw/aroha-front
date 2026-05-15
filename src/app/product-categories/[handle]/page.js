@@ -17,7 +17,7 @@ export async function generateMetadata({ params }) {
       openGraph: {
         title,
         description,
-        url: `https://arohahouse.com/shop/category/${handle}`,
+        url: `https://arohahouse.com/product-categories/${handle}`,
         type: 'website',
       }
     };
@@ -82,7 +82,7 @@ export default async function CategoryPage({ params }) {
         '@type': 'ListItem',
         position: 3,
         name: categoryName,
-        item: `https://arohahouse.com/shop/category/${rawHandle}`
+        item: `https://arohahouse.com/product-categories/${rawHandle}`
       }
     ]
   };

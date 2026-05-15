@@ -255,7 +255,7 @@ export default function ShopClient({ initialData }) {
     while (current) {
       hierarchy.unshift({
         label: current.name,
-        path: `/shop/category/${current.handle}`,
+        path: `/product-categories/${current.handle}`,
         isLast: current === selectedCategoryNode
       });
       current = current.parent_category_id ? categoryById.get(current.parent_category_id) : null;
@@ -292,7 +292,7 @@ export default function ShopClient({ initialData }) {
     if (selectedCategoryHandle === handle) {
       router.push("/shop");
     } else {
-      router.push(`/shop/category/${encodeURIComponent(handle)}`);
+      router.push(`/product-categories/${handle}`);
     }
   };
 
@@ -321,7 +321,7 @@ export default function ShopClient({ initialData }) {
 
   const goToCategory = (handle) => {
     if (!handle) router.push("/shop");
-    else router.push(`/shop/category/${encodeURIComponent(handle)}`);
+    else router.push(`/product-categories/${handle}`);
   };
 
   // Slider animation logic

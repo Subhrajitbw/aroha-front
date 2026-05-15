@@ -36,7 +36,7 @@ const Breadcrumbs = ({ className = "", items = null }) => {
       const lowerName = name.toLowerCase();
       
       // Structural segments to skip for a cleaner path
-      const structuralSegments = ["category", "product", "products", "blogs"];
+      const structuralSegments = ["category", "product", "products", "blogs", "product-categories"];
       
       currentPath += `/${name}`;
       

@@ -16,7 +16,7 @@ export default async function sitemap() {
     // Fetch all categories
     const { product_categories } = await sdk.store.category.list({ limit: 100 });
     const categoryUrls = product_categories.map((category) => ({
-      url: `${baseUrl}/shop/category/${category.handle}`,
+      url: `${baseUrl}/product-categories/${category.handle}`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.6,
