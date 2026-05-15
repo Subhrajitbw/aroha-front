@@ -7,7 +7,7 @@ const Logo = ({ logoRef, color, onMouseEnter }) => {
       <Link
         href="/"
         ref={logoRef}
-        className={`text-2xl lg:text-3xl font-light tracking-[0.3em] ${color} transition-all duration-500 hover:tracking-[0.5em]`}
+        className={`text-xl md:text-2xl lg:text-3xl font-light tracking-[0.3em] ${color} transition-all duration-500 hover:tracking-[0.5em]`}
         style={{
           fontFamily: "Playfair Display, serif",
           textDecoration: "none",

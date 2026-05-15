@@ -70,17 +70,6 @@ export const metadata = {
       'max-snippet': -1,
     },
   },
-  icons: {
-    icon: [
-      { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/icon-192.png',   sizes: '192x192', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
-    shortcut: '/favicon-32.png',
-  },
 };
 
 export default async function RootLayout({ children }) {
@@ -114,9 +103,6 @@ export default async function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Aroha" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         
         {/* Service Worker Registration — Disabled in Dev to prevent interference with HMR */}
         <script
@@ -125,9 +111,34 @@ export default async function RootLayout({ children }) {
               if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').then(
-                    function(registration) { console.log('Service Worker registered'); },
+                    function(registration) {
+                      console.log('Service Worker registered');
+                      
+                      // Check for updates on every page load
+                      registration.update();
+
+                      // Listen for the waiting service worker
+                      registration.addEventListener('updatefound', () => {
+                        const newWorker = registration.installing;
+                        newWorker.addEventListener('statechange', () => {
+                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New content is available; auto-reload to apply it
+                            window.location.reload();
+                          }
+                        });
+                      });
+                    },
                     function(err) { console.log('Service Worker registration failed: ', err); }
                   );
+                });
+
+                // Listen for controlling service worker change
+                let refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                  if (!refreshing) {
+                    window.location.reload();
+                    refreshing = true;
+                  }
                 });
               }
             `,

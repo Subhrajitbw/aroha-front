@@ -180,13 +180,26 @@ const NavBar = ({ variant = "light" }) => {
 
   const { items: wishlistItems, isHydrated: wishlistHydrated } = useWishlistStore();
 
+  const isBottom = floatingPosition.includes("bottom");
+
   return (
     <>
       <nav
         ref={navRef}
-        className={`fixed z-50 transition-all duration-300 ease-out ${floatingPosition} ${scrolled ? "rounded-full shadow-xl" : ""
-          } px-6 lg:px-12 py-4 lg:py-2 pt-[calc(1rem+env(safe-area-inset-top,0px))] lg:pt-2`}
-        style={floatingStyles}
+        className={`fixed z-50 transition-all duration-500 ease-in-out ${floatingPosition} ${
+          scrolled ? "rounded-full shadow-2xl" : "left-0 right-0"
+        } px-5 lg:px-12 py-1.5 lg:py-2 
+        ${!scrolled ? "pt-[calc(1rem+env(safe-area-inset-top,0px))]" : ""}
+        ${isBottom ? "pb-[calc(0.4rem+env(safe-area-inset-bottom,0px))] pt-2" : ""}
+        ${scrolled && !isBottom ? "mt-2" : ""}
+        `}
+        style={{
+          ...floatingStyles,
+          width: scrolled ? 'calc(100% - 2rem)' : '100%',
+          maxWidth: scrolled ? '480px' : 'none',
+          left: scrolled ? '50%' : '0',
+          transform: scrolled ? 'translateX(-50%)' : 'none',
+        }}
         onMouseLeave={handleNavAreaLeave}
         data-theme={effectiveTheme}
       >
