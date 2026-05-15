@@ -7,10 +7,11 @@ import { PortableText } from '@portabletext/react';
 import { ProductInfoCard } from "../shop/ProductInfoCard";
 import CustomDropdown from "../ui/CustomDropdown";
 import Breadcrumbs from "../ui/Breadcrumbs";
-
+import { motion } from 'framer-motion'
 const ProductClient = ({ initialData }) => {
   const router = useRouter();
-  const thumbnailRefs = useRef([]);
+  const desktopThumbnailRefs = useRef([]);
+  const mobileThumbnailRefs = useRef([]);
   const mobileGalleryRef = useRef(null);
 
   const { sanityContent, medusaProduct, resolvedCustomization, resolvedAfterSales, resolvedTrust } = initialData;
@@ -74,8 +75,11 @@ const ProductClient = ({ initialData }) => {
 
   const handleImageChange = (index) => {
     setCurrentImageIndex(index);
-    if (thumbnailRefs.current[index]) {
-      thumbnailRefs.current[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    if (desktopThumbnailRefs.current[index]) {
+      desktopThumbnailRefs.current[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+    if (mobileThumbnailRefs.current[index]) {
+      mobileThumbnailRefs.current[index].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
   };
 
@@ -123,48 +127,70 @@ const ProductClient = ({ initialData }) => {
         id: "trust",
         label: "Warranty & After-Sales",
         content: (
-          <div className="space-y-10 text-sm text-stone-700">
+          <div className="space-y-8">
             {resolvedAfterSales?.deliveryOptions && (
-              <div className="flex gap-3">
-                <Truck className="w-4 h-4 mt-1 text-stone-400 shrink-0" />
-                <div className="w-full">
-                  <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-3">Delivery</p>
-                  <ul className="list-disc pl-5 space-y-2 text-stone-600 text-sm">
-                    {resolvedAfterSales.deliveryOptions.map((option, i) => (
-                      <li key={i}>
-                        <span className="font-medium text-stone-900">{option.type}</span>
-                        {option.timeline && <span className="text-stone-500"> – {option.timeline}</span>}
-                        {option.description && <span className="block text-stone-600 mt-1">{option.description}</span>}
-                      </li>
-                    ))}
-                  </ul>
+              <div className="group/item bg-stone-50/50 border border-stone-100 rounded-3xl p-6 transition-all hover:bg-stone-50 hover:border-stone-200">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-stone-100">
+                    <Truck className="w-5 h-5 text-stone-900" />
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] uppercase tracking-[0.25em] font-bold text-stone-400">Concierge Delivery</h4>
+                    <p className="text-xs text-stone-500 font-medium">Safe & Professional Handling</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {resolvedAfterSales.deliveryOptions.map((option, i) => (
+                    <div key={i} className="flex justify-between items-start gap-4">
+                      <div className="flex-1">
+                        <span className="block text-sm font-semibold text-stone-900">{option.type}</span>
+                        {option.description && <span className="block text-xs text-stone-500 mt-1 leading-relaxed">{option.description}</span>}
+                      </div>
+                      {option.timeline && (
+                        <span className="shrink-0 text-[10px] uppercase tracking-widest font-bold bg-stone-900 text-white px-3 py-1.5 rounded-full">
+                          {option.timeline}
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
-            
+
             {resolvedAfterSales?.warranties && (
-              <div className="flex gap-3 pt-4 border-t border-stone-200/50">
-                <ShieldCheck className="w-4 h-4 mt-1 text-stone-400 shrink-0" />
-                <div className="w-full">
-                  <p className="text-[10px] uppercase tracking-widest font-bold text-stone-400 mb-3">Warranty Protection</p>
-                  <ul className="list-disc pl-5 space-y-3 text-stone-600 text-sm">
-                    {resolvedAfterSales.warranties.map((warranty, i) => (
-                      <li key={i}>
-                        <span className="font-medium text-stone-900">{warranty.title}</span>
-                        {warranty.duration && <span className="text-stone-500"> – {warranty.duration}</span>}
-                        {warranty.description && (
-                          <span className="block text-stone-600 mt-1 leading-relaxed">
-                            {warranty.description.split(/\b(Excludes|Includes|Important|Warning|Void)\b/i).map((part, idx) => {
-                              if (/^(Excludes|Includes|Important|Warning|Void)$/i.test(part)) {
-                                return <span key={idx} className="bg-stone-900 text-white px-1.5 py-0.5 text-[10px] uppercase tracking-wider rounded-sm mx-1 font-bold inline-block">{part}</span>;
-                              }
-                              return <span key={idx}>{part}</span>;
-                            })}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+              <div className="group/item bg-stone-50/50 border border-stone-100 rounded-3xl p-6 transition-all hover:bg-stone-50 hover:border-stone-200">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm border border-stone-100">
+                    <ShieldCheck className="w-5 h-5 text-stone-900" />
+                  </div>
+                  <div>
+                    <h4 className="text-[10px] uppercase tracking-[0.25em] font-bold text-stone-400">Aroha Warranty</h4>
+                    <p className="text-xs text-stone-500 font-medium">Quality Guaranteed Protection</p>
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  {resolvedAfterSales.warranties.map((warranty, i) => (
+                    <div key={i} className="relative pl-4 border-l-2 border-stone-200">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-bold text-stone-900 uppercase tracking-tight">{warranty.title}</span>
+                        {warranty.duration && <span className="text-[10px] font-bold text-stone-400 tracking-widest uppercase">{warranty.duration}</span>}
+                      </div>
+                      {warranty.description && (
+                        <div className="text-xs text-stone-600 leading-loose">
+                          {warranty.description.split(/\b(Excludes|Includes|Important|Warning|Void)\b/i).map((part, idx) => {
+                            if (/^(Excludes|Includes|Important|Warning|Void)$/i.test(part)) {
+                              return (
+                                <span key={idx} className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-stone-200 text-stone-700 mr-1.5">
+                                  {part}
+                                </span>
+                              );
+                            }
+                            return <span key={idx}>{part}</span>;
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -178,51 +204,94 @@ const ProductClient = ({ initialData }) => {
   const images = sanityContent?.galleryR2?.length > 0 ? sanityContent.galleryR2 : (product.images?.length > 0 ? product.images : [{ url: product.thumbnail }]);
 
   return (
-    <div className="min-h-[100dvh] text-stone-900 font-sans">
-      <main className="min-h-[100dvh] max-w-[1920px] mx-auto flex flex-col lg:flex-row">
-        {/* LEFT: IMAGE GALLERY */}
-        <div className="w-full lg:w-7/12 relative flex flex-col items-center justify-center pt-2 sm:pt-4 lg:pt-0 px-0 lg:px-12 xl:px-24 min-h-[50dvh] lg:h-[100dvh] lg:sticky lg:top-0 bg-white">
-          <div className="relative w-full max-w-[650px] aspect-square sm:rounded-[40px] overflow-hidden lg:shadow-sm lg:border border-stone-100/50">
-            {images[currentImageIndex]?.url ? (
-              <img src={images[currentImageIndex]?.url} className="w-full h-full object-cover animate-in fade-in duration-700" alt={product.title} />
-            ) : (
-              <div className="w-full h-full bg-stone-100 flex items-center justify-center text-stone-400 text-sm">No Image Available</div>
+    <div className="relative text-stone-900 font-sans">
+      <main className="max-w-[1920px] mx-auto lg:grid lg:grid-cols-12 relative">
+        {/* LEFT: IMAGE GALLERY — Acts as a track for the inner sticky element */}
+        <div className="w-full lg:col-span-7 h-full">
+          <div className="lg:sticky lg:top-[var(--nav-height,64px)] lg:h-[calc(100vh-var(--nav-height,64px))] flex flex-col items-center justify-center pt-4 sm:pt-6 lg:pt-0 px-0 lg:px-12 xl:px-24 bg-white z-10">
+            <div className="relative w-full max-w-[650px] aspect-square sm:rounded-[40px] overflow-hidden lg:shadow-sm lg:border border-stone-100/50 bg-stone-50 touch-pan-y">
+              {images[currentImageIndex]?.url ? (
+                <AnimatePresence mode="wait">
+                  <motion.div 
+                    key={currentImageIndex}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.5 }}
+                    drag="x"
+                    dragConstraints={{ left: 0, right: 0 }}
+                    onDragEnd={(e, { offset, velocity }) => {
+                      const swipe = offset.x;
+                      if (swipe < -50 && currentImageIndex < images.length - 1) {
+                        handleImageChange(currentImageIndex + 1);
+                      } else if (swipe > 50 && currentImageIndex > 0) {
+                        handleImageChange(currentImageIndex - 1);
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full"
+                  >
+                    {/* Skeleton for main image */}
+                    <div className="absolute inset-0 bg-stone-100 animate-pulse" />
+                    <img 
+                      src={images[currentImageIndex]?.url} 
+                      className="relative w-full h-full object-cover z-10 pointer-events-none" 
+                      alt={product.title} 
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              ) : (
+                <div className="w-full h-full bg-stone-100 flex items-center justify-center text-stone-400 text-sm italic">Selection visualization unavailable</div>
+              )}
+            </div>
+
+            {/* Mobile Thumbnails */}
+            {images.length > 1 && (
+              <div className="flex lg:hidden overflow-x-auto gap-3 py-4 mt-4 w-full max-w-[650px] scrollbar-hide scroll-smooth px-4 sm:px-0">
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    ref={(el) => (mobileThumbnailRefs.current[idx] = el)}
+                    onClick={() => handleImageChange(idx)}
+                    className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all shrink-0 ${currentImageIndex === idx ? "border-stone-900 shadow-md scale-105" : "border-transparent bg-stone-50 opacity-60 hover:opacity-100"}`}
+                  >
+                    <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
+                  </button>
+                ))}
+                {/* Spacer to prevent last item cutoff */}
+                <div className="w-4 shrink-0 sm:hidden"></div>
+              </div>
+            )}
+
+            {/* Desktop Vertical Thumbnails */}
+            {images.length > 1 && (
+              <div className="hidden lg:flex absolute left-4 xl:left-8 top-1/2 -translate-y-1/2 flex-col gap-4 max-h-[70%] overflow-y-auto scrollbar-hide scroll-smooth z-10 py-8 px-2 -ml-2">
+                {images.map((img, idx) => (
+                  <button
+                    key={idx}
+                    ref={(el) => (desktopThumbnailRefs.current[idx] = el)}
+                    onClick={() => handleImageChange(idx)}
+                    className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${currentImageIndex === idx ? "border-stone-900 scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100 hover:scale-105"}`}
+                  >
+                    <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
+                  </button>
+                ))}
+                {/* Spacer to prevent last item cutoff vertically */}
+                <div className="h-4 shrink-0"></div>
+              </div>
             )}
           </div>
-          
-          {/* Mobile Thumbnails */}
-          {images.length > 1 && (
-            <div className="flex lg:hidden overflow-x-auto gap-3 p-4 mt-2 w-full max-w-[650px] scrollbar-hide">
-              {images.map((img, idx) => (
-                <button key={idx} onClick={() => handleImageChange(idx)} className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${currentImageIndex === idx ? "border-stone-900 shadow-sm" : "border-transparent opacity-50"}`}>
-                  <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Desktop Vertical Thumbnails */}
-          {images.length > 1 && (
-            <div className="hidden lg:flex absolute left-6 xl:left-12 top-1/2 -translate-y-1/2 flex-col gap-4 max-h-[70%] overflow-y-auto scrollbar-hide z-10 py-4">
-              {images.map((img, idx) => (
-                <button key={idx} onClick={() => handleImageChange(idx)} className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${currentImageIndex === idx ? "border-stone-900 scale-110 shadow-lg" : "border-transparent opacity-30 hover:opacity-100"}`}>
-                  <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* RIGHT: DETAILS */}
-        <div className="w-full lg:w-5/12 bg-stone-50 px-5 sm:px-10 lg:px-12 xl:px-16 py-10 lg:py-20 xl:py-24 border-l border-stone-200/50">
+        {/* RIGHT: DETAILS — Drives the height of the page */}
+        <div className="w-full lg:col-span-5 bg-stone-50 px-5 sm:px-10 lg:px-12 xl:px-16 py-10 lg:py-20 xl:py-24 border-t lg:border-t-0 lg:border-l border-stone-200/50">
           <div className="max-w-xl mx-auto space-y-8 pb-20">
             <Breadcrumbs className="mb-0" />
             <header className="space-y-4">
               <p className="text-[10px] tracking-[0.4em] uppercase text-stone-400 font-bold">{sanityContent.brandName || "Aroha House"}</p>
               <div className="flex justify-between items-start gap-4">
                 <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl xl:text-6xl leading-tight text-stone-900 font-bold tracking-tight">{sanityContent.title || product.title}</h1>
-                <button 
-                  onClick={() => setIsWishlisted(!isWishlisted)} 
+                <button
+                  onClick={() => setIsWishlisted(!isWishlisted)}
                   className="p-3 bg-stone-100 hover:bg-stone-200 rounded-full transition-colors shrink-0 mt-2"
                 >
                   <Heart className={`w-5 h-5 transition-colors ${isWishlisted ? 'fill-stone-900 text-stone-900' : 'text-stone-400'}`} />
@@ -310,6 +379,7 @@ const ProductClient = ({ initialData }) => {
       </main>
       <style dangerouslySetInnerHTML={{
         __html: `
+        html, body { overflow-x: visible !important; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import gsap from "gsap";
@@ -8,7 +8,53 @@ import { MoveRight, ChevronLeft, ChevronRight } from "lucide-react";
 gsap.registerPlugin(ScrollTrigger);
 
 import { useQuery } from '@tanstack/react-query';
-import { medusaApi, prefetchImage } from  "@/lib/react-query";
+import { medusaApi, prefetchImage } from "@/lib/react-query";
+
+const getMasonryClass = (index, chunkLength, chunkIdx) => {
+  if (chunkLength === 4) {
+    const variant = chunkIdx % 3;
+
+    switch (variant) {
+      case 0:
+        // Variant 0: Large Left
+        // Desktop: Item 0 (2x2, Left), Item 1 (2x1, Top Right), Item 2 (1x1, Bottom), Item 3 (1x1, Bottom)
+        // Mobile: Item 0 (2x1), Item 1 (2x1), Item 2 (1x1), Item 3 (1x1)
+        if (index === 0) return "md:col-span-2 md:row-span-2 col-span-2 row-span-1";
+        if (index === 1) return "md:col-span-2 md:row-span-1 col-span-2 row-span-1";
+        if (index === 2) return "md:col-span-1 md:row-span-1 col-span-1 row-span-1";
+        if (index === 3) return "md:col-span-1 md:row-span-1 col-span-1 row-span-1";
+        break;
+      case 1:
+        // Variant 1: Large Right
+        // Desktop: Item 0 (2x1, Top Left), Item 1 (2x2, Right), Item 2 (1x1, Bottom Left), Item 3 (1x1, Bottom Left)
+        // Mobile: Item 0 (2x1), Item 1 (1x1), Item 2 (1x1), Item 3 (2x1)
+        // Fix: Moved the 2x2 item to index 1 so it fits in Row 1, Col 3-4 and spans down.
+        if (index === 0) return "md:col-span-2 md:row-span-1 col-span-2 row-span-1";
+        if (index === 1) return "md:col-span-2 md:row-span-2 col-span-1 row-span-1";
+        if (index === 2) return "md:col-span-1 md:row-span-1 col-span-1 row-span-1";
+        if (index === 3) return "md:col-span-1 md:row-span-1 col-span-2 row-span-1";
+        break;
+      case 2:
+        // Variant 2: Symmetrical
+        // Desktop: Item 0 (1x2, Left), Item 1 (2x1, Top Middle), Item 2 (1x2, Right), Item 3 (2x1, Bottom Middle)
+        // Mobile: Item 0 (1x2), Item 1 (1x1), Item 2 (1x1), Item 3 (2x1)
+        if (index === 0) return "md:col-span-1 md:row-span-2 col-span-1 row-span-2";
+        if (index === 1) return "md:col-span-2 md:row-span-1 col-span-1 row-span-1";
+        if (index === 2) return "md:col-span-1 md:row-span-2 col-span-1 row-span-1";
+        if (index === 3) return "md:col-span-2 md:row-span-1 col-span-2 row-span-1";
+        break;
+    }
+  } else if (chunkLength === 3) {
+    if (index === 0) return "md:col-span-2 md:row-span-2 col-span-2 row-span-2";
+    if (index === 1) return "md:col-span-1 md:row-span-2 col-span-1 row-span-1";
+    if (index === 2) return "md:col-span-1 md:row-span-2 col-span-1 row-span-1";
+  } else if (chunkLength === 2) {
+    if (index === 0) return "md:col-span-2 md:row-span-2 col-span-2 row-span-2";
+    if (index === 1) return "md:col-span-2 md:row-span-2 col-span-2 row-span-1";
+  }
+  
+  return "md:col-span-4 md:row-span-2 col-span-2 row-span-3";
+};
 
 const CategorySection = () => {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -42,12 +88,15 @@ const CategorySection = () => {
   });
 
   // Chunk layout data into grid modules of 4
-  const categoryChunks = [];
-  if (curatedData.length) {
-    for (let i = 0; i < curatedData.length; i += 4) {
-      categoryChunks.push(curatedData.slice(i, i + 4));
+  const categoryChunks = useMemo(() => {
+    const chunks = [];
+    if (curatedData.length) {
+      for (let i = 0; i < curatedData.length; i += 4) {
+        chunks.push(curatedData.slice(i, i + 4));
+      }
     }
-  }
+    return chunks;
+  }, [curatedData]);
 
   // Smart image prefetching for next slide
   useEffect(() => {
@@ -60,30 +109,19 @@ const CategorySection = () => {
     }
   }, [activeSlide, categoryChunks]);
 
-  useEffect(() => {
-    if (loading || categoryChunks.length === 0) return;
+  // Scroll handler using React's synthetic event system for maximum reliability
+  const handleScroll = (e) => {
+    const slider = e.currentTarget;
+    const scrollPosition = slider.scrollLeft;
+    const slideWidth = slider.clientWidth;
+    // Calculate the most visible slide
+    const newActiveSlide = Math.round(scrollPosition / slideWidth);
 
-    const handleScroll = () => {
-      if (!sliderRef.current) return;
-      const scrollPosition = sliderRef.current.scrollLeft;
-      const slideWidth = sliderRef.current.clientWidth;
-      const newActiveSlide = Math.round(scrollPosition / slideWidth);
-      if (newActiveSlide !== activeSlide) {
-        setActiveSlide(newActiveSlide);
-      }
-    };
-
-    const sliderElement = sliderRef.current;
-    if (sliderElement) {
-      sliderElement.addEventListener("scroll", handleScroll, { passive: true });
-    }
-
-    return () => {
-      if (sliderElement) {
-        sliderElement.removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, [loading, categoryChunks, activeSlide]);
+    setActiveSlide(prev => {
+      if (newActiveSlide !== prev) return newActiveSlide;
+      return prev;
+    });
+  };
 
   const scrollToSlide = (index) => {
     if (!sliderRef.current) return;
@@ -95,53 +133,36 @@ const CategorySection = () => {
 
   if (!hasMounted || loading) {
     return (
-      <section className="h-full w-full flex items-center justify-center bg-[#fdfbf9]">
-        <div className="w-6 h-6 border-t border-stone-800 rounded-full animate-spin" />
+      <section className="relative h-full w-full flex flex-col pt-32 pb-16 bg-[#fdfbf9] overflow-hidden">
+        <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto px-8 lg:px-12">
+          {/* Header Skeleton */}
+          <div className="flex justify-between items-end mb-8 px-2">
+            <div className="space-y-3">
+              <div className="h-3 w-32 bg-stone-100 rounded-full animate-pulse" />
+              <div className="h-10 w-64 bg-stone-100 rounded-full animate-pulse" />
+            </div>
+            <div className="h-4 w-24 bg-stone-100 rounded-full animate-pulse" />
+          </div>
+          
+          {/* Grid Skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-4 grid-rows-3 md:grid-rows-2 gap-6 h-[600px]">
+            <div className="md:col-span-2 md:row-span-2 col-span-2 row-span-1 bg-stone-100 rounded-[2rem] animate-pulse" />
+            <div className="md:col-span-2 md:row-span-1 col-span-2 row-span-1 bg-stone-100 rounded-[2rem] animate-pulse" />
+            <div className="md:col-span-1 md:row-span-1 col-span-1 row-span-1 bg-stone-100 rounded-[2rem] animate-pulse" />
+            <div className="md:col-span-1 md:row-span-1 col-span-1 row-span-1 bg-stone-100 rounded-[2rem] animate-pulse" />
+          </div>
+        </div>
       </section>
     );
   }
 
   if (categoryChunks.length === 0) {
     return (
-      <section className="h-full w-full flex items-center justify-center bg-[#fdfbf9]">
+      <section className="h-full w-full flex items-center justify-center bg-[#fdfbf9] py-32">
         <p className="text-stone-400 font-serif italic tracking-wide">Curating collections...</p>
       </section>
     );
   }
-
-  const getMasonryClass = (index, chunkLength, chunkIdx) => {
-    if (chunkLength === 4) {
-      const variant = chunkIdx % 3;
-
-      switch (variant) {
-        case 0:
-          if (index === 0) return "md:col-span-2 md:row-span-2 col-span-2 row-span-1";
-          if (index === 1) return "md:col-span-2 md:row-span-1 col-span-2 row-span-1";
-          if (index === 2) return "md:col-span-1 md:row-span-1 col-span-1 row-span-1";
-          if (index === 3) return "md:col-span-1 md:row-span-1 col-span-1 row-span-1";
-          break;
-        case 1:
-          if (index === 0) return "md:col-span-2 md:row-span-1 col-span-2 row-span-1";
-          if (index === 1) return "md:col-span-1 md:row-span-1 col-span-1 row-span-1";
-          if (index === 2) return "md:col-span-1 md:row-span-1 col-span-1 row-span-1";
-          if (index === 3) return "md:col-span-2 md:row-span-2 col-span-2 row-span-1";
-          break;
-        case 2:
-          if (index === 0) return "md:col-span-1 md:row-span-2 col-span-1 row-span-2";
-          if (index === 1) return "md:col-span-2 md:row-span-1 col-span-2 row-span-1";
-          if (index === 2) return "md:col-span-1 md:row-span-2 col-span-1 row-span-2";
-          if (index === 3) return "md:col-span-2 md:row-span-1 col-span-2 row-span-1";
-          break;
-      }
-    } else if (chunkLength === 3) {
-      if (index === 0) return "md:col-span-2 md:row-span-2 col-span-2 row-span-1";
-      if (index === 1) return "md:col-span-1 md:row-span-2 col-span-1 row-span-1";
-      if (index === 2) return "md:col-span-1 md:row-span-2 col-span-1 row-span-1";
-    } else if (chunkLength === 2) {
-      return "md:col-span-2 md:row-span-2 col-span-1 row-span-2";
-    }
-    return "col-span-4 row-span-2";
-  };
 
   const desktopGridCols = "md:grid-cols-4 md:grid-rows-2";
   const mobileGridCols = "grid-cols-2 grid-rows-3";
@@ -203,6 +224,7 @@ const CategorySection = () => {
         {/* CAROUSEL WRAPPER */}
         <div
           ref={sliderRef}
+          onScroll={handleScroll}
           className="flex-1 min-h-0 w-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide hide-scrollbar pb-2 pt-2 scroll-smooth"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
@@ -215,7 +237,7 @@ const CategorySection = () => {
                 {chunk.map((cat, idx) => (
                   <div
                     key={cat.id}
-                    className={`${getMasonryClass(idx, chunk.length, chunkIdx)} min-h-0 h-full w-full`}
+                    className={`${getMasonryClass(idx, chunk.length, chunkIdx)} min-h-0 h-full w-full relative`}
                   >
                     <CategoryCard
                       category={cat}
@@ -271,20 +293,22 @@ const CategoryCard = ({ category, isLarge = false, priority = false }) => {
         aria-label={`View ${category.name} category`}
       />
 
-      <Image
-        src={category.image}
-        alt={category.name}
-        fill
-        priority={priority}
-        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-        className="object-cover transition-transform duration-[1500ms] ease-out will-change-transform md:group-hover:scale-105"
-      />
+      <div className="relative w-full h-full overflow-hidden bg-stone-100 flex-none">
+        <Image
+          src={category.image}
+          alt={category.name}
+          fill
+          priority={priority}
+          sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+          className="object-cover transition-transform duration-[1500ms] ease-out will-change-transform md:group-hover:scale-105"
+        />
 
-      {/* Persistent gradient — matches ProductCarousel hero for consistent readability */}
-      <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+        {/* Persistent gradient — matches ProductCarousel hero for consistent readability */}
+        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none" />
+      </div>
 
       {/* Foreground Container: Mobile relies entirely on a minimalist approach (No product cards inside) */}
-      <div className="relative w-full h-full flex flex-col justify-end p-5 md:p-6 z-10 pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 w-full h-full flex flex-col justify-end p-5 md:p-6 z-10 pointer-events-none overflow-hidden">
 
         {/* Title Container - Centered and static on mobile. Translates dynamically on Desktop. */}
         <div className="transform transition-all duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform 
@@ -324,7 +348,7 @@ const CategoryCard = ({ category, isLarge = false, priority = false }) => {
                     alt={prod.title}
                     fill
                     sizes="100px"
-                    className="object-cover"
+                    className="object-contain p-1.5"
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover/mini:bg-black/20 transition-colors" />
                 </Link>

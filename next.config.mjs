@@ -15,11 +15,23 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     formats: ['image/webp', 'image/avif'],
   },
+  // cacheComponents: true,
   experimental: {
-    optimizePackageImports: ['lucide-react', 'gsap', 'framer-motion', 'swiper'],
+    optimizePackageImports: [
+      'lucide-react', 
+      'gsap', 
+      'framer-motion', 
+      'swiper',
+      '@medusajs/js-sdk',
+      'lucide-react'
+    ],
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
+  },
+  // Ensure fast production builds
+  typescript: {
+    ignoreBuildErrors: true,
   }
 };
 

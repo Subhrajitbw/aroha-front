@@ -136,7 +136,7 @@ const EngagementSection = () => {
                   href={`/blog/${item.slug}`}
                   className="group block bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all duration-500"
                 >
-                  <div className="relative w-full aspect-[4/3] overflow-hidden bg-stone-100">
+                  <div className="relative w-full aspect-[4/3] overflow-hidden bg-stone-100 flex-none">
                     <Image 
                       src={item.image}
                       alt={item.title}

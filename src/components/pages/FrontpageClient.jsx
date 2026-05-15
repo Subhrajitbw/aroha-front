@@ -5,6 +5,7 @@ import gsap from "gsap";
 import { sdk } from "@/lib/medusaClient";
 import { useQuery } from "@tanstack/react-query";
 import { useMenuStore } from "@/stores/useMenuStore";
+import useLockBodyScroll from "@/hooks/useLockBodyScroll";
 
 // Component Imports
 import HeroSection from "../sections/HeroSection";
@@ -51,6 +52,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
   // ---------------------------------------------------------
   // 3. SCROLL & LAYOUT LOGIC
   // ---------------------------------------------------------
+  const sectionRef = useRef(0); // Ref for immediate access in listeners
 
   // Deterministic theme map: returns "dark" or "light" for each section index
   // Layout: [Hero, Category, Carousel, ...Collections, About, Engagement, Footer]
@@ -87,26 +89,17 @@ const FrontpageClient = ({ initialCollections = [] }) => {
   }, []);
 
   // Lock body scroll — we handle everything via transforms
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    document.body.style.height = "100%";
-    document.body.style.width = "100%";
-    document.documentElement.style.overflow = "hidden";
-    document.documentElement.style.height = "100%";
+  useLockBodyScroll(true);
 
+  useEffect(() => {
     // Set initial theme for hero
     setNavThemeOverride("dark");
 
     return () => {
-      document.body.style.overflow = "";
-      document.body.style.height = "";
-      document.body.style.width = "";
-      document.documentElement.style.overflow = "";
-      document.documentElement.style.height = "";
       setGlobalSection(0);
       setNavThemeOverride(null); // Clear override when leaving frontpage
     };
-  }, []);
+  }, [setGlobalSection, setNavThemeOverride]);
 
   // Ready state after loading
   useEffect(() => {
@@ -121,14 +114,16 @@ const FrontpageClient = ({ initialCollections = [] }) => {
 
   // Simulated Loading Timer
   useEffect(() => {
+    // In development, we want instant feedback. In production, we allow the cinematic feel.
+    const delay = process.env.NODE_ENV === 'development' ? 100 : 1200;
     const t = setTimeout(() => {
       setIsLoading(false);
       setAppReady(true);
-    }, 1200);
+    }, delay);
     return () => clearTimeout(t);
   }, [setAppReady]);
 
-  const getTotalSections = () => 6 + collections.length;
+  const getTotalSections = () => 6 + (collections?.length || 0);
 
   // Cinematic GPU-accelerated section transition
   const animatedScrollToSection = useCallback((index) => {
@@ -139,135 +134,99 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     if (!wrapperRef.current) return;
 
     isAnimating.current = true;
+    sectionRef.current = index;
     setCurrentSection(index);
     setGlobalSection(index);
-    // Instant theme switch — no async delay
     setNavThemeOverride(getThemeForSection(index));
 
-    // Kill any existing animations on the wrapper
     gsap.killTweensOf(wrapperRef.current);
 
     gsap.to(wrapperRef.current, {
       duration: animationDuration,
-      ease: "power2.inOut", // Gentlest S-curve — no harsh acceleration
-      y: `${-index * 100}dvh`,
+      ease: "power2.inOut",
+      y: `${-index * 100}vh`,
       force3D: true,
-      rotationZ: 0.01, // Force GPU sub-pixel antialiasing
       onComplete: () => {
-        // isAnimating is the ONLY gate — no cooldown timers
         isAnimating.current = false;
       },
     });
-  }, [collections.length]);
+
+    // Fail-safe: ensure isAnimating is reset even if onComplete doesn't fire
+    setTimeout(() => {
+      isAnimating.current = false;
+    }, animationDuration * 1500);
+  }, [collections?.length, getThemeForSection, setGlobalSection, setNavThemeOverride]);
 
   // Scroll Handlers
   useEffect(() => {
     if (isLoading || isMenuOpen) return;
 
-    const total = getTotalSections();
-
     const changeSection = (dir) => {
       if (isAnimating.current) return;
-
-      const next = currentSection + dir;
-      if (next >= 0 && next < total) {
-        animatedScrollToSection(next);
-      }
+      const next = sectionRef.current + dir;
+      animatedScrollToSection(next);
     };
 
-    // Wheel handler — isAnimating is the sole gate, no cooldown timers
     const wheelHandler = (e) => {
-      // Ignore primarily horizontal scrolls (e.g. for carousels)
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-
-      e.preventDefault();
-
-      // isAnimating is the only guard — responsive the instant animation settles
+      if (e.cancelable) e.preventDefault();
+      
       if (isAnimating.current) return;
 
-      // Trigger on any clear intentional movement
-      if (Math.abs(e.deltaY) > 5) {
-        const dir = e.deltaY > 0 ? 1 : -1;
-        changeSection(dir);
+      if (Math.abs(e.deltaY) > 10) {
+        changeSection(e.deltaY > 0 ? 1 : -1);
       }
     };
 
-    // Touch handlers — iOS-like momentum
+    let swipeTriggered = false;
+
     const onTouchStart = (e) => {
       lastTouchY.current = e.touches[0].clientY;
-      // Also track X to differentiate vertical vs horizontal swipes
       lastTouchX.current = e.touches[0].clientX;
       touchStartTime.current = Date.now();
+      swipeTriggered = false;
     };
 
     const onTouchMove = (e) => {
-      // Prevent vertical swipes immediately to stop Safari from triggering pull-to-refresh.
-      // Safari triggers pull-to-refresh on the first few pixels, which pauses JS.
-      // By immediately preventing vertical touchmoves, we avoid the pause.
-      const deltaY = Math.abs(e.touches[0].clientY - lastTouchY.current);
-      const deltaX = Math.abs(e.touches[0].clientX - lastTouchX.current);
+      const currentY = e.touches[0].clientY;
+      const currentX = e.touches[0].clientX;
+      const deltaY = Math.abs(currentY - lastTouchY.current);
+      const deltaX = Math.abs(currentX - lastTouchX.current);
       
-      // If movement is primarily vertical, prevent default
       if (deltaY > deltaX && e.cancelable) {
         e.preventDefault();
+      }
+
+      if (swipeTriggered || isAnimating.current) return;
+
+      const rawDeltaY = lastTouchY.current - currentY;
+      
+      if (Math.abs(rawDeltaY) > 40) {
+        swipeTriggered = true;
+        changeSection(rawDeltaY > 0 ? 1 : -1);
       }
     };
 
     const onTouchEnd = (e) => {
-      if (isAnimating.current) return;
-
-      const touchEndTime = Date.now();
-      const touchDuration = touchEndTime - touchStartTime.current;
-      const deltaY = lastTouchY.current - e.changedTouches[0].clientY;
-      const velocity = Math.abs(deltaY) / (touchDuration || 1);
-
-      // Light flick (high velocity) = low threshold for native iOS feel
-      // Slow drag = higher threshold to prevent accidental changes
-      const threshold = velocity > 0.3 ? 15 : 50;
-
-      if (Math.abs(deltaY) > threshold) {
-        changeSection(deltaY > 0 ? 1 : -1);
+      if (swipeTriggered || isAnimating.current) return;
+      const rawDeltaY = lastTouchY.current - (e.changedTouches[0]?.clientY || lastTouchY.current);
+      if (Math.abs(rawDeltaY) > 20) {
+        changeSection(rawDeltaY > 0 ? 1 : -1);
       }
     };
 
-    const keyHandler = (e) => {
-      if (isAnimating.current) return;
-
-      const keyMap = {
-        ArrowDown: 1,
-        PageDown: 1,
-        ArrowUp: -1,
-        PageUp: -1,
-        Space: 1
-      };
-
-      if (keyMap[e.key] !== undefined) {
-        e.preventDefault();
-        changeSection(keyMap[e.key]);
-      } else if (e.key === "Home") {
-        e.preventDefault();
-        animatedScrollToSection(0);
-      } else if (e.key === "End") {
-        e.preventDefault();
-        animatedScrollToSection(total - 1);
-      }
-    };
-
-    // Add event listeners
     window.addEventListener("wheel", wheelHandler, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd, { passive: true });
-    window.addEventListener("keydown", keyHandler);
 
     return () => {
       window.removeEventListener("wheel", wheelHandler);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
-      window.removeEventListener("keydown", keyHandler);
     };
-  }, [currentSection, isLoading, collections.length, animatedScrollToSection, isMenuOpen]);
+  }, [isLoading, isMenuOpen, animatedScrollToSection]);
 
   const sectionClass = "h-[100dvh] w-full overflow-hidden bg-transparent lg:pb-0";
   const sectionStyle = { contain: 'layout style paint', isolation: 'isolate' };
@@ -277,13 +236,13 @@ const FrontpageClient = ({ initialCollections = [] }) => {
   // ---------------------------------------------------------
   return (
     <>
-      <LuxuryLoadingOverlay
+      {/* <LuxuryLoadingOverlay
         isVisible={isLoading}
         direction="up"
-        duration={3000}
+        duration={process.env.NODE_ENV === 'development' ? 200 : 3000}
         brandName="AROHA"
         onComplete={() => setIsLoading(false)}
-      />
+      /> */}
       <div
         className="fixed inset-0 overflow-hidden"
         style={{ height: '100dvh', width: '100vw' }}

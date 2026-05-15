@@ -14,19 +14,27 @@ export const metadata = {
 
 async function getCollections() {
   try {
-    const { collections } = await sdk.store.collection.list({
-      limit: 3,
-      fields: "id,title,handle,metadata"
-    });
+    // Use a 3-second timeout — if Medusa is slow, render immediately with empty collections.
+    // The client-side TanStack Query in FrontpageClient will fetch and hydrate on mount.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    
+    const { collections } = await sdk.store.collection.list(
+      { limit: 3, fields: "id,title,handle,metadata" },
+      { signal: controller.signal }
+    ).finally(() => clearTimeout(timeout));
+    
     return collections || [];
   } catch (error) {
-    console.error("Failed to fetch collections:", error);
+    // Timeout or network error — don't block the page render
+    console.warn("getCollections timed out or failed, rendering without SSR collections:", error.name);
     return [];
   }
 }
 
 export default async function HomePage() {
-  const initialCollections = await getCollections();
+  // Disable server-side fetch temporarily to fix hanging/blank page
+  const initialCollections = []; 
   
   const websiteSchema = {
     '@context': 'https://schema.org',

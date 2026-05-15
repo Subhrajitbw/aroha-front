@@ -3,12 +3,12 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { usePathname, useRouter, useParams, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
-import { FilterIcon, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
+import { Filter, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
 import { sdk } from  "@/lib/medusaClient";
 
 import { FilterSidebar } from "../shop/FilterSidebar";
 import { MobileFilterDrawer } from "../shop/MobileFilterDrawer";
-import { ProductInfoCard } from "../shop/ProductInfoCard";
+import { ProductInfoCard, ProductSkeleton } from "../shop/ProductInfoCard";
 import CategoryTab from "../sections/category/CategoryTab";
 import Breadcrumbs from "../ui/Breadcrumbs";
 
@@ -18,19 +18,57 @@ export default function ShopClient({ initialData }) {
   const params = useParams();
   const searchParams = useSearchParams();
 
-  // State management initialized with server data
-  const [products, setProducts] = useState(initialData.products || []);
+  const mapProduct = (product) => {
+    const defaultVariant = product.variants?.[0];
+    const calc = defaultVariant?.calculated_price;
+    let amount = calc?.calculated_amount || 0;
+    let originalAmount = calc?.original_amount || amount;
+    let currencyCode = (calc?.currency_code || "INR").toUpperCase();
+
+    let discount = 0;
+    if (originalAmount > amount) {
+      discount = Math.round(((originalAmount - amount) / originalAmount) * 100);
+    }
+
+    const formatPrice = (val) => new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: currencyCode,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(val);
+
+    return {
+      id: product.id,
+      title: product.title,
+      handle: product.handle,
+      image: product.thumbnail || "https://placehold.co/600x800/f5f5f5/e0e0e0",
+      price: formatPrice(amount),
+      originalPrice: discount > 0 ? formatPrice(originalAmount) : null,
+      discount,
+      status: discount > 0 ? "sale" : "new",
+      _rawAmount: amount,
+      _rawOriginalAmount: originalAmount,
+      tags: product.tags || [],
+      created_at: product.created_at,
+      collection_id: product.collection_id
+    };
+  };
+
+  // State management initialized with mapped server data
+  const [products, setProducts] = useState(() => (initialData.products || []).map(mapProduct));
   const [collections, setCollections] = useState(initialData.collections || []);
   const [categories, setCategories] = useState(initialData.categories || []);
   const [loading, setLoading] = useState(false);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [regionId, setRegionId] = useState(null);
+  const [regionId, setRegionId] = useState(initialData.regionId || null);
 
   const [selectedCategoryHandle, setSelectedCategoryHandle] = useState(initialData.selectedCategoryHandle || null);
   const [page, setPage] = useState(1);
   const limit = 12;
   const [totalCount, setTotalCount] = useState(initialData.totalCount || 0);
+
+
   const [sort, setSort] = useState("relevance");
   const [priceBounds, setPriceBounds] = useState({ min: 0, max: 50000000 });
 
@@ -52,17 +90,23 @@ export default function ShopClient({ initialData }) {
   const [canScrollRight, setCanScrollRight] = useState(false);
   const x = useMotionValue(0);
 
+  const isInitialMount = useRef(true);
+
   // Sync category from URL params
   useEffect(() => {
     const handle = params.handle || null;
-    setSelectedCategoryHandle(handle);
-    setFilters(prev => ({
-      ...prev,
-      categories: handle ? [handle] : []
-    }));
-    setPage(1);
-    if (x) x.set(0);
-  }, [params.handle, x]);
+    
+    // Only update if handle actually changed
+    if (handle !== selectedCategoryHandle) {
+      setSelectedCategoryHandle(handle);
+      setFilters(prev => ({
+        ...prev,
+        categories: handle ? [handle] : []
+      }));
+      setPage(1);
+      if (x) x.set(0);
+    }
+  }, [params.handle, x, selectedCategoryHandle]);
 
   // Fetch region
   useEffect(() => {
@@ -77,18 +121,73 @@ export default function ShopClient({ initialData }) {
     initRegion();
   }, []);
 
+  const isRestored = useRef(false);
+
+  // Restore state on mount (Client-side only to avoid hydration mismatch)
+  useEffect(() => {
+    const savedProducts = sessionStorage.getItem('shop_persisted_products');
+    const savedPage = sessionStorage.getItem('shop_persisted_page');
+    const savedScrollPos = sessionStorage.getItem('shop_scroll_pos');
+
+    if (savedProducts) {
+      try {
+        const parsed = JSON.parse(savedProducts);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setProducts(parsed);
+          if (savedPage) setPage(parseInt(savedPage, 10));
+          isRestored.current = true;
+          
+          if (savedScrollPos) {
+            setTimeout(() => {
+              window.scrollTo({ top: parseInt(savedScrollPos, 10), behavior: 'instant' });
+            }, 100);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to restore shop state:", e);
+      }
+    }
+  }, []);
+
+  const handleProductClick = (handle) => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('shop_scroll_pos', window.scrollY.toString());
+      sessionStorage.setItem('shop_persisted_products', JSON.stringify(products));
+      sessionStorage.setItem('shop_persisted_page', page.toString());
+    }
+    router.push(`/product/${handle}`);
+  };
+
+  const hasMore = useMemo(() => {
+    if (totalCount === 0 && products.length > 0) return false;
+    return products.length < totalCount;
+  }, [products.length, totalCount]);
+
   // Fetch products with backend filtering
   useEffect(() => {
     const fetchProducts = async () => {
       if (!regionId) return;
+
+      // Skip fetch on mount if we just restored from cache
+      if (isInitialMount.current) {
+        isInitialMount.current = false;
+        if (isRestored.current) {
+          // Clear these once used so a fresh visit doesn't restore old state
+          sessionStorage.removeItem('shop_persisted_products');
+          sessionStorage.removeItem('shop_persisted_page');
+          sessionStorage.removeItem('shop_scroll_pos');
+          return;
+        }
+      }
+
       if (filters.categories?.length > 0 && categories.length === 0) return;
 
-      if (products.length === 0) setLoading(true);
+      setLoading(true);
       try {
         let orderParam = sort === "newest" ? "-created_at" : undefined;
         const queryParams = {
           limit: 100,
-          fields: "id,title,handle,thumbnail,variants.calculated_price,variants.inventory_quantity,collection.title,created_at",
+          fields: "id,title,handle,thumbnail,variants.calculated_price,variants.inventory_quantity,collection.title,created_at,*tags",
           region_id: regionId,
           ...(orderParam && { order: orderParam }),
           ...(filters.collections?.length > 0 && { "collection_id[]": filters.collections }),
@@ -101,52 +200,31 @@ export default function ShopClient({ initialData }) {
           if (categoryIds.length > 0) queryParams["category_id[]"] = categoryIds;
         }
 
-        const { products: productsList } = await sdk.store.product.list(queryParams);
+        // Add pagination offsets
+        if (page > 1) {
+          queryParams.offset = (page - 1) * limit;
+        }
 
-        const mappedProducts = (productsList || []).map((product) => {
-          const defaultVariant = product.variants?.[0];
-          let amount = defaultVariant?.calculated_price?.calculated_amount || 0;
-          let originalAmount = defaultVariant?.calculated_price?.original_amount || amount;
-          let currencyCode = (defaultVariant?.calculated_price?.currency_code || "INR").toUpperCase();
+        const { products: productsList, count } = await sdk.store.product.list(queryParams);
+        const mappedProducts = (productsList || []).map(mapProduct);
 
-          let discount = 0;
-          if (originalAmount > amount) {
-            discount = Math.round(((originalAmount - amount) / originalAmount) * 100);
-          }
-
-          const formatPrice = (val) => new Intl.NumberFormat("en-IN", {
-            style: "currency",
-            currency: currencyCode,
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-          }).format(val);
-
-          return {
-            id: product.id,
-            title: product.title,
-            handle: product.handle,
-            image: product.thumbnail || "https://placehold.co/600x800/f5f5f5/e0e0e0",
-            price: formatPrice(amount),
-            originalPrice: discount > 0 ? formatPrice(originalAmount) : null,
-            discount,
-            status: discount > 0 ? "sale" : "new",
-            _rawAmount: amount,
-            _rawOriginalAmount: originalAmount,
-            tags: product.tags,
-            created_at: product.created_at,
-          };
-        });
-
-        setProducts(mappedProducts);
+        if (page === 1) {
+          setProducts(mappedProducts);
+        } else {
+          setProducts(prev => [...prev, ...mappedProducts]);
+        }
+        
+        if (typeof count !== 'undefined') {
+          setTotalCount(count);
+        }
       } catch (err) {
         console.error("Failed to fetch products:", err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchProducts();
-  }, [sort, regionId, filters.collections, filters.categories, categories.length]);
+  }, [sort, regionId, filters.collections, filters.categories, page]);
 
   // Build category tree helpers
   const buildCategoryTree = (categoriesArray) => {
@@ -193,11 +271,39 @@ export default function ShopClient({ initialData }) {
     return Array.from(uniqueTags).sort();
   }, [products]);
 
+  const dynamicCollections = useMemo(() => {
+    if (!products.length) return [];
+    const validCollectionIds = new Set(products.map(p => p.collection_id).filter(Boolean));
+    return collections.filter(c => validCollectionIds.has(c.id));
+  }, [products, collections]);
+
+  const dynamicPriceBounds = useMemo(() => {
+    if (!products.length) return { min: 0, max: 50000000 };
+    const prices = products.map(p => p._rawAmount || 0);
+    return {
+      min: Math.min(...prices),
+      max: Math.max(...prices)
+    };
+  }, [products]);
+
+  // Make category filtering super practical and accurate by tying it to navigation
+  const handleCategoryNavigation = (handle) => {
+    // If clicking the already selected category, clear it (go back to all shop)
+    if (selectedCategoryHandle === handle) {
+      router.push("/shop");
+    } else {
+      router.push(`/shop/category/${encodeURIComponent(handle)}`);
+    }
+  };
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       if (filters.collections.length > 0 && !filters.collections.includes(product.collection_id)) return false;
       const price = product._rawAmount || 0;
-      if (price < filters.priceRange[0] || price > filters.priceRange[1]) return false;
+      // Use dynamic bounds or selected range
+      const minPrice = filters.priceRange[0] || 0;
+      const maxPrice = filters.priceRange[1] || 50000000;
+      if (price < minPrice || price > maxPrice) return false;
       if (filters.tags.length > 0) {
         const productTagValues = product.tags?.map(t => (t.value || t).toLowerCase()) || [];
         if (!filters.tags.some(t => productTagValues.includes(t.toLowerCase()))) return false;
@@ -211,8 +317,7 @@ export default function ShopClient({ initialData }) {
     });
   }, [products, filters]);
 
-  const currentProducts = filteredProducts.slice(0, page * limit);
-  const hasMore = filteredProducts.length > page * limit;
+  const currentProducts = filteredProducts;
 
   const goToCategory = (handle) => {
     if (!handle) router.push("/shop");
@@ -282,14 +387,52 @@ export default function ShopClient({ initialData }) {
             <div ref={sliderContainerRef} className="flex-1 overflow-hidden">
               <motion.div ref={sliderContentRef} className="flex items-center gap-4 sm:gap-8 cursor-grab active:cursor-grabbing" drag="x" dragConstraints={dragConstraints} style={{ x }}>
                 <div className="flex items-center gap-4 sm:gap-8 w-max px-2">
-                  {!selectedCategoryHandle && <CategoryTab category="All Objects" isSelected={!selectedCategoryHandle} onClick={() => goToCategory(null)} />}
-                  {!selectedCategoryHandle ? categoryTree.map((cat) => <CategoryTab key={cat.id} category={cat} isSelected={selectedCategoryHandle === cat.handle} onClick={() => goToCategory(cat.handle)} />) : (
-                    <>
-                      <CategoryTab key={selectedCategoryNode?.id} category={selectedCategoryNode} isSelected={selectedCategoryHandle === selectedCategoryNode?.handle} onClick={() => goToCategory(selectedCategoryNode?.handle)} />
-                      {subCategories.map((cat) => <CategoryTab key={cat.id} category={cat} isSelected={selectedCategoryHandle === cat.handle} onClick={() => goToCategory(cat.handle)} />)}
-                      <CategoryTab category="Explore All" onClick={() => goToCategory(null)} />
-                    </>
-                  )}
+                  {(() => {
+                    // Determine which categories to show in the ribbon
+                    let visibleCategories = [];
+                    if (!selectedCategoryHandle) {
+                      // On root shop page, show all root categories that have products
+                      visibleCategories = categoryTree;
+                    } else {
+                      // On a category page, show only its immediate sub-categories that have products
+                      visibleCategories = selectedCategoryNode?.children || [];
+                    }
+
+                    // Strict filter: only show categories that actually contain products
+                    const categoriesWithProducts = visibleCategories.filter(cat => 
+                      (cat.products?.length > 0) || 
+                      (cat.product_count > 0) || 
+                      (cat.hasDirectProducts) ||
+                      (cat.children?.some(child => child.products?.length > 0 || child.product_count > 0))
+                    );
+
+                    return (
+                      <>
+                        {!selectedCategoryHandle && (
+                          <CategoryTab 
+                            category="All Objects" 
+                            isSelected={true} 
+                            onClick={() => goToCategory(null)} 
+                          />
+                        )}
+                        {selectedCategoryHandle && (
+                          <CategoryTab 
+                            category="Explore All" 
+                            isSelected={false} 
+                            onClick={() => goToCategory(null)} 
+                          />
+                        )}
+                        {categoriesWithProducts.map((cat) => (
+                          <CategoryTab 
+                            key={cat.id} 
+                            category={cat} 
+                            isSelected={selectedCategoryHandle === cat.handle} 
+                            onClick={() => goToCategory(cat.handle)} 
+                          />
+                        ))}
+                      </>
+                    );
+                  })()}
                 </div>
               </motion.div>
             </div>
@@ -306,11 +449,53 @@ export default function ShopClient({ initialData }) {
 
       <div className="max-w-[2200px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-16 pb-10 flex flex-col lg:flex-row gap-6 lg:gap-12">
         <aside className="hidden lg:block lg:w-72 xl:w-80 2xl:w-96 shrink-0">
-          <FilterSidebar filters={filters} onFiltersChange={(v) => {setFilters(v); setPage(1);}} collections={collections} categories={categories} tags={availableTags} priceBounds={priceBounds} className="sticky top-24" />
+          <FilterSidebar 
+            filters={filters} 
+            onFiltersChange={(v) => {setFilters(v); setPage(1);}} 
+            collections={dynamicCollections} 
+            categories={categories} 
+            tags={availableTags} 
+            priceBounds={dynamicPriceBounds} 
+            selectedCategoryHandle={selectedCategoryHandle}
+            onCategorySelect={handleCategoryNavigation}
+            className="sticky top-24" 
+          />
         </aside>
 
         <main className="flex-1 min-w-0">
-          <Breadcrumbs className="mb-8" items={categoryBreadcrumbs} />
+          <div className="flex items-center justify-between gap-4 mb-8">
+            <Breadcrumbs items={categoryBreadcrumbs} className="flex-1" />
+            
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Filter Toggle */}
+              <button
+                onClick={() => setMobileFilterOpen(true)}
+                className="lg:hidden flex items-center justify-center p-3 sm:px-6 sm:py-3 bg-white border border-stone-200 rounded-full text-stone-900 hover:bg-stone-50 transition-all active:scale-95 shadow-sm"
+              >
+                <Filter size={16} strokeWidth={1.5} />
+                <span className="hidden sm:inline-block ml-3 text-[10px] uppercase tracking-[0.2em] font-bold">
+                  Refine
+                </span>
+              </button>
+
+              {/* Desktop Sort Dropdown */}
+              <div className="hidden lg:flex items-center gap-3">
+                <span className="text-[10px] uppercase tracking-[0.2em] text-stone-400 font-medium whitespace-nowrap">Sort By:</span>
+                <select
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value)}
+                  className="bg-transparent text-[10px] uppercase tracking-[0.15em] font-bold text-stone-900 focus:outline-none cursor-pointer hover:text-stone-600 transition-colors border-b border-transparent hover:border-stone-900 pb-0.5"
+                >
+                  <option value="relevance">Featured</option>
+                  <option value="price-low">Price: Low-High</option>
+                  <option value="price-high">Price: High-Low</option>
+                  <option value="newest">Newest</option>
+                  <option value="best-selling">Best Selling</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           <AnimatePresence mode="wait">
             <motion.div key={selectedCategoryHandle} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
               {currentProducts.length === 0 && !loading ? (
@@ -321,7 +506,7 @@ export default function ShopClient({ initialData }) {
               ) : (
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-6 gap-y-12">
-                    {loading ? Array.from({ length: 8 }).map((_, i) => <div key={i} className="animate-pulse aspect-[3/4] bg-stone-100 rounded-2xl" />) 
+                    {loading ? Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i} />) 
                     : currentProducts.map((p) => <ProductInfoCard key={p.id} product={p} isFluid={true} />)}
                   </div>
                   {!loading && hasMore && (
@@ -338,7 +523,7 @@ export default function ShopClient({ initialData }) {
         </main>
       </div>
 
-      <MobileFilterDrawer isOpen={mobileFilterOpen} onClose={() => setMobileFilterOpen(false)} filters={filters} onFiltersChange={(v) => {setFilters(v); setPage(1);}} collections={collections} categories={categories} tags={availableTags} priceBounds={priceBounds} sort={sort} onSortChange={(v) => {setSort(v); setPage(1);}} />
+      <MobileFilterDrawer isOpen={mobileFilterOpen} onClose={() => setMobileFilterOpen(false)} filters={filters} onFiltersChange={(v) => {setFilters(v); setPage(1);}} collections={dynamicCollections} categories={categories} tags={availableTags} priceBounds={dynamicPriceBounds} sort={sort} onSortChange={(v) => {setSort(v); setPage(1);}} selectedCategoryHandle={selectedCategoryHandle} onCategorySelect={handleCategoryNavigation} />
     </div>
   );
 }

@@ -10,14 +10,13 @@ import { sanityClient, urlFor } from "./sanityClient";
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Data is fresh for 30 seconds (better for development)
-      staleTime: 1000 * 30,
-      // Keep data in cache for 24 hours even if unused
-      gcTime: 1000 * 60 * 60 * 24,
+      // Data is fresh for 5 seconds (more reactive)
+      staleTime: 1000 * 5,
+      // Keep data in cache for 15 minutes
+      gcTime: 1000 * 60 * 15,
       retry: 1,
-      refetchOnWindowFocus: false,
+      refetchOnWindowFocus: true,
       refetchOnReconnect: true,
-      // Aggressive caching: only refetch if data is stale
     },
   },
 });
@@ -34,7 +33,7 @@ if (typeof window !== "undefined") {
   persistQueryClient({
     queryClient,
     persister,
-    maxAge: 1000 * 60 * 60 * 24, // 24 hours
+    maxAge: 1000 * 60 * 60, // Reduced to 1 hour
   });
 }
 

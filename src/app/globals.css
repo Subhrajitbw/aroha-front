@@ -101,32 +101,30 @@ img {
 
 html,
 body {
-  -webkit-scrollbar-width: none;
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  /* Prevent horizontal scroll jumps while allowing vertical scroll */
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* Disable pull-to-refresh for an app-like feel in PWA mode */
+  overscroll-behavior-y: none;
 }
 
-html::-webkit-scrollbar,
-body::-webkit-scrollbar {
-  display: none;
-}
-
-/* Ensure smooth scrolling behavior handled by GSAP */
 html {
-  overscroll-behavior: none !important;
-  overscroll-behavior-y: none !important;
   font-size: 16px;
+  /* Stabilize viewport with dynamic units to avoid address bar jitter */
+  min-height: 100dvh;
+  height: -webkit-fill-available;
 }
 
 body {
-  overscroll-behavior: none !important;
-  overscroll-behavior-y: none !important;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #1c1917;
-  /* stone-900 */
+  color: #1c1917; /* stone-900 */
   text-rendering: optimizeLegibility;
+  min-height: 100dvh;
+  /* Do NOT apply safe-area-inset padding to body globally —
+     it breaks fixed/absolute full-screen layouts (e.g. landing page).
+     Safe area is handled per-component (NavBar, MobileMenu). */
 }
 
 /* Stabilize global font weights for luxury readability */

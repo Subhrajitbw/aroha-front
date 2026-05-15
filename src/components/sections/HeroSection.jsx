@@ -68,6 +68,9 @@ const HeroSection = () => {
   // ── Fetch CMS slides ──
   useEffect(() => {
     const fetchSlides = async () => {
+      // Fail-safe: don't let a slow CMS fetch block the landing page
+      const timeout = setTimeout(() => setLoading(false), 3000);
+
       try {
         const query = `*[_type == "heroSlider"][0]{
           slides[]{
@@ -84,6 +87,7 @@ const HeroSection = () => {
       } catch (err) {
         console.error("Hero fetch error:", err)
       } finally {
+        clearTimeout(timeout);
         setLoading(false)
       }
     }

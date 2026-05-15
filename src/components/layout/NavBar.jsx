@@ -2,12 +2,13 @@
 import React, { useRef, useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, Search as SearchIcon, ChevronDown, User, ShoppingBag } from "lucide-react";
+import { Menu, X, Search as SearchIcon, ChevronDown, User, ShoppingBag, Heart } from "lucide-react";
 
-import { useSearchStore } from  "@/stores/searchStore";
-import { useAuthModalStore } from  "@/stores/useAuthModalStore";
-import { useAuthStore } from  "@/stores/useAuthStore";
-import { useMenuStore } from  "@/stores/useMenuStore";
+import { useSearchStore } from "@/stores/searchStore";
+import { useAuthModalStore } from "@/stores/useAuthModalStore";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useMenuStore } from "@/stores/useMenuStore";
+import { useWishlistStore } from "@/stores/useWishlistStore";
 
 import MobileMenu from "./MobileMenu";
 import MegaMenu from "../nav/MegaMenu";
@@ -22,8 +23,9 @@ import { useNavTheming } from  "@/hooks/useNavTheming";
 import { motion, AnimatePresence } from "framer-motion";
 import CartDropdown from "../nav/CartDropdown";
 import { sdk } from  "@/lib/medusaClient";
+import useLockBodyScroll from "@/hooks/useLockBodyScroll";
 
-const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
+const NavBar = ({ variant = "light" }) => {
   const navRef = useRef(null);
   const logoRef = useRef(null);
   const iconsRef = useRef([]);
@@ -34,9 +36,9 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
   const [cartDropdownOpen, setCartDropdownOpen] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
 
-  // Hybrid device detection: initial from server, update on client
-  const [isMobileDevice, setIsMobileDevice] = useState(isMobile);
-  const [isNotDesktopDevice, setIsNotDesktopDevice] = useState(isNotDesktop);
+  // Pure client-side device detection
+  const [isMobileDevice, setIsMobileDevice] = useState(false);
+  const [isNotDesktopDevice, setIsNotDesktopDevice] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
@@ -50,11 +52,16 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
   }, []);
 
   // Expose --nav-height CSS variable so pages can offset content below the navbar
+  const lastNavHeight = useRef(0);
   useEffect(() => {
     if (!navRef.current) return;
     const observer = new ResizeObserver(([entry]) => {
       const h = Math.ceil(entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height);
-      document.documentElement.style.setProperty('--nav-height', `${h}px`);
+      // Only update if change is significant (> 1px) to prevent layout thrashing
+      if (Math.abs(h - lastNavHeight.current) > 1) {
+        document.documentElement.style.setProperty('--nav-height', `${h}px`);
+        lastNavHeight.current = h;
+      }
     });
     observer.observe(navRef.current);
     return () => observer.disconnect();
@@ -80,7 +87,7 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
   const {
     navItems,
     roomsMegaContent,
-    aggregatedMegaContent,
+    shopMegaContent,
     megaMenuContent
   } = useNavData();
 
@@ -103,18 +110,34 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
     fetchCartStatus();
   }, [initializeAuth]);
 
+  const [caretPosition, setCaretPosition] = useState(null);
+  const shopButtonRef = useRef(null);
+  const contentWrapperRef = useRef(null);
+
+  const calculateCaretPosition = useCallback(() => {
+    if (!contentWrapperRef.current || !shopButtonRef.current) return;
+    const wrapperBounds = contentWrapperRef.current.getBoundingClientRect();
+    const btnBounds = shopButtonRef.current.getBoundingClientRect();
+    const btnCenter = btnBounds.left + btnBounds.width / 2;
+    setCaretPosition(btnCenter); // store viewport-relative px
+  }, []);
+
+  const handleChevronHover = (event) => {
+    setActiveMegaMenu('shop');
+    calculateCaretPosition();
+  };
+
+  const handleShopClick = () => {
+    setActiveMegaMenu(null);
+    router.push('/shop');
+  };
+
   useEffect(() => {
     setThemeFrozen(!!activeMegaMenu);
   }, [activeMegaMenu, setThemeFrozen]);
 
   // Handle body scroll locking when mega menu is open
-  useEffect(() => {
-    if (activeMegaMenu && !isMobileDevice) {
-      const originalStyle = window.getComputedStyle(document.body).overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = originalStyle; };
-    }
-  }, [activeMegaMenu, isMobileDevice]);
+  useLockBodyScroll(!!activeMegaMenu && !isMobileDevice);
 
   const handleNavAreaLeave = useCallback((event) => {
     const relatedTarget = event.relatedTarget;
@@ -129,6 +152,13 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
     logout();
     router.push("/");
   };
+
+  // Close all menus on route change
+  useEffect(() => {
+    setActiveMegaMenu(null);
+    closeMenu(); // Correct method from useMenuStore
+    setCartDropdownOpen(false);
+  }, [pathname, closeMenu]);
 
   const getUserDisplayName = () => {
     if (!user) return "";
@@ -148,31 +178,58 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
     return "U";
   };
 
+  const { items: wishlistItems, isHydrated: wishlistHydrated } = useWishlistStore();
+
   return (
     <>
       <nav
         ref={navRef}
         className={`fixed z-50 transition-all duration-300 ease-out ${floatingPosition} ${scrolled ? "rounded-full shadow-xl" : ""
-          } px-6 lg:px-12 py-4 lg:py-2`}
+          } px-6 lg:px-12 py-4 lg:py-2 pt-[calc(1rem+env(safe-area-inset-top,0px))] lg:pt-2`}
         style={floatingStyles}
         onMouseLeave={handleNavAreaLeave}
         data-theme={effectiveTheme}
       >
-        <div className="mx-auto flex items-center justify-between relative max-w-7xl">
+        <div ref={contentWrapperRef} className="mx-auto flex items-center justify-between relative max-w-7xl">
           {/* Left: Desktop Nav or Mobile Hamburger */}
           <div className="flex-1 flex items-center gap-4 lg:gap-12">
             {!isMobileDevice ? (
               <>
+                <div className="flex items-center gap-1 group relative py-4">
+                  <button
+                    ref={shopButtonRef}
+                    onClick={handleShopClick}
+                    className={`text-xs tracking-[0.24em] uppercase transition-colors font-medium ${colors.navTextColor} ${colors.navHoverColor}`}
+                  >
+                    Shop
+                  </button>
+                  <button
+                    onMouseEnter={handleChevronHover}
+                    className={`${colors.navTextColor} ${colors.navHoverColor} transition-all p-1 -m-1`}
+                  >
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${activeMegaMenu === 'shop' ? "rotate-180" : ""}`} />
+                  </button>
+                  {pathname === '/shop' && (
+                    <motion.div
+                      layoutId="navUnderline"
+                      className="absolute bottom-3 left-0 right-4 h-[1.5px] bg-current opacity-40"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                </div>
+
                 {[
-                  { label: 'Shop', path: '/shop', hasMega: true, megaKey: 'shop' },
                   { label: 'Lookbook', path: '/lookbook' },
                   { label: 'Rooms', path: '/rooms', hasMega: true, megaKey: 'rooms' },
                   { label: 'Journal', path: '/journal' }
                 ].map((item) => (
-                  <div key={item.label} className="relative py-4 group">
+                  <div 
+                    key={item.label} 
+                    className="relative py-4 group"
+                    onMouseEnter={() => item.hasMega ? setActiveMegaMenu(item.megaKey) : setActiveMegaMenu(null)}
+                  >
                     <button
                       onClick={() => { setActiveMegaMenu(null); router.push(item.path); }}
-                      onMouseEnter={() => item.hasMega ? setActiveMegaMenu(item.megaKey) : setActiveMegaMenu(null)}
                       className={`
                         flex items-center gap-1.5 text-xs tracking-[0.24em] uppercase transition-colors font-medium
                         ${colors.navTextColor} ${colors.navHoverColor}
@@ -206,6 +263,28 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
           <div className="flex-1 flex justify-end items-center gap-3 md:gap-5">
             <NavIcon onClick={openSearch} onMouseEnter={() => setActiveMegaMenu(null)} className={`${colors.navTextColor} ${colors.navHoverColor}`} iconRef={(el) => (iconsRef.current[1] = el)}>
               <SearchIcon size={18} strokeWidth={1.5} />
+            </NavIcon>
+
+            <NavIcon 
+              onClick={() => router.push('/wishlist')} 
+              className={`
+                ${colors.navTextColor} ${colors.navHoverColor} relative transition-all duration-300
+                ${pathname === '/wishlist' ? 'scale-110' : ''}
+              `}
+              iconRef={(el) => (iconsRef.current[2] = el)}
+            >
+              <Heart 
+                size={18} 
+                strokeWidth={1.5} 
+                className={`transition-colors duration-300 ${pathname === '/wishlist' ? 'fill-current' : ''}`}
+              />
+              {wishlistHydrated && wishlistItems.length > 0 && (
+                <span className={`absolute -top-1 -right-1 w-3.5 h-3.5 flex items-center justify-center rounded-full font-bold border ${
+                  effectiveTheme === 'dark' ? 'bg-white text-black border-black/10' : 'bg-black text-white border-white/10'
+                } text-[8px]`}>
+                  {wishlistItems.length}
+                </span>
+              )}
             </NavIcon>
 
             {/* Profile Dropdown Logic */}
@@ -265,7 +344,8 @@ const NavBar = ({ variant = "light", isMobile, isNotDesktop }) => {
           <MegaMenu
             ref={megaMenuRef}
             isOpen={!!activeMegaMenu}
-            content={activeMegaMenu === 'rooms' ? roomsMegaContent : aggregatedMegaContent}
+            content={activeMegaMenu === 'rooms' ? roomsMegaContent : (activeMegaMenu === 'shop' ? shopMegaContent : megaMenuContent[`/product-categories/${activeMegaMenu}`] || megaMenuContent[activeMegaMenu])}
+            caretPosition={caretPosition}
             onClose={() => setActiveMegaMenu(null)}
             onMouseLeave={handleNavAreaLeave}
           />

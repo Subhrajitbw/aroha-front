@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { MoveRight, ArrowUpRight, ChevronUp, ChevronDown } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useQuery } from "@tanstack/react-query";
@@ -233,16 +234,33 @@ export default function ProductCarousel() {
             className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-8 w-full h-full lg:h-[70vh] min-h-0"
           >
             {/* LEFT HERO */}
-            <div className="flex col-span-1 lg:col-span-8 relative rounded-xl lg:rounded-[2rem] overflow-hidden bg-stone-100 group h-[30vh] sm:h-[40vh] lg:h-full shadow-sm">
-              <Image
-                key={activeProduct.id}
-                src={activeProduct.image}
-                alt={activeProduct.title}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 66vw"
-                className="object-cover transition-transform duration-[1000ms] ease-out group-hover:scale-105"
-              />
+            <div className="flex col-span-1 lg:col-span-8 relative rounded-xl lg:rounded-[2rem] overflow-hidden bg-stone-100 group h-[40vh] sm:h-[50vh] lg:h-full shadow-sm touch-pan-y">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeProduct.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  onDragEnd={(e, { offset, velocity }) => {
+                    const swipe = offset.x;
+                    if (swipe < -50) goToIndex(currentIndex + 1);
+                    else if (swipe > 50) goToIndex(currentIndex - 1);
+                  }}
+                  className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing"
+                >
+                  <Image
+                    src={activeProduct.image}
+                    alt={activeProduct.title}
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 66vw"
+                    className="object-cover pointer-events-none"
+                  />
+                </motion.div>
+              </AnimatePresence>
 
               <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/40 to-transparent pointer-events-none z-10" />
 
@@ -268,7 +286,7 @@ export default function ProductCarousel() {
                           {activeProduct.originalPrice}
                         </span>
                       )}
-                      <span className="text-base lg:text-2xl font-light tracking-wide whitespace-nowrap">
+                      <span className="text-lg lg:text-2xl font-light tracking-wide whitespace-nowrap">
                         {activeProduct.price}
                       </span>
                     </div>
@@ -276,9 +294,16 @@ export default function ProductCarousel() {
                 </div>
               </div>
 
+              {/* View Product Button for Mobile Hero */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 opacity-0 group-hover:opacity-100 transition-opacity lg:hidden">
+                 <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full p-4">
+                    <ArrowUpRight className="text-white w-6 h-6" />
+                 </div>
+              </div>
+
               <Link
                 href={`/product/${activeProduct.handle}`}
-                className="absolute inset-0 z-10"
+                className="absolute inset-0 z-10 lg:z-10"
               />
             </div>
 

@@ -4,226 +4,193 @@ import Link from "next/link";
 import { gsap } from "gsap";
 import { ChevronRight, ArrowRight } from "lucide-react";
 
-const MegaMenu = forwardRef(({ isOpen, content, onClose, onMouseLeave }, ref) => {
+const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseLeave }, ref) => {
   const menuRef = useRef(null);
   const backdropRef = useRef(null);
   const contentRef = useRef(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      if (isOpen) {
-        if (!backdropRef.current || !menuRef.current) return;
+    if (!menuRef.current || !backdropRef.current) return;
 
-        gsap.set(backdropRef.current, { display: "block" });
-        gsap.to(backdropRef.current, {
+    if (isOpen) {
+      gsap.set(backdropRef.current, { display: "block" });
+      gsap.to(backdropRef.current, {
+        autoAlpha: 1,
+        duration: 0.3,
+        ease: "power2.out",
+      });
+
+      gsap.fromTo(
+        menuRef.current,
+        { y: -30, scale: 0.95 },
+        {
+          y: 0,
+          scale: 1,
           autoAlpha: 1,
-          duration: 0.25,
-          ease: "power2.out",
-        });
-
-        gsap.fromTo(
-          menuRef.current,
-          { y: -12, autoAlpha: 0 },
-          {
-            y: 0,
-            autoAlpha: 1,
-            duration: 0.3,
-            ease: "power3.out",
-          }
-        );
-
-        const columns = contentRef.current?.querySelectorAll(".mega-column");
-        if (columns?.length) {
-          gsap.fromTo(
-            columns,
-            { y: 16, opacity: 0 },
-            {
-              y: 0,
-              opacity: 1,
-              duration: 0.35,
-              stagger: 0.03,
-              ease: "power2.out",
-              delay: 0.08,
-            }
-          );
+          duration: 0.5,
+          ease: "power3.out",
         }
-      } else {
-        if (!menuRef.current || !backdropRef.current) return;
+      );
 
-        gsap.to(menuRef.current, {
-          y: -8,
-          autoAlpha: 0,
-          duration: 0.2,
-          ease: "power2.in",
-        });
+      gsap.fromTo(
+        contentRef.current?.querySelectorAll(".mega-column") || [],
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.6,
+          stagger: 0.05,
+          ease: "power2.out",
+          delay: 0.1,
+        }
+      );
+    } else {
+      gsap.to(menuRef.current, {
+        y: -20,
+        scale: 0.98,
+        autoAlpha: 0,
+        duration: 0.3,
+        ease: "power2.in",
+      });
 
-        gsap.to(backdropRef.current, {
-          autoAlpha: 0,
-          duration: 0.18,
-          ease: "power2.in",
-          onComplete: () => {
-            if (backdropRef.current) {
-              gsap.set(backdropRef.current, { display: "none" });
-            }
-          },
-        });
-      }
-    });
-
-    return () => ctx.revert();
+      gsap.to(backdropRef.current, {
+        autoAlpha: 0,
+        duration: 0.25,
+        ease: "power2.in",
+        onComplete: () => {
+          gsap.set(backdropRef.current, { display: "none" });
+        },
+      });
+    }
   }, [isOpen]);
 
-  const handleMenuClick = (e) => e.stopPropagation();
+  const handleMenuClick = (e) => {
+    e.stopPropagation();
+  };
 
   if (!content || !content.columns?.length) return null;
 
   return (
     <>
-      {/* ── Backdrop ── */}
+      {/* Backdrop overlay */}
       <div
         ref={backdropRef}
         className="fixed inset-x-0 top-0 h-screen z-40 pointer-events-auto"
-        style={{ display: "none", background: "rgba(0,0,0,0.08)" }}
+        style={{ display: "none" }}
         onClick={onClose}
         onMouseEnter={onMouseLeave}
       />
 
-      {/* ── Mega Menu Container ── */}
+      {/* Mega menu container */}
       <div
         ref={(node) => {
           menuRef.current = node;
           if (ref) {
-            typeof ref === "function" ? ref(node) : (ref.current = node);
+            if (typeof ref === "function") {
+              ref(node);
+            } else {
+              ref.current = node;
+            }
           }
         }}
-        className="absolute left-0 right-0 top-full z-50 pointer-events-auto"
-        style={{ visibility: "hidden", marginTop: "2px" }}
+        className="absolute left-0 right-0 top-full mt-3 z-50 pointer-events-auto"
+        style={{ visibility: "hidden" }}
         onMouseLeave={onMouseLeave}
         onClick={handleMenuClick}
       >
-        {/* ── Hover bridge ── */}
-        <div className="absolute -top-5 left-0 right-0 h-5 pointer-events-auto" aria-hidden="true" />
-
-        {/* ── Panel ── */}
-        <div
-          className="relative w-screen"
-          style={{
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: "rgba(255, 255, 255, 0.97)",
-            backdropFilter: "blur(40px) saturate(120%)",
-            borderTop: "1px solid rgba(0, 0, 0, 0.06)",
-            borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
-            overflow: "hidden",
-          }}
-        >
-          {/* Subtle top accent line */}
+        {/* Caret indicator — positioned directly under the hovered nav item */}
+        {caretPosition !== null && caretPosition !== undefined && (
           <div
-            aria-hidden="true"
-            className="absolute top-0 left-16 right-16 h-px"
+            className="absolute w-3 h-3 bg-white transform rotate-45 pointer-events-none"
             style={{
-              background: "linear-gradient(90deg, transparent, rgba(168,162,158,0.3) 30%, rgba(168,162,158,0.4) 50%, rgba(168,162,158,0.3) 70%, transparent)",
+              top: "-6px",
+              left: `${caretPosition - 24}px`, // subtract mx-6 (24px) panel left offset
+              marginLeft: "-6px",
+              boxShadow: "-2px -2px 8px rgba(0,0,0,0.05)",
+              zIndex: 51,
             }}
           />
+        )}
 
-          {/* ── Inner layout ── */}
+        {/* Main menu panel */}
+        <div className="relative">
+          {/* Invisible hover bridge to prevent gap issues */}
           <div
-            ref={contentRef}
-            className="relative z-10 flex mx-auto max-w-[1400px] px-8 md:px-16 pt-12 pb-14"
-          >
-            {/* ─── LEFT PANE: Directory ─── */}
-            <div className="w-full  flex flex-col">
+            className="absolute -top-6 left-0 right-0 h-6 pointer-events-auto"
+            aria-hidden="true"
+          />
 
+          <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-neutral-100 overflow-hidden mx-6">
+            <div
+              ref={contentRef}
+              className="max-w-[1400px] mx-auto px-12 py-14 space-y-8"
+            >
+              <h2 className="text-[10px] font-bold tracking-[0.3em] uppercase text-neutral-400">
+                Explore our Shop
+              </h2>
 
-              {/* Columns grid */}
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-10">
+              {/* Categories grid - full width */}
+              <div
+                className={`grid gap-x-12 gap-y-10 ${
+                  content.columns.length <= 3
+                    ? "grid-cols-3"
+                    : content.columns.length <= 4
+                    ? "grid-cols-4"
+                    : content.columns.length <= 6
+                    ? "grid-cols-5"
+                    : "grid-cols-6"
+                }`}
+              >
                 {content.columns.map((column, idx) => (
-                  <div key={idx} className="mega-column flex flex-col">
-                    {/* Column heading */}
+                  <div key={idx} className="mega-column">
+                    {/* Column header */}
                     <Link
                       href={column.href}
                       onClick={onClose}
-                      className="group inline-flex items-center gap-1.5 mb-4"
+                      className="group block mb-6"
                     >
-                      <span className="text-sm font-semibold tracking-wide uppercase text-stone-900 group-hover:text-stone-600 transition-colors duration-200">
+                      <h3 className="text-[11px] font-medium tracking-[0.15em] uppercase text-neutral-900 group-hover:text-neutral-600 transition-colors duration-300 flex items-center gap-2 mb-3">
                         {column.title}
-                      </span>
-                      <ChevronRight
-                        size={13}
-                        strokeWidth={2}
-                        className="text-stone-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-200"
-                      />
+                        <ChevronRight
+                          size={12}
+                          strokeWidth={2}
+                          className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"
+                        />
+                      </h3>
+                      <div className="h-[1px] bg-gradient-to-r from-neutral-200 via-neutral-300 to-transparent" />
                     </Link>
 
-                    {/* Items */}
-                    <nav className="flex flex-col gap-1">
-                      {column.items?.slice(0, 6).map((item, itemIdx) => (
+                    {/* Column items */}
+                    <nav className="space-y-4">
+                      {column.items?.slice(0, 5).map((item, itemIdx) => (
                         <Link
                           key={itemIdx}
                           href={item.href}
                           onClick={onClose}
-                          className="group flex items-center gap-2.5 py-1.5 rounded-lg hover:bg-stone-50 px-2 -mx-2 transition-colors duration-150"
+                          className="group flex items-start gap-3 text-[13px] text-neutral-600 hover:text-neutral-900 transition-all duration-300"
                         >
-                          <span className="w-1 h-1 rounded-full bg-stone-300 group-hover:bg-stone-900 transition-colors duration-200" />
-                          <span className="text-xs tracking-wide text-stone-500 group-hover:text-stone-900 transition-colors duration-200">
+                          <span className="mt-1.5 w-[3px] h-[3px] rounded-full bg-neutral-300 group-hover:bg-neutral-900 group-hover:w-[5px] group-hover:h-[5px] transition-all duration-300 flex-shrink-0" />
+                          <span className="leading-relaxed tracking-wide group-hover:translate-x-0.5 transition-transform duration-300">
                             {item.name}
                           </span>
                         </Link>
                       ))}
                     </nav>
 
-                    {column.items?.length > 6 && (
+                    {/* View all link */}
+                    {column.items?.length > 5 && (
                       <Link
                         href={column.href}
                         onClick={onClose}
-                        className="inline-flex items-center gap-1.5 mt-3 group px-2 -mx-2"
+                        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-500 hover:text-neutral-900 transition-colors mt-5 tracking-wide"
                       >
-                        <span className="text-[10px] tracking-wider uppercase font-semibold text-stone-400 group-hover:text-stone-900 transition-colors duration-200">
-                          View All
-                        </span>
-                        <ArrowRight
-                          size={10}
-                          strokeWidth={2}
-                          className="text-stone-400 group-hover:text-stone-900 group-hover:translate-x-0.5 transition-all duration-200"
-                        />
+                        <span>View all</span>
+                        <ArrowRight size={11} strokeWidth={2} />
                       </Link>
                     )}
                   </div>
                 ))}
               </div>
-            </div>
-
-
-          </div>
-
-          {/* ── Footer strip ── */}
-          <div className="h-px mx-8 md:mx-16 bg-gradient-to-r from-transparent via-stone-200 to-transparent" />
-          <div className="flex flex-col md:flex-row items-center justify-between mx-auto gap-3 md:gap-0 max-w-[1400px] px-8 md:px-16 py-4">
-            <span className="font-serif text-xs italic text-stone-400 tracking-wide">
-              "Curating spaces of undeniable intention." — Aroha
-            </span>
-            <div className="flex items-center gap-6">
-              {[
-                { label: "New Arrivals", href: "/shop" },
-                { label: "Editorials", href: "/lookbook" },
-                { label: "Client Services", href: "/contact" },
-              ].map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  onClick={onClose}
-                  className="group inline-flex items-center gap-1.5"
-                >
-                  <span className="text-[10px] tracking-wider uppercase font-semibold text-stone-400 group-hover:text-stone-900 transition-colors duration-200">
-                    {link.label}
-                  </span>
-                  <ArrowRight
-                    size={10}
-                    strokeWidth={2}
-                    className="text-stone-400 group-hover:text-stone-900 group-hover:translate-x-0.5 transition-all duration-200"
-                  />
-                </Link>
-              ))}
             </div>
           </div>
         </div>

@@ -16,6 +16,8 @@ export const MobileFilterDrawer = ({
   priceBounds,
   sort,
   onSortChange,
+  selectedCategoryHandle,
+  onCategorySelect,
 }) => {
   useLockBodyScroll(isOpen);
 
@@ -99,6 +101,11 @@ export const MobileFilterDrawer = ({
                   priceBounds={priceBounds}
                   className="w-full"
                   isMobile
+                  selectedCategoryHandle={selectedCategoryHandle}
+                  onCategorySelect={(handle) => {
+                    onCategorySelect?.(handle);
+                    onClose(); // Close mobile drawer on navigation
+                  }}
                 />
               </div>
             </div>
@@ -118,7 +125,7 @@ export const MobileFilterDrawer = ({
                   onFiltersChange({
                     priceRange: [priceBounds.min, priceBounds.max],
                     collections: [],
-                    categories: [],
+                    categories: selectedCategoryHandle ? [selectedCategoryHandle] : [],
                     tags: [],
                     discountedOnly: false,
                     newOnly: false,

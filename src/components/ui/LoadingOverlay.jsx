@@ -19,19 +19,23 @@ const LuxuryLoadingOverlay = ({
     let exitTimeout;
     let durationTimeout;
 
+    const isDev = process.env.NODE_ENV === 'development';
+    const exitDelay = isDev ? 400 : 1600;
+    const durationExitDelay = isDev ? 400 : 2000;
+
     if (!isVisible) {
       setAnimationPhase("exit");
       exitTimeout = setTimeout(() => {
         setShowOverlay(false);
         onComplete();
-      }, 1600);
+      }, exitDelay);
     } else {
       durationTimeout = setTimeout(() => {
         setAnimationPhase("exit");
         exitTimeout = setTimeout(() => {
           setShowOverlay(false);
           onComplete();
-        }, 2000);
+        }, durationExitDelay);
       }, duration);
     }
 

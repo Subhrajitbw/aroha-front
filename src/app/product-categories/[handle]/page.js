@@ -31,19 +31,22 @@ async function getInitialData(categoryHandle) {
     // First get the category ID from handle
     const { product_categories } = await sdk.store.category.list({ handle: categoryHandle, limit: 1 });
     const category = product_categories?.[0];
+    const regionRes = await sdk.store.region.list({ limit: 1 });
+    const regionId = regionRes.regions?.[0]?.id;
     
     const [productsRes, collectionsRes, categoriesRes] = await Promise.all([
       category 
-        ? sdk.store.product.list({ category_id: [category.id], limit: 12, fields: "id,title,handle,thumbnail,variants.calculated_price,variants.prices.*,images,created_at,collection_id,tags" })
+        ? sdk.store.product.list({ category_id: [category.id], limit: 12, region_id: regionId, fields: "id,title,handle,thumbnail,variants.calculated_price,variants.prices.*,images,created_at,collection_id,tags" })
         : { products: [], count: 0 },
       sdk.store.collection.list({ fields: "id,title,handle" }),
-      sdk.store.category.list({ limit: 100, fields: "id,name,handle,description,parent_category_id" })
+      sdk.store.category.list({ limit: 100, fields: "id,name,handle,description,parent_category_id,*products" })
     ]);
 
     return {
       products: productsRes.products || [],
       collections: collectionsRes.collections || [],
       categories: categoriesRes.product_categories || [],
+      regionId,
       totalCount: productsRes.count || 0,
       selectedCategoryHandle: categoryHandle
     };

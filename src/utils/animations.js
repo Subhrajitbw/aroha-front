@@ -2,9 +2,16 @@ import gsap from 'gsap';
 import ScrollTrigger from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
+ScrollTrigger.config({ 
+  limitCallbacks: true,
+  ignoreMobileResize: true // Prevents address bar jumps from re-calculating everything
+});
 
 // Parallax effect for sections
 export const initSectionParallax = (section) => {
+  // Disable heavy parallax on mobile for smooth performance
+  if (window.innerWidth < 1024) return;
+
   const elements = section.querySelectorAll('.parallax-element');
   
   elements.forEach(element => {
@@ -15,7 +22,7 @@ export const initSectionParallax = (section) => {
         trigger: section,
         start: 'top bottom',
         end: 'bottom top',
-        scrub: true,
+        scrub: 1, // Add a bit of smoothing to scrub
       }
     });
   });

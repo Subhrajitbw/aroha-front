@@ -15,7 +15,8 @@ import {
   Star,
   Zap,
 } from "lucide-react";
-import useLockBodyScroll from  "@/hooks/useLockBodyScroll";
+import useLockBodyScroll from "@/hooks/useLockBodyScroll";
+import { useWishlistStore } from "@/stores/useWishlistStore";
 
 const MobileMenu = ({
   isOpen,
@@ -29,6 +30,7 @@ const MobileMenu = ({
 }) => {
   const [currentView, setCurrentView] = useState("main");
   const [activeCategory, setActiveCategory] = useState(null);
+  const { items: wishlistItems, isHydrated: wishlistHydrated } = useWishlistStore();
 
   const menuRef = useRef(null);
   const overlayRef = useRef(null);
@@ -45,6 +47,11 @@ const MobileMenu = ({
       icon: Star
     },
     { 
+      name: "Wishlist", 
+      href: "/wishlist", 
+      icon: Heart
+    },
+    { 
       name: "On Sale", 
       href: "/shop?filter=discountedOnly", 
       icon: Zap
@@ -57,7 +64,7 @@ const MobileMenu = ({
       items: [
         { name: "Profile", href: "/account/profile", icon: User },
         { name: "Orders", href: "/account/orders", icon: Package },
-        { name: "Wishlist", href: "/account/wishlist", icon: Heart },
+        { name: "Wishlist", href: "/wishlist", icon: Heart },
       ],
     },
     {
@@ -166,7 +173,7 @@ const MobileMenu = ({
       {/* Luxury Drawer (Sliding from Left) */}
       <div
         ref={menuRef}
-        className="absolute top-0 left-0 h-full w-[90%] max-w-[400px] bg-[#fafafa] flex flex-col"
+        className="absolute top-0 left-0 h-full w-[90%] max-w-[400px] bg-[#fafafa] flex flex-col pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]"
         style={{ transform: "translateX(-100%)" }}
       >
         {/* Minimalist Header */}
@@ -261,19 +268,27 @@ const MobileMenu = ({
 
               {/* Minimal Featured Links */}
               <div className="grid grid-cols-2 gap-4">
-                {quickLinks.map((link) => (
-                  <Link
-                    key={link.name}
-                    href={link.href}
-                    onClick={handleClose}
-                    className="flex flex-col items-center justify-center py-8 border border-stone-200 hover:border-stone-900 hover:bg-stone-900 hover:text-white transition-colors duration-500 group/box"
-                  >
-                    <link.icon size={18} strokeWidth={1} className="mb-4 text-stone-900 group-hover/box:text-white transition-colors duration-500" />
-                    <span className="text-[10px] tracking-[0.2em] uppercase font-medium">
-                      {link.name}
-                    </span>
-                  </Link>
-                ))}
+                {quickLinks.map((link) => {
+                  const isWishlist = link.href === "/wishlist";
+                  return (
+                    <Link
+                      key={link.name}
+                      href={link.href}
+                      onClick={handleClose}
+                      className="flex flex-col items-center justify-center py-8 border border-stone-200 hover:border-stone-900 hover:bg-stone-900 hover:text-white transition-colors duration-500 group/box relative"
+                    >
+                      <link.icon size={18} strokeWidth={1} className="mb-4 text-stone-900 group-hover/box:text-white transition-colors duration-500" />
+                      <span className="text-[10px] tracking-[0.2em] uppercase font-medium">
+                        {link.name}
+                      </span>
+                      {isWishlist && wishlistHydrated && wishlistItems.length > 0 && (
+                        <span className="absolute top-4 right-4 bg-stone-900 group-hover/box:bg-white text-white group-hover/box:text-stone-900 text-[8px] px-1.5 py-0.5 rounded-full font-bold transition-colors">
+                          {wishlistItems.length}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
 
               {/* Editorials Section */}
@@ -338,7 +353,7 @@ const MobileMenu = ({
                         <span className="text-[10px] uppercase tracking-widest text-stone-900 font-bold">My Orders</span>
                       </Link>
                       <Link
-                        href="/account/wishlist"
+                        href="/wishlist"
                         onClick={onClose}
                         className="flex flex-col gap-3 p-5 rounded-2xl bg-white border border-stone-100 shadow-sm"
                       >

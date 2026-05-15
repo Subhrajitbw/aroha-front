@@ -19,7 +19,10 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
   const isFrontpage = pathname === "/" || pathname === "/home";
   // Enable sampling on frontpage (sections change between dark/light),
   // light-variant pages, and product pages
-  const shouldUseBackgroundSampling = isFrontpage || variant === "light" || (pathname && pathname.startsWith("/product/"));
+  // Enable sampling on frontpage (sections change between dark/light),
+  // light-variant pages, and product pages. 
+  // CRITICAL: Disable background sampling on mobile to prevent UI thread freezing.
+  const shouldUseBackgroundSampling = !isMobile && (isFrontpage || variant === "light" || (pathname && pathname.startsWith("/product/")));
 
   useEffect(() => {
     setNavTheme(variant === "dark" ? "dark" : "light");
@@ -39,7 +42,9 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
     if (!samplingActive || !navRef.current || themeFrozen) return;
 
     const now = Date.now();
-    if (now - lastSampleTime.current < 100) return;
+    // Increase sampling interval on mobile even if active
+    const interval = isMobile ? 1000 : 150; 
+    if (now - lastSampleTime.current < interval) return;
     lastSampleTime.current = now;
 
     try {
@@ -55,8 +60,8 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
 
       const samplingOptions = {
         log: false,
-        sampleRadius: isMobile ? 6 : 10,
-        sampleCount: isMobile ? 3 : 5,
+        sampleRadius: isMobile ? 4 : 10,
+        sampleCount: isMobile ? 2 : 5,
         clusterThreshold: 25,
       };
 
@@ -78,6 +83,8 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
   }, [samplingActive, navRef, navTheme, isMobile, variant, themeFrozen]);
 
   useEffect(() => {
+    if (!samplingActive) return;
+    
     let active = true;
     let timeoutId = null;
 
@@ -111,7 +118,7 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);
     };
-  }, [pathname, performBackgroundSampling]);
+  }, [pathname, performBackgroundSampling, samplingActive]); // samplingActive added to deps
 
   // Re-sample when sections change on the frontpage (globalScrolled updates),
   // when isAppReady fires (loading overlay dismissed), or on route change.
@@ -130,7 +137,7 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
     ];
     
     return () => timers.forEach(clearTimeout);
-  }, [pathname, isAppReady, currentSection, shouldUseBackgroundSampling]); // currentSection changes on every section transition
+  }, [pathname, isAppReady, currentSection, shouldUseBackgroundSampling, performBackgroundSampling]); // currentSection changes on every section transition
 
   // Override takes priority (instant, set by FrontpageClient), then sampling, then variant default
   const effectiveTheme = navThemeOverride || navTheme;

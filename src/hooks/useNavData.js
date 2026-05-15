@@ -1,162 +1,231 @@
-import { useState, useEffect, useMemo } from "react";
+// src/hooks/useNavData.js
+"use client";
+import { useEffect, useState, useMemo } from "react";
+import { useNavStore } from "../stores/useNavStore";
 import { sdk } from "../lib/medusaClient";
 import { sanityClient } from "../lib/sanityClient";
-import { useNavStore } from "../stores/useNavStore";
 
 export const useNavData = () => {
-  const { 
-    navItems, 
-    megaMenuContent, 
-    isLoaded, 
-    isLoading, 
-    setNavData, 
-    setLoading 
+  const {
+    navItems,
+    megaMenuContent,
+    isLoaded,
+    isLoading,
+    setNavData,
+    setLoading,
   } = useNavStore();
   const [roomCategories, setRoomCategories] = useState([]);
 
   useEffect(() => {
     const fetchNavigationData = async () => {
-      // If already loaded, skip to avoid "slow" feeling on re-mounts
-      if (isLoaded || isLoading) return;
+      const isMissingShop = isLoaded && navItems.length > 0 && !megaMenuContent.shop;
+      if ((isLoaded && navItems.length > 0 && !isMissingShop) || isLoading) return;
 
       try {
         setLoading(true);
-        // 1. Fetch categories and products for counts
-        const [categoriesRes, productsRes] = await Promise.all([
-          sdk.store.category.list({ limit: 1000, fields: "id,name,handle,parent_category_id,metadata,category_children" }),
-          sdk.store.product.list({ limit: 1000, fields: "id,categories.id" })
-        ]);
 
-        const product_categories = categoriesRes.product_categories || [];
-        const products = productsRes.products || [];
-        const categoriesByHandle = new Map(product_categories.map((cat) => [cat.handle, cat]));
-        
-        // Find the 'furniture' root to include its main children
-        const furnitureRoot = product_categories.find(c => c.handle === 'furniture');
-        const furnitureRootId = furnitureRoot?.id;
+        const safeFetch = async (promise, fallback) => {
+          try { return await promise; }
+          catch (e) { console.error("Nav fetch error:", e); return fallback; }
+        };
 
-        // Calculate counts
-        const categoryCounts = {};
-        products.forEach(p => {
-          (p.categories || []).forEach(c => {
-            categoryCounts[c.id] = (categoryCounts[c.id] || 0) + 1;
+        // ── 1. Fetch all Medusa categories (paginated) ──────────────────────
+        let medusaCategories = [];
+        let offset = 0;
+        let totalCount = 1;
+        while (medusaCategories.length < totalCount) {
+          const res = await safeFetch(
+            sdk.store.category.list({ limit: 100, offset, fields: "id,name,handle,parent_category_id,metadata" }),
+            { product_categories: [], count: 0 }
+          );
+          medusaCategories = [...medusaCategories, ...(res.product_categories || [])];
+          totalCount = res.count || 0;
+          offset += 100;
+          if ((res.product_categories || []).length === 0) break;
+        }
+
+        // ── 2. Fetch products to build inventory counts ─────────────────────
+        const prodRes = await safeFetch(
+          sdk.store.product.list({ limit: 1000, fields: "id,categories.id" }),
+          { products: [] }
+        );
+        const medusaProducts = prodRes.products || [];
+
+        // ── 3. Fetch curated categories from Sanity ─────────────────────────
+        let curatedCategories = [];
+        try {
+          const sanityRes = await sanityClient.fetch(
+            `*[_type == "curatedNavigation"][0]{ curated_categories }`
+          );
+          curatedCategories = sanityRes?.curated_categories || [];
+        } catch (err) {
+          console.warn("Sanity curated fetch failed, falling back to Medusa only:", err);
+        }
+
+        // ── 4. Build unified category map ───────────────────────────────────
+        // Start with Medusa as base; merge curated enrichment (images, featured products)
+        const catMap = new Map(medusaCategories.map(c => [c.id, { ...c }]));
+
+        curatedCategories.forEach(cur => {
+          if (catMap.has(cur.id)) {
+            const existing = catMap.get(cur.id);
+            existing.curatedImage = cur.image;
+            existing.featuredProducts = cur.featuredProducts || [];
+          } else {
+            // Curated item not in Medusa yet — add it
+            catMap.set(cur.id, {
+              id: cur.id,
+              name: cur.name,
+              handle: cur.handle,
+              parent_category_id: cur.parent_category_id,
+              metadata: {},
+              curatedImage: cur.image,
+              featuredProducts: cur.featuredProducts || [],
+            });
+          }
+        });
+
+        const allCategories = Array.from(catMap.values());
+
+        // ── 5. Build parent → children index ───────────────────────────────
+        const childrenOf = new Map(); // parentId → [child, ...]
+        allCategories.forEach(c => {
+          if (!c.parent_category_id) return;
+          if (!childrenOf.has(c.parent_category_id)) childrenOf.set(c.parent_category_id, []);
+          childrenOf.get(c.parent_category_id).push(c);
+        });
+
+        // ── 6. Build recursive product count (bubbles up the tree) ──────────
+        const productCount = new Map();
+        medusaProducts.forEach(p => {
+          (p.categories || []).forEach(cat => {
+            let id = cat.id;
+            while (id) {
+              productCount.set(id, (productCount.get(id) || 0) + 1);
+              const parent = catMap.get(id);
+              id = parent?.parent_category_id ?? null;
+            }
           });
         });
 
-        // 2. Fetch Sanity config
-        let navConfig = null;
-        try {
-          navConfig = await sanityClient.fetch(`
-            *[_type == "navigation"][0]{
-              items[]{
-                label,
-                categoryHandle,
-                priority,
-                featured{
-                  title,
-                  subtitle,
-                  "imageUrl": image.asset->url,
-                  href
-                }
-              }
-            }
-          `);
-        } catch (err) {
-          console.error("Sanity fetch failed:", err);
+        // Strictly require at least 1 real product (no curated-only ghost categories)
+        const hasContent = (id) => (productCount.get(id) || 0) > 0;
+
+        // Department must ALSO have at least 1 child with real products
+        // (prevents empty top-level items like "Kids" or "Storage" with no live inventory)
+        const hasProductChildren = (id) =>
+          (childrenOf.get(id) || []).some(child => hasContent(child.id));
+
+        // A department is valid if IT has products AND at least one child has products
+        const isValidDepartment = (c) => hasContent(c.id) && hasProductChildren(c.id);
+
+        // ── 7. Determine departments using the CURATED list as authority ──────
+        const curatedIds = new Set(curatedCategories.map(c => c.id));
+
+        let departments;
+        if (curatedCategories.length > 0) {
+          departments = curatedCategories
+            .filter(c => !curatedIds.has(c.parent_category_id))
+            .filter(c => isValidDepartment(c))
+            .sort((a, b) => (Number(a.metadata?.priority) || 100) - (Number(b.metadata?.priority) || 100));
+        } else {
+          // Fallback: use Medusa true-root children
+          const trueRoots = new Set(allCategories.filter(c => !c.parent_category_id).map(c => c.id));
+          departments = allCategories
+            .filter(c => c.parent_category_id && trueRoots.has(c.parent_category_id))
+            .filter(c => isValidDepartment(c))
+            .sort((a, b) => (Number(a.metadata?.priority) || 100) - (Number(b.metadata?.priority) || 100));
         }
 
-        const sanityItems = navConfig?.items || [];
+        // ── 8. Build mega-menu content for each department ───────────────────
+        // Filter by real products, sort by priority, cap at 5
+        const sortTop5 = (arr) =>
+          arr
+            .filter(c => hasContent(c.id))
+            .sort((a, b) => (Number(a.metadata?.priority) || 100) - (Number(b.metadata?.priority) || 100))
+            .slice(0, 5);
 
-        // 3. Identify automatic categories (count >= 5)
-        // Rule: Top-level OR direct child of 'furniture' root
-        const autoCategories = product_categories.filter(cat => {
-          const count = categoryCounts[cat.id] || 0;
-          const isTopLevel = !cat.parent_category_id;
-          const isFurnitureChild = furnitureRootId && cat.parent_category_id === furnitureRootId;
-          
-          return (isTopLevel || isFurnitureChild) && 
-                 count >= 5 && 
-                 cat.handle !== 'furniture'; // Exclude the root container itself
-        });
+        const megaMenus = {};
 
-        // 4. Merge Sanity and Auto items
-        const seenHandles = new Set();
-        const mergedItems = [];
+        departments.forEach(dept => {
+          const deptCat = catMap.get(dept.id) || dept;
 
-        // Add sanity items first
-        sanityItems.forEach(item => {
-          const cat = categoriesByHandle.get(item.categoryHandle);
-          if (cat) {
-            mergedItems.push({
-              id: cat.id,
-              name: item.label || cat.name,
-              href: `/shop/category/${cat.handle}`,
-              handle: cat.handle,
-              priority: item.priority ?? 100,
-              hasMega: (cat.category_children || []).length > 0,
-              sanityFeatured: item.featured
-            });
-            seenHandles.add(cat.handle);
-          }
-        });
-
-        // Add auto items if not already seen
-        autoCategories.forEach((cat, idx) => {
-          if (!seenHandles.has(cat.handle)) {
-            mergedItems.push({
-              id: cat.id,
-              name: cat.name,
-              href: `/shop/category/${cat.handle}`,
-              handle: cat.handle,
-              priority: 200 + idx,
-              hasMega: (cat.category_children || []).length > 0,
-            });
-          }
-        });
-
-        const sortedNavItems = mergedItems.sort((a, b) => a.priority - b.priority);
-
-        // 5. Build Mega Menu content
-        const mappedMegaMenuContent = {};
-        sortedNavItems.forEach((item) => {
-          const cat = categoriesByHandle.get(item.handle);
-          if (!cat) return;
-          const href = `/shop/category/${cat.handle}`;
-          const children = cat.category_children || [];
-          
-          if (children.length > 0) {
-            const columns = children.map((child) => ({
-              title: child.name,
-              href: `/shop/category/${child.handle}`,
-              items: (child.category_children || []).map((grandChild) => ({
-                name: grandChild.name,
-                href: `/shop/category/${grandChild.handle}`,
+          // Columns = top 5 children with real products
+          const columns = sortTop5(childrenOf.get(dept.id) || []).map(col => {
+            const colCat = catMap.get(col.id) || col;
+            return {
+              title: colCat.name,
+              href: `/product-categories/${colCat.handle}`,
+              // Items = top 5 grandchildren with real products
+              items: sortTop5(childrenOf.get(col.id) || []).map(item => ({
+                name: item.name,
+                href: `/product-categories/${item.handle}`,
               })),
-            }));
-
-            mappedMegaMenuContent[href] = {
-              columns,
-              featured: [
-                {
-                  title: item.sanityFeatured?.title || `${cat.name} Collection`,
-                  subtitle: item.sanityFeatured?.subtitle || "",
-                  href: item.sanityFeatured?.href || href,
-                  image: cat.metadata?.image || item.sanityFeatured?.imageUrl || "https://placehold.co/800x600/f5f5f5/111?text=Collection",
-                },
-              ],
             };
-          }
+          });
+
+          megaMenus[`/product-categories/${dept.handle}`] = {
+            columns,
+            featured: null,
+            sectionLabel: dept.name,
+            viewAllHref: `/product-categories/${dept.handle}`,
+          };
         });
 
-        setNavData(sortedNavItems, mappedMegaMenuContent);
+        // ── 9. Build "Shop All" overview menu ───────────────────────────────
+        const shopColumns = departments.map(dept => {
+          const deptCat = catMap.get(dept.id) || dept;
+          return {
+            title: deptCat.name,
+            href: `/product-categories/${deptCat.handle}`,
+            items: sortTop5(childrenOf.get(dept.id) || []).map(col => ({
+              name: col.name,
+              href: `/product-categories/${col.handle}`,
+            })),
+          };
+        });
+
+        megaMenus["shop"] = {
+          columns: shopColumns,
+          featured: {
+            title: "The Aroha House Collection",
+            subtitle: "Curating Intentional Spaces",
+            href: "/shop",
+            image: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=800",
+          },
+          sectionLabel: "All Departments",
+          viewAllHref: "/shop",
+        };
+
+        // ── 10. Final nav items (ALL departments) ────────────────────────────
+        const finalNavItems = departments.map(dept => {
+          const deptCat = catMap.get(dept.id) || dept;
+          return {
+            id: dept.id,
+            name: deptCat.name,
+            href: `/product-categories/${deptCat.handle}`,
+            handle: deptCat.handle,
+            hasMega: true,
+          };
+        });
+
+        console.log(
+          "NavData: departments →",
+          finalNavItems.map(n => n.name),
+          "| total curated:", curatedCategories.length
+        );
+        setNavData(finalNavItems, megaMenus);
+
       } catch (err) {
-        setNavData([], {}); // Set empty on error to prevent infinite loading state
-        console.error("Failed to fetch navigation data:", err);
+        console.error("Nav fetch failure:", err);
+        setNavData([], {});
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchNavigationData();
-  }, []);
+  }, [isLoaded, isLoading, navItems.length, megaMenuContent.shop, setNavData, setLoading]);
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -167,82 +236,42 @@ export const useNavData = () => {
         data.forEach(p => {
           const tags = Array.isArray(p.perfectFor) ? p.perfectFor : [p.perfectFor];
           tags.forEach(tag => {
+            if (!tag) return;
             const lower = tag.toLowerCase();
             if (keywords.find(kw => lower.includes(kw))) {
-              const display = tag.split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1)).join(' ');
-              found.add(display);
+              found.add(tag.split(' ').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(' '));
             }
           });
         });
         setRoomCategories(Array.from(found).slice(0, 6));
       } catch (err) {
-        console.error("Failed to fetch rooms for nav:", err);
+        console.error("Rooms fetch error:", err);
       }
     };
     fetchRooms();
   }, []);
 
-  const roomsMegaContent = useMemo(() => {
-    const categories = roomCategories.length > 0 ? roomCategories : ["Living Room", "Bedroom", "Studio"];
-    return {
-      columns: [
-        {
-          title: "Virtual Tours",
-          href: "/rooms",
-          items: categories.map(cat => ({ 
-            name: cat.toUpperCase(), 
-            href: `/rooms/${cat.toLowerCase().replace(/\s+/g, '-')}` 
-          }))
-        }
-      ],
-      featured: [
-        {
-          title: "The Visionary Estate",
-          subtitle: "UHNI homes",
-          href: "/rooms",
-          image: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&q=80&w=800"
-        },
-        {
-          title: "Structural Form",
-          subtitle: "Architects",
-          href: "/rooms",
-          image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=800"
-        }
-      ]
-    };
-  }, [roomCategories]);
-
-  const aggregatedMegaContent = useMemo(() => {
-    const columns = [];
-    const allFeatured = [];
-
-    navItems.forEach((parentItem) => {
-      const parentContent = megaMenuContent[parentItem.href];
-      if (!parentContent) return;
-      const subcategories = [];
-      if (parentContent.columns) {
-        parentContent.columns.forEach((childColumn) => {
-          subcategories.push({ name: childColumn.title, href: childColumn.href });
-          if (childColumn.items && subcategories.length < 5) {
-            const remaining = 5 - subcategories.length;
-            subcategories.push(...childColumn.items.slice(0, remaining));
-          }
-        });
-      }
-      columns.push({ title: parentItem.name, href: parentItem.href, items: subcategories.slice(0, 5) });
-      if (parentContent.featured) {
-        allFeatured.push(...parentContent.featured);
-      }
-    });
-
-    return { columns, featured: allFeatured.slice(0, 3) };
-  }, [navItems, megaMenuContent]);
+  const roomsMegaContent = useMemo(() => ({
+    columns: [{
+      title: "Virtual Tours",
+      href: "/rooms",
+      items: roomCategories.map(cat => ({
+        name: cat.toUpperCase(),
+        href: `/rooms/${cat.toLowerCase().replace(/\s+/g, '-')}`,
+      })),
+    }],
+    featured: {
+      title: "The Visionary Estate",
+      subtitle: "Luxury Interiors",
+      href: "/rooms",
+      image: "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&q=80&w=800",
+    },
+  }), [roomCategories]);
 
   return {
     navItems,
-    roomCategories,
     megaMenuContent,
     roomsMegaContent,
-    aggregatedMegaContent
+    shopMegaContent: megaMenuContent["shop"] || { columns: [] },
   };
 };

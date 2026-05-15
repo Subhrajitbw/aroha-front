@@ -9,7 +9,7 @@ import CustomCursor from '../ui/CustomCursor';
 import { useSearchStore } from  '@/stores/searchStore';
 import { useAuthModalStore } from  '@/stores/useAuthModalStore';
 
-export default function ClientLayout({ children, isMobile, isNotDesktop }) {
+export default function ClientLayout({ children }) {
   const pathname = usePathname();
   const { isOpen: isSearchOpen, close: closeSearch } = useSearchStore();
   const { isOpen: isAuthOpen, close: closeAuth } = useAuthModalStore();
@@ -22,7 +22,8 @@ export default function ClientLayout({ children, isMobile, isNotDesktop }) {
     // Shop & account have light backgrounds — start with dark text
     if (
       pathname.startsWith("/shop") ||
-      pathname.startsWith("/account")
+      pathname.startsWith("/account") ||
+      pathname === "/wishlist"
     ) {
       return "light";
     }
@@ -39,17 +40,16 @@ export default function ClientLayout({ children, isMobile, isNotDesktop }) {
       <CustomCursor />
       <NavBar 
         variant={getNavBarVariant()} 
-        isMobile={isMobile} 
-        isNotDesktop={isNotDesktop} 
       />
       
       <SearchModal isOpen={isSearchOpen} onClose={closeSearch} />
       <AuthModal isOpen={isAuthOpen} onClose={closeAuth} />
       
       {/* Top Spacer: only for top-fixed nav on desktop/non-floating states */}
-      {needsNavSpacer && !isNotDesktop && (
+      {needsNavSpacer && (
         <div 
           aria-hidden="true"
+          className="hidden lg:block"
           style={{ height: 'var(--nav-height, 64px)' }} 
         />
       )}

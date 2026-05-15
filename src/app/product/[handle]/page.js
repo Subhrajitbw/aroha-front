@@ -4,6 +4,9 @@ import ProductClient from '@/components/pages/ProductClient';
 import { notFound } from 'next/navigation';
 import JsonLd from '@/components/seo/JsonLd';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function generateMetadata({ params }) {
   const { handle } = await params;
   try {

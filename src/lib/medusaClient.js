@@ -21,14 +21,33 @@ if (typeof window !== "undefined") {
 }
 
 /**
+ * Helper for custom backend routes
+ */
+export const customFetch = async (path, options = {}) => {
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const url = `${normalizedBase}${normalizedPath}`;
+  const response = await fetch(url, {
+    cache: "no-store", // Ensure fresh data for custom routes
+    ...options,
+    headers: {
+      "x-publishable-key": publishableKey,
+      "Content-Type": "application/json",
+      ...options.headers,
+    },
+  });
+  if (!response.ok) {
+    throw new Error(`Custom fetch failed: ${response.statusText}`);
+  }
+  return response.json();
+};
+
+/**
  * Helper to get cart ID from cookies (server) or localStorage (client)
  */
 export const getCartId = () => {
   if (typeof window !== "undefined") {
     return localStorage.getItem("cart_id");
   }
-  // On server, we would use cookies() from next/headers
-  // but we can't import it here directly as this is a shared lib.
-  // We'll pass it from components when needed.
   return null;
 };

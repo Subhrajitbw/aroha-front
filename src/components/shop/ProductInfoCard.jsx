@@ -2,7 +2,40 @@ import React, { useState, useRef, useEffect } from "react";
 import { ArrowUpRight, Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import gsap from "gsap";
-import { useResponsive } from  "@/hooks/useResponsive";
+import { useResponsive } from "@/hooks/useResponsive";
+import { useWishlistStore } from "@/stores/useWishlistStore";
+
+// SKELETON COMPONENT FOR LOADING STATES
+export const ProductSkeleton = ({ className = "" }) => {
+  return (
+    <div className={`flex flex-col w-full gap-4 ${className}`}>
+      {/* Image Skeleton */}
+      <div className="relative w-full aspect-[3/4] rounded-[1000px] bg-stone-100 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"
+          style={{ backgroundImage: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)' }} />
+      </div>
+
+      {/* Text Skeletons */}
+      <div className="flex flex-col items-center gap-2 px-4">
+        <div className="h-4 w-3/4 bg-stone-100 rounded-full overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+        </div>
+        <div className="h-3 w-1/2 bg-stone-100 rounded-full overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+        </div>
+        <div className="h-5 w-1/3 bg-stone-100 rounded-full mt-2 overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+        </div>
+      </div>
+
+      <style jsx>{`
+        @keyframes shimmer {
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
+    </div>
+  );
+};
 
 export const ProductInfoCard = ({
   product,
@@ -14,7 +47,9 @@ export const ProductInfoCard = ({
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  const { toggleWishlist, isInWishlist } = useWishlistStore();
+  const isWishlisted = isInWishlist(product?.id || product?._id || product?.handle);
 
   const containerRef = useRef(null);
   const imageWrapperRef = useRef(null);
@@ -61,13 +96,13 @@ export const ProductInfoCard = ({
   // Touch interaction - show button on tap
   const handleTouchStart = () => {
     if (!isTouchDevice || !buttonRef.current || !imageRef.current) return;
-    
+
     gsap.to(imageRef.current, {
       scale: 1.05,
       duration: 0.3,
       ease: "power2.out",
     });
-    
+
     gsap.to(buttonRef.current, {
       y: 0,
       opacity: 1,
@@ -78,13 +113,13 @@ export const ProductInfoCard = ({
 
   const handleTouchEnd = () => {
     if (!isTouchDevice || !buttonRef.current || !imageRef.current) return;
-    
+
     gsap.to(imageRef.current, {
       scale: 1,
       duration: 0.3,
       ease: "power2.out",
     });
-    
+
     gsap.to(buttonRef.current, {
       y: 10,
       opacity: 0,
@@ -94,6 +129,11 @@ export const ProductInfoCard = ({
   };
 
   const handleProductClick = () => {
+    // Save scroll position for restoration on back navigation
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('shop_scroll_pos', window.scrollY.toString());
+    }
+
     if (product?.handle) {
       router.push(`/product/${product.handle}`);
     } else if (product?.id) {
@@ -144,9 +184,8 @@ export const ProductInfoCard = ({
             alt={productName}
             loading="lazy"
             onLoad={() => setImageLoaded(true)}
-            className={`w-full h-full object-cover absolute inset-0 transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.08] ${
-              imageLoaded ? "opacity-100 blur-0" : "opacity-0 blur-md"
-            }`}
+            className={`w-full h-full object-cover absolute inset-0 transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.08] ${imageLoaded ? "opacity-100 blur-0" : "opacity-0 blur-md"
+              }`}
             style={{
               touchAction: "none",
             }}
@@ -160,30 +199,31 @@ export const ProductInfoCard = ({
           {/* Hover/active overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-500 pointer-events-none z-10" />
 
-          {/* Wishlist Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsWishlisted(!isWishlisted);
-            }}
-            className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 p-2 sm:p-2.5 rounded-full bg-white/80 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 hover:scale-110 hover:bg-white shadow-sm"
-          >
-            <Heart 
-              className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-stone-600'}`} 
-            />
-          </button>
+        </div>
 
-          {/* Action button - larger touch target */}
-          <div
-            ref={buttonRef}
-            className="absolute bottom-4 xs:bottom-5 sm:bottom-6 md:bottom-8 left-0 right-0 mx-auto w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-xl translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-[600ms] ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-20"
-            style={{
-              minWidth: isTouchDevice ? "48px" : "auto",
-              minHeight: isTouchDevice ? "48px" : "auto",
-            }}
-          >
-            <ArrowUpRight className="w-5 h-5 xs:w-6 xs:h-6 sm:w-7 sm:h-7 text-black stroke-[1.5]" />
-          </div>
+        {/* Wishlist Button - Moved outside overflow-hidden to prevent cropping by the pill shape */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleWishlist(product);
+          }}
+          className="absolute top-4 right-4 sm:top-5 sm:right-5 z-30 p-2 sm:p-2.5 rounded-full bg-white/90 backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-white shadow-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+        >
+          <Heart
+            className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-stone-600'}`}
+          />
+        </button>
+
+        {/* Action button - larger touch target */}
+        <div
+          ref={buttonRef}
+          className="absolute bottom-4 xs:bottom-5 sm:bottom-6 md:bottom-8 left-0 right-0 mx-auto w-12 h-12 xs:w-14 xs:h-14 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-xl translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-[600ms] ease-[cubic-bezier(0.175,0.885,0.32,1.275)] z-20"
+          style={{
+            minWidth: isTouchDevice ? "48px" : "auto",
+            minHeight: isTouchDevice ? "48px" : "auto",
+          }}
+        >
+          <ArrowUpRight className="w-5 h-5 xs:w-6 xs:h-6 sm:w-7 sm:h-7 text-black stroke-[1.5]" />
         </div>
       </div>
 
@@ -195,7 +235,7 @@ export const ProductInfoCard = ({
         {/* Title with animated underline */}
         <h3
           className="text-xs xs:text-sm sm:text-base md:text-lg font-normal tracking-wide leading-snug relative inline-block line-clamp-2 w-full"
-          style={{ 
+          style={{
             color: finalTextColor,
             wordBreak: "break-word",
             hyphens: "auto",

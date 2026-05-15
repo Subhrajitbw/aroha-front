@@ -1,4 +1,4 @@
-import { headers } from 'next/headers';
+import { Suspense } from 'react';
 import './globals.css';
 import { Providers } from './providers';
 import ClientLayout from '@/components/layout/ClientLayout';
@@ -73,13 +73,9 @@ export const metadata = {
 };
 
 export default async function RootLayout({ children }) {
-  const headersList = await headers();
-  const userAgent = headersList.get('user-agent') || '';
+  // REMOVED dynamic headers() call to enable Static Site Generation (SSG).
+  // Mobile detection is now handled gracefully on the client side in ClientLayout/NavBar.
   
-  // Simple but effective mobile detection
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
-  const isNotDesktop = isMobile || /Tablet|iPad/i.test(userAgent);
-
   const organizationSchema = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
@@ -109,11 +105,11 @@ export default async function RootLayout({ children }) {
         <meta name="mobile-web-app-capable" content="yes" />
         <link rel="apple-touch-icon" href="/icon-192.png" />
         
-        {/* Service Worker Registration */}
+        {/* Service Worker Registration — Disabled in Dev to prevent interference with HMR */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
+              if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').then(
                     function(registration) { console.log('Service Worker registered'); },
@@ -127,7 +123,7 @@ export default async function RootLayout({ children }) {
       </head>
       <body className="antialiased">
         <Providers>
-          <ClientLayout isMobile={isMobile} isNotDesktop={isNotDesktop}>
+          <ClientLayout>
             {children}
           </ClientLayout>
           <PwaPrompt />

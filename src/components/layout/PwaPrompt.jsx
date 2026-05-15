@@ -11,27 +11,41 @@ export default function PwaPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   useEffect(() => {
-    // 1. Check if already installed
+    // 0. Strict Mobile Only
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    const isMobileDevice = /android|iphone|kindle|ipad|playbook|silk/i.test(userAgent);
+    const isSmallScreen = window.innerWidth < 1024;
+    
+    if (!isMobileDevice && !isSmallScreen) return;
+
+    // 1. Check if already installed (Standalone mode)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
       || window.navigator.standalone 
       || document.referrer.includes('android-app://');
     
     if (isStandalone) return;
 
-    // 2. Handle Android/Chrome "beforeinstallprompt"
+    // 2. Cooldown check (interaction based)
+    const lastDismissed = localStorage.getItem('pwa_prompt_dismissed_at');
+    if (lastDismissed) {
+      const timeSinceDismissed = Date.now() - parseInt(lastDismissed, 10);
+      const cooldownPeriod = 14 * 24 * 60 * 60 * 1000; // Increased to 14 days for luxury feel
+      if (timeSinceDismissed < cooldownPeriod) return;
+    }
+
+    // 3. Handle Android/Chrome "beforeinstallprompt"
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setPromptType('android');
       
-      // Show prompt after a delay or based on some engagement
       const timer = setTimeout(() => setShowPrompt(true), 5000);
       return () => clearTimeout(timer);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // 3. Handle iOS Detection
+    // 4. Handle iOS Detection
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     
@@ -45,6 +59,11 @@ export default function PwaPrompt() {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, []);
+
+  const handleDismiss = () => {
+    localStorage.setItem('pwa_prompt_dismissed_at', Date.now().toString());
+    setShowPrompt(false);
+  };
 
   const handleAndroidInstall = async () => {
     if (!deferredPrompt) return;
@@ -69,7 +88,7 @@ export default function PwaPrompt() {
         <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-6">
           {/* Close button */}
           <button 
-            onClick={() => setShowPrompt(false)}
+            onClick={handleDismiss}
             className="absolute top-4 right-4 p-1 rounded-full hover:bg-stone-100 transition-colors"
           >
             <X size={16} className="text-stone-400" />
