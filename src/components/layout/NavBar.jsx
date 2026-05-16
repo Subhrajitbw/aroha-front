@@ -2,7 +2,7 @@
 import React, { useRef, useState, useCallback, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, Search as SearchIcon, ChevronDown, User, ShoppingBag, Heart } from "lucide-react";
+import { Menu, X, Search as SearchIcon, ChevronDown, User, ShoppingBag, Heart, BookOpen } from "lucide-react";
 
 import { useSearchStore } from "@/stores/searchStore";
 import { useAuthModalStore } from "@/stores/useAuthModalStore";
@@ -13,16 +13,14 @@ import { useWishlistStore } from "@/stores/useWishlistStore";
 import MobileMenu from "./MobileMenu";
 import MegaMenu from "../nav/MegaMenu";
 import { NavIcon } from "../nav/NavIcon";
-import Logo from "../nav/Logo";
 import ProfileDropdown from "../nav/ProfileDropdown";
-
-// import { useNavAnimations } from "@/hooks/useNavAnimations";
-import { useKeyboardShortcuts } from  "@/hooks/useKeyboardShortcuts";
-import { useNavData } from  "@/hooks/useNavData";
-import { useNavTheming } from  "@/hooks/useNavTheming";
-import { motion, AnimatePresence } from "framer-motion";
 import CartDropdown from "../nav/CartDropdown";
-import { sdk } from  "@/lib/medusaClient";
+
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
+import { useNavData } from "@/hooks/useNavData";
+import { useNavTheming } from "@/hooks/useNavTheming";
+import { motion } from "framer-motion";
+import { sdk } from "@/lib/medusaClient";
 import useLockBodyScroll from "@/hooks/useLockBodyScroll";
 
 const NavBar = ({ variant = "light" }) => {
@@ -30,13 +28,16 @@ const NavBar = ({ variant = "light" }) => {
   const logoRef = useRef(null);
   const iconsRef = useRef([]);
   const megaMenuRef = useRef(null);
+  const contentWrapperRef = useRef(null);
+  const shopButtonRef = useRef(null);
 
   const [activeMegaMenu, setActiveMegaMenu] = useState(null);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [cartDropdownOpen, setCartDropdownOpen] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
+  const [caretPosition, setCaretPosition] = useState(null);
 
-  // Client-side device detection (used for non-rendering concerns only)
+  // Client-side device detection
   const [isMobileDevice, setIsMobileDevice] = useState(false);
 
   useEffect(() => {
@@ -48,13 +49,12 @@ const NavBar = ({ variant = "light" }) => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Expose --nav-height CSS variable so pages can offset content below the navbar
+  // Expose --nav-height CSS variable
   const lastNavHeight = useRef(0);
   useEffect(() => {
     if (!navRef.current) return;
     const observer = new ResizeObserver(([entry]) => {
       const h = Math.ceil(entry.borderBoxSize?.[0]?.blockSize ?? entry.target.getBoundingClientRect().height);
-      // Only update if change is significant (> 1px) to prevent layout thrashing
       if (Math.abs(h - lastNavHeight.current) > 1) {
         document.documentElement.style.setProperty('--nav-height', `${h}px`);
         lastNavHeight.current = h;
@@ -71,6 +71,7 @@ const NavBar = ({ variant = "light" }) => {
   const { open: openSearch } = useSearchStore();
   const { open: openAuth } = useAuthModalStore();
   const { isAuthenticated, user, logout, initializeAuth } = useAuthStore();
+  const { items: wishlistItems, isHydrated: wishlistHydrated } = useWishlistStore();
 
   const {
     scrolled,
@@ -88,13 +89,10 @@ const NavBar = ({ variant = "light" }) => {
     megaMenuContent
   } = useNavData();
 
-  // useNavAnimations(navRef, logoRef, iconsRef);
   useKeyboardShortcuts(openSearch);
 
   useEffect(() => {
     initializeAuth();
-
-    // Initial cart count fetch
     const fetchCartStatus = async () => {
       const cartId = localStorage.getItem("cart_id");
       if (cartId) {
@@ -107,9 +105,20 @@ const NavBar = ({ variant = "light" }) => {
     fetchCartStatus();
   }, [initializeAuth]);
 
-  const [caretPosition, setCaretPosition] = useState(null);
-  const shopButtonRef = useRef(null);
-  const contentWrapperRef = useRef(null);
+  // Freeze theme when mega menu open
+  useEffect(() => {
+    setThemeFrozen(!!activeMegaMenu);
+  }, [activeMegaMenu, setThemeFrozen]);
+
+  // Lock body scroll when mega menu open (desktop only)
+  useLockBodyScroll(!!activeMegaMenu && !isMobileDevice);
+
+  // Close all menus on route change
+  useEffect(() => {
+    setActiveMegaMenu(null);
+    closeMenu();
+    setCartDropdownOpen(false);
+  }, [pathname, closeMenu]);
 
   const calculateCaretPosition = useCallback(() => {
     if (!contentWrapperRef.current || !shopButtonRef.current) return;
@@ -119,7 +128,7 @@ const NavBar = ({ variant = "light" }) => {
     setCaretPosition(btnCenter);
   }, []);
 
-  const handleChevronHover = (event) => {
+  const handleChevronHover = () => {
     setActiveMegaMenu('shop');
     calculateCaretPosition();
   };
@@ -128,13 +137,6 @@ const NavBar = ({ variant = "light" }) => {
     setActiveMegaMenu(null);
     router.push('/shop');
   };
-
-  useEffect(() => {
-    setThemeFrozen(!!activeMegaMenu);
-  }, [activeMegaMenu, setThemeFrozen]);
-
-  // Handle body scroll locking when mega menu is open
-  useLockBodyScroll(!!activeMegaMenu && !isMobileDevice);
 
   const handleNavAreaLeave = useCallback((event) => {
     const relatedTarget = event.relatedTarget;
@@ -149,13 +151,6 @@ const NavBar = ({ variant = "light" }) => {
     logout();
     router.push("/");
   };
-
-  // Close all menus on route change
-  useEffect(() => {
-    setActiveMegaMenu(null);
-    closeMenu(); // Correct method from useMenuStore
-    setCartDropdownOpen(false);
-  }, [pathname, closeMenu]);
 
   const getUserDisplayName = () => {
     if (!user) return "";
@@ -175,113 +170,137 @@ const NavBar = ({ variant = "light" }) => {
     return "U";
   };
 
-  const { items: wishlistItems, isHydrated: wishlistHydrated } = useWishlistStore();
-
-  // ---------------------------------------------------------------------------
-  // Glass-morphism styles only (positioning handled by CSS .nav-bar class)
-  // ---------------------------------------------------------------------------
-  const glassStyles = useMemo(() => {
-    return floatingStyles;
-  }, [floatingStyles]);
-
   return (
     <>
       <nav
         ref={navRef}
-        className="nav-bar"
-        style={glassStyles}
-        data-scrolled={scrolled ? "true" : "false"}
-        data-theme={effectiveTheme}
+        className={`fixed z-50 transition-all duration-500 ${floatingPosition} ${
+          scrolled ? "rounded-[2rem] shadow-lg" : ""
+        } px-4 lg:px-6 py-2`}
+        style={floatingStyles}
         onMouseLeave={handleNavAreaLeave}
+        data-theme={effectiveTheme}
       >
-        <div ref={contentWrapperRef} className="mx-auto flex items-center justify-between relative max-w-7xl">
-          {/* Left: Desktop Nav (hidden below lg) + Mobile Hamburger (hidden at lg+) */}
-          <div className="flex-1 flex items-center gap-4 lg:gap-12">
-            {/* Desktop nav links */}
-            <div className="hidden lg:flex items-center gap-12">
-              <div className="flex items-center gap-1 group relative py-4">
-                <button
-                  ref={shopButtonRef}
-                  onClick={handleShopClick}
-                  className={`text-xs tracking-[0.24em] uppercase transition-colors font-medium ${colors.navTextColor} ${colors.navHoverColor}`}
-                >
-                  Shop
-                </button>
-                <button
-                  onMouseEnter={handleChevronHover}
-                  className={`${colors.navTextColor} ${colors.navHoverColor} transition-all p-1 -m-1`}
-                >
-                  <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${activeMegaMenu === 'shop' ? "rotate-180" : ""}`} />
-                </button>
-                {pathname === '/shop' && (
-                  <motion.div
-                    layoutId="navUnderline"
-                    className="absolute bottom-3 left-0 right-4 h-[1.5px] bg-current opacity-40"
-                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                  />
-                )}
-              </div>
-
-              {[
-                { label: 'Lookbook', path: '/lookbook' },
-                { label: 'Rooms', path: '/rooms', hasMega: true, megaKey: 'rooms' },
-                { label: 'Journal', path: '/journal' }
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="relative py-4 group"
-                  onMouseEnter={() => item.hasMega ? setActiveMegaMenu(item.megaKey) : setActiveMegaMenu(null)}
-                >
+        <div
+          ref={contentWrapperRef}
+          className="mx-auto flex items-center justify-between relative max-w-7xl"
+        >
+          {/* Left: Desktop nav links OR Mobile hamburger */}
+          <div className="flex-1 flex items-center gap-4 lg:gap-8">
+            {!isMobileDevice && (
+              <>
+                {/* Desktop: Shop + Chevron */}
+                <div className="flex items-center gap-1 group relative py-4">
                   <button
-                    onClick={() => { setActiveMegaMenu(null); router.push(item.path); }}
-                    className={`
-                      flex items-center gap-1.5 text-xs tracking-[0.24em] uppercase transition-colors font-medium
-                      ${colors.navTextColor} ${colors.navHoverColor}
-                    `}
+                    ref={shopButtonRef}
+                    onClick={handleShopClick}
+                    className={`text-xs tracking-[0.24em] uppercase transition-colors font-medium ${colors.navTextColor} ${colors.navHoverColor}`}
                   >
-                    {item.label}
-                    {item.hasMega && (
-                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${activeMegaMenu === item.megaKey ? "rotate-180" : ""}`} />
-                    )}
+                    Shop
                   </button>
-                  {pathname === item.path && (
+                  <button
+                    onMouseEnter={handleChevronHover}
+                    className={`${colors.navTextColor} ${colors.navHoverColor} transition-all p-1 -m-1`}
+                    aria-label="Open shop menu"
+                  >
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${activeMegaMenu === 'shop' ? "rotate-180" : ""}`} />
+                  </button>
+                  {pathname === '/shop' && (
                     <motion.div
                       layoutId="navUnderline"
-                      className="absolute bottom-3 left-0 right-0 h-[1.5px] bg-current opacity-40"
+                      className="absolute bottom-3 left-0 right-4 h-[1.5px] bg-current opacity-40"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
                 </div>
-              ))}
-            </div>
 
-            {/* Mobile hamburger */}
-            <div className="flex lg:hidden">
-              <NavIcon onClick={toggleMenu} aria-label="Open menu" className={colors.navTextColor} iconRef={(el) => (iconsRef.current[0] = el)}>
-                {menuOpen ? <X size={18} /> : <Menu size={18} />}
-              </NavIcon>
-            </div>
+                {/* Desktop: Other nav items */}
+                {[
+                  { label: 'Lookbook', path: '/lookbook' },
+                  { label: 'Rooms', path: '/rooms', hasMega: true, megaKey: 'rooms' },
+                  { label: 'Journal', path: '/journal' }
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="relative py-4 group"
+                    onMouseEnter={() => item.hasMega ? setActiveMegaMenu(item.megaKey) : setActiveMegaMenu(null)}
+                  >
+                    <button
+                      onClick={() => { setActiveMegaMenu(null); router.push(item.path); }}
+                      className={`flex items-center gap-1.5 text-xs tracking-[0.24em] uppercase transition-colors font-medium ${colors.navTextColor} ${colors.navHoverColor}`}
+                    >
+                      {item.label}
+                      {item.hasMega && (
+                        <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${activeMegaMenu === item.megaKey ? "rotate-180" : ""}`} />
+                      )}
+                    </button>
+                    {pathname === item.path && (
+                      <motion.div
+                        layoutId="navUnderline"
+                        className="absolute bottom-3 left-0 right-0 h-[1.5px] bg-current opacity-40"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+
+            {isMobileDevice && (
+              <>
+                {/* Mobile: Hamburger + Lookbook icon */}
+                <NavIcon
+                  onClick={toggleMenu}
+                  aria-label="Open menu"
+                  className={colors.navTextColor}
+                  iconRef={(el) => (iconsRef.current[0] = el)}
+                >
+                  {menuOpen ? <X size={18} /> : <Menu size={18} />}
+                </NavIcon>
+
+                <Link
+                  href="/lookbook"
+                  className={`${colors.navTextColor} ${colors.navHoverColor} transition-colors flex items-center justify-center`}
+                  aria-label="View Lookbook"
+                >
+                  <BookOpen size={18} strokeWidth={1.5} />
+                </Link>
+              </>
+            )}
           </div>
 
-          <Logo logoRef={logoRef} color={colors.logoColor} onMouseEnter={() => setActiveMegaMenu(null)} />
+          {/* Center: Logo (absolute positioned) */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <Link
+              href="/home"
+              ref={logoRef}
+              className={`text-xl lg:text-2xl font-light tracking-[0.3em] ${colors.logoColor} transition-all duration-500 hover:tracking-[0.5em] shrink-0`}
+              style={{ fontFamily: "Playfair Display, serif", textDecoration: "none" }}
+              onMouseEnter={() => setActiveMegaMenu(null)}
+            >
+              AROHA
+            </Link>
+          </div>
 
-          {/* Right: Actions */}
-          <div className="flex-1 flex justify-end items-center gap-3 md:gap-5">
-            <NavIcon onClick={openSearch} onMouseEnter={() => setActiveMegaMenu(null)} className={`${colors.navTextColor} ${colors.navHoverColor}`} iconRef={(el) => (iconsRef.current[1] = el)}>
+          {/* Right: Action icons */}
+          <div className="flex-1 flex justify-end items-center gap-3 md:gap-4">
+            <NavIcon
+              onClick={openSearch}
+              onMouseEnter={() => setActiveMegaMenu(null)}
+              className={`${colors.navTextColor} ${colors.navHoverColor}`}
+              iconRef={(el) => (iconsRef.current[1] = el)}
+            >
               <SearchIcon size={18} strokeWidth={1.5} />
             </NavIcon>
 
-            <NavIcon 
-              onClick={() => router.push('/wishlist')} 
-              className={`
-                ${colors.navTextColor} ${colors.navHoverColor} relative transition-all duration-300
-                ${pathname === '/wishlist' ? 'scale-110' : ''}
-              `}
+            <NavIcon
+              onClick={() => router.push('/wishlist')}
+              className={`${colors.navTextColor} ${colors.navHoverColor} relative transition-all duration-300 ${pathname === '/wishlist' ? 'scale-110' : ''}`}
               iconRef={(el) => (iconsRef.current[2] = el)}
             >
-              <Heart 
-                size={18} 
-                strokeWidth={1.5} 
+              <Heart
+                size={18}
+                strokeWidth={1.5}
                 className={`transition-colors duration-300 ${pathname === '/wishlist' ? 'fill-current' : ''}`}
               />
               {wishlistHydrated && wishlistItems.length > 0 && (
@@ -293,32 +312,42 @@ const NavBar = ({ variant = "light" }) => {
               )}
             </NavIcon>
 
-            {/* Profile Dropdown Logic */}
-            <div className="relative hidden md:flex items-center" onMouseEnter={() => { setActiveMegaMenu(null); if (isAuthenticated) setProfileDropdownOpen(true); }} onMouseLeave={() => setProfileDropdownOpen(false)}>
-              <button onClick={() => !isAuthenticated ? openAuth() : router.push('/account')} className={`flex items-center gap-2 group p-1 rounded-full transition-all duration-300 ${isAuthenticated ? 'hover:bg-zinc-100/50' : colors.navHoverColor}`}>
-                {isAuthenticated ? (
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-[10px] font-serif text-white shadow-lg border border-white/20 group-hover:scale-105 transition-transform">
-                      {getInitials()}
+            {/* Profile (desktop only) */}
+            {!isMobileDevice && (
+              <div
+                className="relative flex items-center"
+                onMouseEnter={() => { setActiveMegaMenu(null); if (isAuthenticated) setProfileDropdownOpen(true); }}
+                onMouseLeave={() => setProfileDropdownOpen(false)}
+              >
+                <button
+                  onClick={() => !isAuthenticated ? openAuth() : router.push('/account')}
+                  className={`flex items-center gap-2 group p-1 rounded-full transition-all duration-300 ${isAuthenticated ? 'hover:bg-zinc-100/50' : colors.navHoverColor}`}
+                >
+                  {isAuthenticated ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-[10px] font-serif text-white shadow-lg border border-white/20 group-hover:scale-105 transition-transform">
+                        {getInitials()}
+                      </div>
+                      <ChevronDown size={12} className={`transition-transform duration-500 opacity-50 ${profileDropdownOpen ? 'rotate-180' : ''} ${colors.navTextColor}`} />
                     </div>
-                    <ChevronDown size={12} className={`transition-transform duration-500 opacity-50 ${profileDropdownOpen ? 'rotate-180' : ''} ${colors.navTextColor}`} />
-                  </div>
-                ) : (
-                  <div className={colors.navTextColor}><User size={18} strokeWidth={1.5} /></div>
-                )}
-              </button>
+                  ) : (
+                    <div className={colors.navTextColor}><User size={18} strokeWidth={1.5} /></div>
+                  )}
+                </button>
 
-              <ProfileDropdown
-                user={user}
-                isOpen={profileDropdownOpen}
-                onClose={() => setProfileDropdownOpen(false)}
-                router={router}
-                onLogout={handleLogout}
-                getInitials={getInitials}
-                getUserDisplayName={getUserDisplayName}
-              />
-            </div>
+                <ProfileDropdown
+                  user={user}
+                  isOpen={profileDropdownOpen}
+                  onClose={() => setProfileDropdownOpen(false)}
+                  router={router}
+                  onLogout={handleLogout}
+                  getInitials={getInitials}
+                  getUserDisplayName={getUserDisplayName}
+                />
+              </div>
+            )}
 
+            {/* Cart */}
             <div
               className="relative flex items-center"
               onMouseEnter={() => { setActiveMegaMenu(null); setCartDropdownOpen(true); }}
@@ -346,7 +375,8 @@ const NavBar = ({ variant = "light" }) => {
           </div>
         </div>
 
-        <div className="hidden lg:block">
+        {/* Mega menu (desktop only) */}
+        {!isMobileDevice && (
           <MegaMenu
             ref={megaMenuRef}
             isOpen={!!activeMegaMenu}
@@ -355,19 +385,22 @@ const NavBar = ({ variant = "light" }) => {
             onClose={() => setActiveMegaMenu(null)}
             onMouseLeave={handleNavAreaLeave}
           />
-        </div>
+        )}
       </nav>
 
-      <MobileMenu
-        isOpen={menuOpen}
-        onClose={closeMenu}
-        onAuthOpen={openAuth}
-        categories={navItems}
-        megaMenuContent={megaMenuContent}
-        isLoggedIn={isAuthenticated}
-        user={user ? { name: getUserDisplayName(), email: user.email } : null}
-        onLogout={handleLogout}
-      />
+      {/* Mobile drawer */}
+      {isMobileDevice && (
+        <MobileMenu
+          isOpen={menuOpen}
+          onClose={closeMenu}
+          onAuthOpen={openAuth}
+          categories={navItems}
+          megaMenuContent={megaMenuContent}
+          isLoggedIn={isAuthenticated}
+          user={user ? { name: getUserDisplayName(), email: user.email } : null}
+          onLogout={handleLogout}
+        />
+      )}
     </>
   );
 };

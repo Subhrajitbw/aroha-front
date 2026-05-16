@@ -196,9 +196,9 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
 
   const floatingPosition = useMemo(() => {
     if (scrolled) {
-      return !isMobile ? "top-2" : "bottom-4";
+      return !isMobile ? "top-3 left-4 right-4" : "bottom-4 left-3 right-3";
     }
-    return "top-0";
+    return "top-0 left-0 right-0";
   }, [scrolled, isMobile]);
 
   return {
