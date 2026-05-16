@@ -65,46 +65,20 @@ img {
   display: none;
 }
 
-/* Hide all scrollbars globally while keeping functionality */
-* {
-  -webkit-scrollbar-width: none;
+/* Hide scrollbars globally while keeping scroll functionality */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-*::-webkit-scrollbar {
-  width: 0 !important;
-  height: 0 !important;
-  display: none !important;
+html::-webkit-scrollbar {
+  display: none;
 }
 
-*::-webkit-scrollbar-track {
-  background: transparent !important;
-}
-
-*::-webkit-scrollbar-thumb {
-  background: transparent !important;
-}
-
-*::-webkit-scrollbar-corner {
-  background: transparent !important;
-}
-
-/* For Firefox */
-* {
-  scrollbar-width: none !important;
-  scrollbar-color: transparent transparent !important;
-}
-
-/* For Internet Explorer and Edge Legacy */
-* {
-  -ms-overflow-style: none !important;
-}
-
-html,
 body {
-  /* Prevent horizontal scroll jumps while allowing vertical scroll */
   overflow-x: hidden;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* Disable pull-to-refresh for an app-like feel in PWA mode */
   overscroll-behavior-y: none;
 }
 
@@ -198,12 +172,17 @@ small,
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Unscrolled: full-width at top */
 .nav-bar[data-scrolled="false"] {
   top: 0;
+  bottom: unset;
   left: 0;
   right: 0;
   width: 100%;
+  max-width: none;
   border-radius: 0;
+  transform: none;
+  box-shadow: none;
   padding: calc(1rem + env(safe-area-inset-top, 0px)) 1.25rem 0.5rem;
 }
 
@@ -214,7 +193,10 @@ small,
   }
 }
 
+/* Scrolled mobile: floating pill at bottom */
 .nav-bar[data-scrolled="true"] {
+  top: unset;
+  right: unset;
   bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
@@ -225,13 +207,13 @@ small,
   padding: 0.5rem 1.25rem;
 }
 
+/* Scrolled desktop: floating pill at top */
 @media (min-width: 1024px) {
   .nav-bar[data-scrolled="true"] {
-    bottom: unset;
     top: 0.75rem;
+    bottom: unset;
     width: calc(100% - 3rem);
     max-width: 1280px;
-    border-radius: 9999px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
     padding: 0.375rem 2rem;
   }
