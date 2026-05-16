@@ -36,17 +36,14 @@ const NavBar = ({ variant = "light" }) => {
   const [cartDropdownOpen, setCartDropdownOpen] = useState(false);
   const [cartItemCount, setCartItemCount] = useState(0);
 
-  // Pure client-side device detection
+  // Client-side device detection (used for non-rendering concerns only)
   const [isMobileDevice, setIsMobileDevice] = useState(false);
-  const [isNotDesktopDevice, setIsNotDesktopDevice] = useState(false);
 
   useEffect(() => {
     const handleResize = () => {
-      const width = window.innerWidth;
-      setIsMobileDevice(width < 1024);
-      setIsNotDesktopDevice(width < 1024);
+      setIsMobileDevice(window.innerWidth < 1024);
     };
-    handleResize(); // Initial client check
+    handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
@@ -118,8 +115,8 @@ const NavBar = ({ variant = "light" }) => {
     if (!contentWrapperRef.current || !shopButtonRef.current) return;
     const wrapperBounds = contentWrapperRef.current.getBoundingClientRect();
     const btnBounds = shopButtonRef.current.getBoundingClientRect();
-    const btnCenter = btnBounds.left + btnBounds.width / 2;
-    setCaretPosition(btnCenter); // store viewport-relative px
+    const btnCenter = btnBounds.left + btnBounds.width / 2 - wrapperBounds.left;
+    setCaretPosition(btnCenter);
   }, []);
 
   const handleChevronHover = (event) => {
@@ -181,140 +178,89 @@ const NavBar = ({ variant = "light" }) => {
   const { items: wishlistItems, isHydrated: wishlistHydrated } = useWishlistStore();
 
   // ---------------------------------------------------------------------------
-  // Derive final nav styles based on scroll/device state
+  // Glass-morphism styles only (positioning handled by CSS .nav-bar class)
   // ---------------------------------------------------------------------------
-  const navStyle = useMemo(() => {
-    const base = {
-      ...floatingStyles,
-      position: 'fixed',
-      zIndex: 50,
-      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-    };
-
-    if (!scrolled) {
-      // Full-width top banner (un-scrolled state)
-      return {
-        ...base,
-        top: 0,
-        left: 0,
-        right: 0,
-        width: '100%',
-        borderRadius: 0,
-        paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))',
-        paddingBottom: '0.5rem',
-        paddingLeft: isMobileDevice ? '1.25rem' : '3rem',
-        paddingRight: isMobileDevice ? '1.25rem' : '3rem',
-      };
-    }
-
-    if (isMobileDevice) {
-      // Floating pill at bottom on mobile (scrolled)
-      return {
-        ...base,
-        bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 'calc(100% - 2rem)',
-        maxWidth: '440px',
-        borderRadius: '9999px',
-        boxShadow: '0 10px 40px rgba(0,0,0,0.18)',
-        paddingTop: '0.5rem',
-        paddingBottom: '0.5rem',
-        paddingLeft: '1.25rem',
-        paddingRight: '1.25rem',
-      };
-    }
-
-    // Floating pill at top on desktop (scrolled)
-    return {
-      ...base,
-      top: '0.75rem',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      width: 'calc(100% - 3rem)',
-      maxWidth: '1280px',
-      borderRadius: '9999px',
-      boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-      paddingTop: '0.375rem',
-      paddingBottom: '0.375rem',
-      paddingLeft: '2rem',
-      paddingRight: '2rem',
-    };
-  }, [scrolled, isMobileDevice, floatingStyles]);
+  const glassStyles = useMemo(() => {
+    return floatingStyles;
+  }, [floatingStyles]);
 
   return (
     <>
       <nav
         ref={navRef}
-        style={navStyle}
-        onMouseLeave={handleNavAreaLeave}
+        className="nav-bar"
+        style={glassStyles}
+        data-scrolled={scrolled ? "true" : "false"}
         data-theme={effectiveTheme}
+        onMouseLeave={handleNavAreaLeave}
       >
         <div ref={contentWrapperRef} className="mx-auto flex items-center justify-between relative max-w-7xl">
-          {/* Left: Desktop Nav or Mobile Hamburger */}
+          {/* Left: Desktop Nav (hidden below lg) + Mobile Hamburger (hidden at lg+) */}
           <div className="flex-1 flex items-center gap-4 lg:gap-12">
-            {!isMobileDevice ? (
-              <>
-                <div className="flex items-center gap-1 group relative py-4">
+            {/* Desktop nav links */}
+            <div className="hidden lg:flex items-center gap-12">
+              <div className="flex items-center gap-1 group relative py-4">
+                <button
+                  ref={shopButtonRef}
+                  onClick={handleShopClick}
+                  className={`text-xs tracking-[0.24em] uppercase transition-colors font-medium ${colors.navTextColor} ${colors.navHoverColor}`}
+                >
+                  Shop
+                </button>
+                <button
+                  onMouseEnter={handleChevronHover}
+                  className={`${colors.navTextColor} ${colors.navHoverColor} transition-all p-1 -m-1`}
+                >
+                  <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${activeMegaMenu === 'shop' ? "rotate-180" : ""}`} />
+                </button>
+                {pathname === '/shop' && (
+                  <motion.div
+                    layoutId="navUnderline"
+                    className="absolute bottom-3 left-0 right-4 h-[1.5px] bg-current opacity-40"
+                    transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                  />
+                )}
+              </div>
+
+              {[
+                { label: 'Lookbook', path: '/lookbook' },
+                { label: 'Rooms', path: '/rooms', hasMega: true, megaKey: 'rooms' },
+                { label: 'Journal', path: '/journal' }
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="relative py-4 group"
+                  onMouseEnter={() => item.hasMega ? setActiveMegaMenu(item.megaKey) : setActiveMegaMenu(null)}
+                >
                   <button
-                    ref={shopButtonRef}
-                    onClick={handleShopClick}
-                    className={`text-xs tracking-[0.24em] uppercase transition-colors font-medium ${colors.navTextColor} ${colors.navHoverColor}`}
+                    onClick={() => { setActiveMegaMenu(null); router.push(item.path); }}
+                    className={`
+                      flex items-center gap-1.5 text-xs tracking-[0.24em] uppercase transition-colors font-medium
+                      ${colors.navTextColor} ${colors.navHoverColor}
+                    `}
                   >
-                    Shop
+                    {item.label}
+                    {item.hasMega && (
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${activeMegaMenu === item.megaKey ? "rotate-180" : ""}`} />
+                    )}
                   </button>
-                  <button
-                    onMouseEnter={handleChevronHover}
-                    className={`${colors.navTextColor} ${colors.navHoverColor} transition-all p-1 -m-1`}
-                  >
-                    <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${activeMegaMenu === 'shop' ? "rotate-180" : ""}`} />
-                  </button>
-                  {pathname === '/shop' && (
+                  {pathname === item.path && (
                     <motion.div
                       layoutId="navUnderline"
-                      className="absolute bottom-3 left-0 right-4 h-[1.5px] bg-current opacity-40"
+                      className="absolute bottom-3 left-0 right-0 h-[1.5px] bg-current opacity-40"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}
                 </div>
+              ))}
+            </div>
 
-                {[
-                  { label: 'Lookbook', path: '/lookbook' },
-                  { label: 'Rooms', path: '/rooms', hasMega: true, megaKey: 'rooms' },
-                  { label: 'Journal', path: '/journal' }
-                ].map((item) => (
-                  <div 
-                    key={item.label} 
-                    className="relative py-4 group"
-                    onMouseEnter={() => item.hasMega ? setActiveMegaMenu(item.megaKey) : setActiveMegaMenu(null)}
-                  >
-                    <button
-                      onClick={() => { setActiveMegaMenu(null); router.push(item.path); }}
-                      className={`
-                        flex items-center gap-1.5 text-xs tracking-[0.24em] uppercase transition-colors font-medium
-                        ${colors.navTextColor} ${colors.navHoverColor}
-                      `}
-                    >
-                      {item.label}
-                      {item.hasMega && (
-                        <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${activeMegaMenu === item.megaKey ? "rotate-180" : ""}`} />
-                      )}
-                    </button>
-                    {pathname === item.path && (
-                      <motion.div
-                        layoutId="navUnderline"
-                        className="absolute bottom-3 left-0 right-0 h-[1.5px] bg-current opacity-40"
-                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      />
-                    )}
-                  </div>
-                ))}
-              </>
-            ) : (
-              <NavIcon onClick={toggleMenu} className={colors.navTextColor} iconRef={(el) => (iconsRef.current[0] = el)}>
+            {/* Mobile hamburger */}
+            <div className="flex lg:hidden">
+              <NavIcon onClick={toggleMenu} aria-label="Open menu" className={colors.navTextColor} iconRef={(el) => (iconsRef.current[0] = el)}>
                 {menuOpen ? <X size={18} /> : <Menu size={18} />}
               </NavIcon>
-            )}
+            </div>
           </div>
 
           <Logo logoRef={logoRef} color={colors.logoColor} onMouseEnter={() => setActiveMegaMenu(null)} />
@@ -400,7 +346,7 @@ const NavBar = ({ variant = "light" }) => {
           </div>
         </div>
 
-        {!isMobileDevice && (
+        <div className="hidden lg:block">
           <MegaMenu
             ref={megaMenuRef}
             isOpen={!!activeMegaMenu}
@@ -409,21 +355,19 @@ const NavBar = ({ variant = "light" }) => {
             onClose={() => setActiveMegaMenu(null)}
             onMouseLeave={handleNavAreaLeave}
           />
-        )}
+        </div>
       </nav>
 
-      {isNotDesktopDevice && (
-        <MobileMenu
-          isOpen={menuOpen}
-          onClose={closeMenu}
-          onAuthOpen={openAuth}
-          categories={navItems}
-          megaMenuContent={megaMenuContent}
-          isLoggedIn={isAuthenticated}
-          user={user ? { name: getUserDisplayName(), email: user.email } : null}
-          onLogout={handleLogout}
-        />
-      )}
+      <MobileMenu
+        isOpen={menuOpen}
+        onClose={closeMenu}
+        onAuthOpen={openAuth}
+        categories={navItems}
+        megaMenuContent={megaMenuContent}
+        isLoggedIn={isAuthenticated}
+        user={user ? { name: getUserDisplayName(), email: user.email } : null}
+        onLogout={handleLogout}
+      />
     </>
   );
 };

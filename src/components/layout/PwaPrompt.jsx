@@ -83,7 +83,7 @@ export default function PwaPrompt() {
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-24 left-4 right-4 z-[200] md:left-auto md:right-8 md:w-96"
+        className="fixed left-4 right-4 z-[200] md:left-auto md:right-8 md:w-96 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] lg:bottom-8"
       >
         <div className="relative overflow-hidden rounded-3xl bg-white/80 backdrop-blur-2xl border border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.15)] p-6">
           {/* Close button */}

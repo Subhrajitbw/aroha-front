@@ -42,6 +42,42 @@ const MobileMenu = ({
   const mainRef = useRef(null);
   const subRef = useRef(null);
 
+  // Swipe-to-close gesture tracking
+  const touchStartX = useRef(0);
+  const touchCurrentX = useRef(0);
+  const isDragging = useRef(false);
+
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchCurrentX.current = e.touches[0].clientX;
+    isDragging.current = true;
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging.current || !drawerRef.current) return;
+    touchCurrentX.current = e.touches[0].clientX;
+    const deltaX = touchCurrentX.current - touchStartX.current;
+    if (deltaX < 0) {
+      const pct = (deltaX / drawerRef.current.offsetWidth) * 100;
+      gsap.set(drawerRef.current, { x: `${Math.max(pct, -100)}%` });
+      if (overlayRef.current) {
+        gsap.set(overlayRef.current, { opacity: Math.max(0, 1 + deltaX / drawerRef.current.offsetWidth) });
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging.current || !drawerRef.current) return;
+    isDragging.current = false;
+    const deltaX = touchCurrentX.current - touchStartX.current;
+    if (deltaX < -(drawerRef.current.offsetWidth * 0.3)) {
+      handleClose();
+    } else {
+      gsap.to(drawerRef.current, { x: "0%", duration: 0.2, ease: "power2.out" });
+      if (overlayRef.current) gsap.to(overlayRef.current, { opacity: 1, duration: 0.2 });
+    }
+  };
+
   useLockBodyScroll(isOpen);
 
   // ── Animation: open / close ────────────────────────────────────────────────
@@ -113,8 +149,11 @@ const MobileMenu = ({
       {/* Drawer */}
       <div
         ref={drawerRef}
-        className="absolute top-0 left-0 h-full w-[88%] max-w-[380px] bg-[#FAFAF8] flex flex-col"
-        style={{ transform: "translateX(-100%)", paddingTop: "env(safe-area-inset-top, 0px)" }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="absolute top-0 left-0 h-full w-[88%] max-w-[380px] md:max-w-[440px] bg-[#FAFAF8] flex flex-col"
+        style={{ transform: "translateX(-100%)", paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-stone-100">

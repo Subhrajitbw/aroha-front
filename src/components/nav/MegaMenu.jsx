@@ -1,5 +1,5 @@
 // src/components/nav/MegaMenu.jsx
-import React, { useRef, useEffect, forwardRef } from "react";
+import React, { useRef, useEffect, useCallback, forwardRef } from "react";
 import Link from "next/link";
 import { gsap } from "gsap";
 import { ChevronRight, ArrowRight } from "lucide-react";
@@ -64,6 +64,13 @@ const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseL
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [isOpen, onClose]);
+
   const handleMenuClick = (e) => {
     e.stopPropagation();
   };
@@ -98,13 +105,13 @@ const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseL
         onMouseLeave={onMouseLeave}
         onClick={handleMenuClick}
       >
-        {/* Caret indicator — positioned directly under the hovered nav item */}
+        {/* Caret indicator — positioned relative to content wrapper */}
         {caretPosition !== null && caretPosition !== undefined && (
           <div
             className="absolute w-3 h-3 bg-white transform rotate-45 pointer-events-none"
             style={{
               top: "-6px",
-              left: `${caretPosition - 24}px`, // subtract mx-6 (24px) panel left offset
+              left: `${caretPosition}px`,
               marginLeft: "-6px",
               boxShadow: "-2px -2px 8px rgba(0,0,0,0.05)",
               zIndex: 51,
@@ -120,7 +127,7 @@ const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseL
             aria-hidden="true"
           />
 
-          <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-neutral-100 overflow-hidden mx-6">
+          <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-neutral-100 overflow-hidden mx-4 lg:mx-6">
             <div
               ref={contentRef}
               className="max-w-[1400px] mx-auto px-12 py-14 space-y-8"
@@ -129,16 +136,16 @@ const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseL
                 Explore our Shop
               </h2>
 
-              {/* Categories grid - full width */}
+              {/* Categories grid - responsive */}
               <div
-                className={`grid gap-x-12 gap-y-10 ${
+                className={`grid gap-x-6 lg:gap-x-8 xl:gap-x-12 gap-y-10 ${
                   content.columns.length <= 3
-                    ? "grid-cols-3"
+                    ? "grid-cols-2 xl:grid-cols-3"
                     : content.columns.length <= 4
-                    ? "grid-cols-4"
+                    ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
                     : content.columns.length <= 6
-                    ? "grid-cols-5"
-                    : "grid-cols-6"
+                    ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
+                    : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6"
                 }`}
               >
                 {content.columns.map((column, idx) => (
