@@ -121,10 +121,10 @@ const NavBar = ({ variant = "light" }) => {
   }, [pathname, closeMenu]);
 
   const calculateCaretPosition = useCallback(() => {
-    if (!contentWrapperRef.current || !shopButtonRef.current) return;
-    const wrapperBounds = contentWrapperRef.current.getBoundingClientRect();
+    if (!navRef.current || !shopButtonRef.current) return;
+    const navBounds = navRef.current.getBoundingClientRect();
     const btnBounds = shopButtonRef.current.getBoundingClientRect();
-    const btnCenter = btnBounds.left + btnBounds.width / 2 - wrapperBounds.left;
+    const btnCenter = btnBounds.left + btnBounds.width / 2 - navBounds.left;
     setCaretPosition(btnCenter);
   }, []);
 

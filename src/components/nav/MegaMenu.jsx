@@ -1,8 +1,8 @@
 // src/components/nav/MegaMenu.jsx
-import React, { useRef, useEffect, useCallback, forwardRef } from "react";
+import React, { useRef, useEffect, forwardRef } from "react";
 import Link from "next/link";
 import { gsap } from "gsap";
-import { ChevronRight, ArrowRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
 const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseLeave }, ref) => {
   const menuRef = useRef(null);
@@ -14,52 +14,24 @@ const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseL
 
     if (isOpen) {
       gsap.set(backdropRef.current, { display: "block" });
-      gsap.to(backdropRef.current, {
-        autoAlpha: 1,
-        duration: 0.3,
-        ease: "power2.out",
-      });
-
+      gsap.to(backdropRef.current, { autoAlpha: 1, duration: 0.25, ease: "power2.out" });
       gsap.fromTo(
         menuRef.current,
-        { y: -30, scale: 0.95 },
-        {
-          y: 0,
-          scale: 1,
-          autoAlpha: 1,
-          duration: 0.5,
-          ease: "power3.out",
-        }
+        { y: -10, opacity: 0 },
+        { y: 0, opacity: 1, autoAlpha: 1, duration: 0.35, ease: "power3.out" }
       );
-
       gsap.fromTo(
         contentRef.current?.querySelectorAll(".mega-column") || [],
-        { y: 30, opacity: 0 },
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.6,
-          stagger: 0.05,
-          ease: "power2.out",
-          delay: 0.1,
-        }
+        { y: 12, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.4, stagger: 0.03, ease: "power2.out", delay: 0.08 }
       );
     } else {
-      gsap.to(menuRef.current, {
-        y: -20,
-        scale: 0.98,
-        autoAlpha: 0,
-        duration: 0.3,
-        ease: "power2.in",
-      });
-
+      gsap.to(menuRef.current, { y: -8, autoAlpha: 0, duration: 0.2, ease: "power2.in" });
       gsap.to(backdropRef.current, {
         autoAlpha: 0,
-        duration: 0.25,
+        duration: 0.2,
         ease: "power2.in",
-        onComplete: () => {
-          gsap.set(backdropRef.current, { display: "none" });
-        },
+        onComplete: () => gsap.set(backdropRef.current, { display: "none" }),
       });
     }
   }, [isOpen]);
@@ -71,134 +43,128 @@ const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseL
     return () => document.removeEventListener('keydown', handler);
   }, [isOpen, onClose]);
 
-  const handleMenuClick = (e) => {
-    e.stopPropagation();
-  };
-
   if (!content || !content.columns?.length) return null;
+
+  const colCount = content.columns.length;
+  const gridCols =
+    colCount <= 3 ? "grid-cols-3" :
+    colCount <= 4 ? "grid-cols-4" :
+    colCount <= 5 ? "grid-cols-5" :
+    "grid-cols-6";
 
   return (
     <>
-      {/* Backdrop overlay */}
+      {/* Backdrop */}
       <div
         ref={backdropRef}
-        className="fixed inset-x-0 top-0 h-screen z-40 pointer-events-auto"
+        className="fixed inset-0 z-40 pointer-events-auto"
         style={{ display: "none" }}
         onClick={onClose}
         onMouseEnter={onMouseLeave}
       />
 
-      {/* Mega menu container */}
+      {/* Menu container */}
       <div
         ref={(node) => {
           menuRef.current = node;
           if (ref) {
-            if (typeof ref === "function") {
-              ref(node);
-            } else {
-              ref.current = node;
-            }
+            if (typeof ref === "function") ref(node);
+            else ref.current = node;
           }
         }}
-        className="absolute left-0 right-0 top-full mt-3 z-50 pointer-events-auto"
+        className="absolute left-0 right-0 top-full mt-2 z-50 pointer-events-auto"
         style={{ visibility: "hidden" }}
         onMouseLeave={onMouseLeave}
-        onClick={handleMenuClick}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Caret indicator — positioned relative to content wrapper */}
-        {caretPosition !== null && caretPosition !== undefined && (
+        {/* Caret */}
+        {caretPosition != null && (
           <div
-            className="absolute w-3 h-3 bg-white transform rotate-45 pointer-events-none"
+            className="absolute w-2.5 h-2.5 bg-white rotate-45 pointer-events-none z-[51]"
             style={{
-              top: "-6px",
+              top: "-5px",
               left: `${caretPosition}px`,
-              marginLeft: "-6px",
-              boxShadow: "-2px -2px 8px rgba(0,0,0,0.05)",
-              zIndex: 51,
+              marginLeft: "-5px",
+              boxShadow: "-1px -1px 4px rgba(0,0,0,0.06)",
             }}
           />
         )}
 
-        {/* Main menu panel */}
-        <div className="relative">
-          {/* Invisible hover bridge to prevent gap issues */}
-          <div
-            className="absolute -top-6 left-0 right-0 h-6 pointer-events-auto"
-            aria-hidden="true"
-          />
+        {/* Hover bridge */}
+        <div className="absolute -top-4 left-0 right-0 h-4 pointer-events-auto" aria-hidden="true" />
 
-          <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-neutral-100 overflow-hidden mx-4 lg:mx-6">
-            <div
-              ref={contentRef}
-              className="max-w-[1400px] mx-auto px-12 py-14 space-y-8"
-            >
-              <h2 className="text-[10px] font-bold tracking-[0.3em] uppercase text-neutral-400">
-                Explore our Shop
-              </h2>
+        {/* Panel */}
+        <div className="bg-white rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1)] border border-neutral-100/80 overflow-hidden mx-2">
+          <div ref={contentRef} className="px-8 py-6">
+            <div className={`grid ${gridCols} gap-x-8`}>
+              {content.columns.map((column, idx) => (
+                <div key={idx} className="mega-column min-w-0">
+                  {/* Column title */}
+                  <Link
+                    href={column.href}
+                    onClick={onClose}
+                    className="group flex items-center gap-1.5 mb-3"
+                  >
+                    <span className="text-[11px] font-semibold tracking-[0.12em] uppercase text-neutral-900 group-hover:text-neutral-600 transition-colors whitespace-nowrap">
+                      {column.title}
+                    </span>
+                    <ChevronRight
+                      size={10}
+                      strokeWidth={2.5}
+                      className="text-neutral-400 group-hover:text-neutral-600 group-hover:translate-x-0.5 transition-all"
+                    />
+                  </Link>
 
-              {/* Categories grid - responsive */}
-              <div
-                className={`grid gap-x-6 lg:gap-x-8 xl:gap-x-12 gap-y-10 ${
-                  content.columns.length <= 3
-                    ? "grid-cols-2 xl:grid-cols-3"
-                    : content.columns.length <= 4
-                    ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                    : content.columns.length <= 6
-                    ? "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5"
-                    : "grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6"
-                }`}
-              >
-                {content.columns.map((column, idx) => (
-                  <div key={idx} className="mega-column">
-                    {/* Column header */}
-                    <Link
-                      href={column.href}
-                      onClick={onClose}
-                      className="group block mb-6"
-                    >
-                      <h3 className="text-[11px] font-medium tracking-[0.15em] uppercase text-neutral-900 group-hover:text-neutral-600 transition-colors duration-300 flex items-center gap-2 mb-3">
-                        {column.title}
-                        <ChevronRight
-                          size={12}
-                          strokeWidth={2}
-                          className="translate-x-0 group-hover:translate-x-1 transition-transform duration-300"
-                        />
-                      </h3>
-                      <div className="h-[1px] bg-gradient-to-r from-neutral-200 via-neutral-300 to-transparent" />
-                    </Link>
+                  {/* Separator */}
+                  <div className="h-px bg-neutral-100 mb-3" />
 
-                    {/* Column items */}
-                    <nav className="space-y-4">
-                      {column.items?.slice(0, 5).map((item, itemIdx) => (
+                  {/* Items */}
+                  <ul className="space-y-1.5">
+                    {column.items?.slice(0, 6).map((item, itemIdx) => (
+                      <li key={itemIdx}>
                         <Link
-                          key={itemIdx}
                           href={item.href}
                           onClick={onClose}
-                          className="group flex items-start gap-3 text-[13px] text-neutral-600 hover:text-neutral-900 transition-all duration-300"
+                          className="block text-[12.5px] text-neutral-500 hover:text-neutral-900 transition-colors whitespace-nowrap truncate py-0.5"
                         >
-                          <span className="mt-1.5 w-[3px] h-[3px] rounded-full bg-neutral-300 group-hover:bg-neutral-900 group-hover:w-[5px] group-hover:h-[5px] transition-all duration-300 flex-shrink-0" />
-                          <span className="leading-relaxed tracking-wide group-hover:translate-x-0.5 transition-transform duration-300">
-                            {item.name}
-                          </span>
+                          {item.name}
                         </Link>
-                      ))}
-                    </nav>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
 
-                    {/* View all link */}
-                    {column.items?.length > 5 && (
-                      <Link
-                        href={column.href}
-                        onClick={onClose}
-                        className="inline-flex items-center gap-1.5 text-[11px] font-medium text-neutral-500 hover:text-neutral-900 transition-colors mt-5 tracking-wide"
-                      >
-                        <span>View all</span>
-                        <ArrowRight size={11} strokeWidth={2} />
-                      </Link>
+            {/* Featured section (if available) */}
+            {content.featured?.length > 0 && (
+              <div className="mt-5 pt-4 border-t border-neutral-100 flex items-center gap-6">
+                {content.featured.slice(0, 2).map((feat, idx) => (
+                  <Link
+                    key={idx}
+                    href={feat.href}
+                    onClick={onClose}
+                    className="group flex items-center gap-3"
+                  >
+                    {feat.image && (
+                      <img
+                        src={feat.image}
+                        alt={feat.title}
+                        className="w-10 h-10 rounded-lg object-cover"
+                      />
                     )}
-                  </div>
+                    <div>
+                      <span className="text-[11px] font-medium text-neutral-700 group-hover:text-neutral-900 transition-colors whitespace-nowrap">
+                        {feat.title}
+                      </span>
+                      {feat.subtitle && (
+                        <span className="block text-[10px] text-neutral-400">{feat.subtitle}</span>
+                      )}
+                    </div>
+                  </Link>
                 ))}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
