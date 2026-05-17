@@ -1,7 +1,7 @@
-// src/components/FloatingEnquiry.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { MessageCircle, Phone, Mail, X } from "lucide-react";
 import { gsap } from "gsap";
+import useLockBodyScroll from "@/hooks/useLockBodyScroll";
 
 const FloatingEnquiry = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -75,18 +75,8 @@ const FloatingEnquiry = () => {
     };
   }, [isOpen]);
 
-  // Prevent body scroll when open on mobile
-  useEffect(() => {
-    if (isOpen && window.innerWidth < 640) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [isOpen]);
+  // Prevent body scroll when open on mobile (perfectly works on iOS Safari)
+  useLockBodyScroll(isOpen && typeof window !== "undefined" && window.innerWidth < 640);
 
   // Animate options when opening/closing
   useEffect(() => {

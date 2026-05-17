@@ -6,6 +6,7 @@ import Footer from '../layout/Footer';
 import SearchModal from '../layout/SearchModal';
 import AuthModal from '../auth/AuthModal';
 import CustomCursor from '../ui/CustomCursor';
+import BottomNavigation from '../layout/BottomNavigation';
 import { useSearchStore } from  '@/stores/searchStore';
 import { useAuthModalStore } from  '@/stores/useAuthModalStore';
 
@@ -33,14 +34,19 @@ export default function ClientLayout({ children }) {
   const shouldShowFooter = !["/", "/home", "/lookbook"].includes(pathname);
   // Frontpage uses full-screen fixed sections; it handles its own layout.
   // All other pages need a spacer so content doesn't hide under the fixed navbar.
-  const needsNavSpacer = !["/", "/home", "/lookbook"].includes(pathname);
+  // Shop page, category pages, and product pages bypass this spacer to work like the frontpage.
+  const needsNavSpacer = 
+    !["/", "/home", "/lookbook", "/shop"].includes(pathname) && 
+    !pathname.startsWith("/product/") &&
+    !pathname.startsWith("/product-categories/");
 
   return (
-    <div className="app-container min-h-[100dvh] flex flex-col">
+    <div className="app-container min-h-[100dvh] flex flex-col pb-[calc(72px+env(safe-area-inset-bottom,0px))] lg:pb-0">
       <CustomCursor />
       <NavBar 
         variant={getNavBarVariant()} 
       />
+      <BottomNavigation />
       
       <SearchModal isOpen={isSearchOpen} onClose={closeSearch} />
       <AuthModal isOpen={isAuthOpen} onClose={closeAuth} />
@@ -50,15 +56,6 @@ export default function ClientLayout({ children }) {
         <div
           aria-hidden="true"
           style={{ height: 'var(--nav-height, 64px)' }}
-        />
-      )}
-
-      {/* Bottom Spacer: prevents content from hiding behind floating bottom nav on mobile */}
-      {needsNavSpacer && (
-        <div
-          aria-hidden="true"
-          className="block lg:hidden"
-          style={{ height: 'calc(var(--nav-height, 56px) + 1rem + env(safe-area-inset-bottom, 0px))' }}
         />
       )}
       

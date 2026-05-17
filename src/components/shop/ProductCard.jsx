@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Heart, ShoppingCart, Eye, Star, Sparkles } from "lucide-react";
 import Link from "next/link";
 import gsap from "gsap";
@@ -133,7 +133,7 @@ export default function ProductCard({ product }) {
         {/* Title */}
         <Link
           href={`/product/${product?.handle || product?._id || product?.id || ""}`}
-          className="block text-[15px] sm:text-base text-neutral-900/90 font-medium tracking-tight line-clamp-2 hover:text-neutral-900 transition-colors"
+          className="block text-[15px] sm:text-base text-neutral-900/90 font-medium tracking-tight line-clamp-2 hover:text-neutral-900 transition-colors h-[40px] sm:h-[48px]"
         >
           {product?.name || "Untitled product"}
         </Link>

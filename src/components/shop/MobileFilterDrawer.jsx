@@ -115,7 +115,7 @@ export const MobileFilterDrawer = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full text-xs tracking-[0.2em] uppercase px-4 py-4 bg-stone-900 text-white hover:bg-stone-800 transition-colors"
+                className="w-full flex items-center justify-center text-xs tracking-[0.2em] uppercase py-4 bg-stone-900 text-white hover:bg-stone-800 transition-colors"
               >
                 Show Results
               </button>
@@ -133,7 +133,7 @@ export const MobileFilterDrawer = ({
                     ratings: [],
                   })
                 }
-                className="w-full text-xs tracking-[0.15em] uppercase px-4 py-3 text-stone-500 hover:text-stone-900 transition-colors"
+                className="w-full flex items-center justify-center text-xs tracking-[0.15em] uppercase py-3 text-stone-500 hover:text-stone-900 transition-colors"
               >
                 Clear Selections
               </button>

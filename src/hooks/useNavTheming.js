@@ -171,20 +171,26 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
           backgroundColor: colorAnalysis?.hasHighContrast ? "rgba(0, 0, 0, 0.15)" : "rgba(0, 0, 0, 0.2)",
           backdropFilter: "blur(20px) saturate(150%)",
           WebkitBackdropFilter: "blur(20px) saturate(150%)",
-          border: "1px solid rgba(255, 255, 255, 0.1)",
-          boxShadow: colorAnalysis?.hasHighContrast
-            ? "0 8px 32px rgba(0, 0, 0, 0.2), 0 2px 16px rgba(0, 0, 0, 0.15)"
-            : "0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 16px rgba(0, 0, 0, 0.1)",
+          border: isMobile ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
+          borderBottom: isMobile ? "1px solid rgba(255, 255, 255, 0.08)" : undefined,
+          boxShadow: isMobile
+            ? "0 4px 20px rgba(0, 0, 0, 0.05)"
+            : (colorAnalysis?.hasHighContrast
+                ? "0 8px 32px rgba(0, 0, 0, 0.2), 0 2px 16px rgba(0, 0, 0, 0.15)"
+                : "0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 16px rgba(0, 0, 0, 0.1)"),
         };
       }
       return {
         backgroundColor: colorAnalysis?.hasHighContrast ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.2)",
         backdropFilter: "blur(20px) saturate(150%)",
         WebkitBackdropFilter: "blur(20px) saturate(150%)",
-        border: "1px solid rgba(0, 0, 0, 0.1)",
-        boxShadow: colorAnalysis?.hasHighContrast
-          ? "0 8px 32px rgba(255, 255, 255, 0.2), 0 2px 16px rgba(255, 255, 255, 0.15)"
-          : "0 8px 32px rgba(255, 255, 255, 0.15), 0 2px 16px rgba(255, 255, 255, 0.1)",
+        border: isMobile ? "none" : "1px solid rgba(0, 0, 0, 0.1)",
+        borderBottom: isMobile ? "1px solid rgba(0, 0, 0, 0.05)" : undefined,
+        boxShadow: isMobile
+          ? "0 4px 20px rgba(0, 0, 0, 0.02)"
+          : (colorAnalysis?.hasHighContrast
+              ? "0 8px 32px rgba(255, 255, 255, 0.2), 0 2px 16px rgba(255, 255, 255, 0.15)"
+              : "0 8px 32px rgba(255, 255, 255, 0.15), 0 2px 16px rgba(255, 255, 255, 0.1)"),
       };
     }
     return {
@@ -192,11 +198,11 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
       backdropFilter: "blur(20px)",
       WebkitBackdropFilter: "blur(20px)",
     };
-  }, [scrolled, effectiveTheme, colorAnalysis]);
+  }, [scrolled, effectiveTheme, colorAnalysis, isMobile]);
 
   const floatingPosition = useMemo(() => {
     if (scrolled) {
-      return !isMobile ? "top-3 left-4 right-4" : "bottom-4 left-3 right-3";
+      return !isMobile ? "top-3 left-4 right-4" : "top-0 left-0 right-0";
     }
     return "top-0 left-0 right-0";
   }, [scrolled, isMobile]);

@@ -42,24 +42,51 @@ const MobileMenu = ({
   const mainRef = useRef(null);
   const subRef = useRef(null);
 
-  // Swipe-to-close gesture tracking
+  // Swipe-to-close gesture tracking (isolated from vertical scrolling)
   const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
   const touchCurrentX = useRef(0);
+  const touchCurrentY = useRef(0);
   const isDragging = useRef(false);
+  const isSwipeGesture = useRef(false);
 
   const handleTouchStart = (e) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
     touchCurrentX.current = e.touches[0].clientX;
+    touchCurrentY.current = e.touches[0].clientY;
     isDragging.current = true;
+    isSwipeGesture.current = false;
   };
 
   const handleTouchMove = (e) => {
     if (!isDragging.current || !drawerRef.current) return;
     touchCurrentX.current = e.touches[0].clientX;
+    touchCurrentY.current = e.touches[0].clientY;
+
     const deltaX = touchCurrentX.current - touchStartX.current;
+    const deltaY = touchCurrentY.current - touchStartY.current;
+
+    // Isolate vertical scroll from horizontal swiping
+    if (!isSwipeGesture.current) {
+      const absX = Math.abs(deltaX);
+      const absY = Math.abs(deltaY);
+
+      if (absX > 8 || absY > 8) {
+        if (absX > absY) {
+          isSwipeGesture.current = true; // Confirmed horizontal swipe close gesture
+        } else {
+          isDragging.current = false; // Vertical scrolling list, skip swipe tracking
+          return;
+        }
+      } else {
+        return; // Movement below threshold
+      }
+    }
+
     if (deltaX < 0) {
       const pct = (deltaX / drawerRef.current.offsetWidth) * 100;
-      gsap.set(drawerRef.current, { x: `${Math.max(pct, -100)}%` });
+      gsap.set(drawerRef.current, { x: `${Math.max(pct, -100)}%`, force3D: true });
       if (overlayRef.current) {
         gsap.set(overlayRef.current, { opacity: Math.max(0, 1 + deltaX / drawerRef.current.offsetWidth) });
       }
@@ -73,7 +100,7 @@ const MobileMenu = ({
     if (deltaX < -(drawerRef.current.offsetWidth * 0.3)) {
       handleClose();
     } else {
-      gsap.to(drawerRef.current, { x: "0%", duration: 0.2, ease: "power2.out" });
+      gsap.to(drawerRef.current, { x: "0%", duration: 0.2, ease: "power2.out", force3D: true });
       if (overlayRef.current) gsap.to(overlayRef.current, { opacity: 1, duration: 0.2 });
     }
   };
@@ -84,11 +111,11 @@ const MobileMenu = ({
   useEffect(() => {
     if (!isOpen) return;
     // reset sub-panel
-    if (subRef.current) gsap.set(subRef.current, { x: "100%" });
-    if (mainRef.current) gsap.set(mainRef.current, { x: "0%", opacity: 1 });
+    if (subRef.current) gsap.set(subRef.current, { x: "100%", force3D: true });
+    if (mainRef.current) gsap.set(mainRef.current, { x: "0%", opacity: 1, force3D: true });
 
     gsap.fromTo(overlayRef.current, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.25, ease: "power2.out" });
-    gsap.fromTo(drawerRef.current, { x: "-100%" }, { x: "0%", duration: 0.4, ease: "power3.out" });
+    gsap.fromTo(drawerRef.current, { x: "-100%" }, { x: "0%", duration: 0.4, ease: "power3.out", force3D: true });
   }, [isOpen]);
 
   const handleClose = () => {
@@ -97,6 +124,7 @@ const MobileMenu = ({
       x: "-100%",
       duration: 0.35,
       ease: "power3.inOut",
+      force3D: true,
       onComplete: () => {
         setActiveCategory(null);
         onClose();
@@ -112,14 +140,14 @@ const MobileMenu = ({
       return;
     }
     setActiveCategory({ ...cat, subMenu: subMenuData });
-    gsap.to(mainRef.current, { x: "-20%", opacity: 0, duration: 0.3, ease: "power3.inOut" });
-    gsap.fromTo(subRef.current, { x: "100%" }, { x: "0%", duration: 0.35, ease: "power3.out" });
+    gsap.to(mainRef.current, { x: "-20%", opacity: 0, duration: 0.3, ease: "power3.inOut", force3D: true });
+    gsap.fromTo(subRef.current, { x: "100%" }, { x: "0%", duration: 0.35, ease: "power3.out", force3D: true });
   };
 
   const closeSub = () => {
-    gsap.to(subRef.current, { x: "100%", duration: 0.3, ease: "power3.inOut" });
+    gsap.to(subRef.current, { x: "100%", duration: 0.3, ease: "power3.inOut", force3D: true });
     gsap.to(mainRef.current, {
-      x: "0%", opacity: 1, duration: 0.35, ease: "power3.out",
+      x: "0%", opacity: 1, duration: 0.35, ease: "power3.out", force3D: true,
       onComplete: () => setActiveCategory(null),
     });
   };
@@ -143,7 +171,7 @@ const MobileMenu = ({
         ref={overlayRef}
         onClick={handleClose}
         className="absolute inset-0 bg-stone-900/50 backdrop-blur-sm"
-        style={{ visibility: "hidden", opacity: 0 }}
+        style={{ visibility: "hidden", opacity: 0, willChange: "opacity, visibility" }}
       />
 
       {/* Drawer */}
@@ -153,7 +181,12 @@ const MobileMenu = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
         className="absolute top-0 left-0 h-full w-[88%] max-w-[380px] md:max-w-[440px] bg-[#FAFAF8] flex flex-col"
-        style={{ transform: "translateX(-100%)", paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        style={{ 
+          transform: "translateX(-100%)", 
+          paddingTop: "env(safe-area-inset-top, 0px)", 
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          willChange: "transform" 
+        }}
       >
         {/* ── Header ── */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-stone-100">

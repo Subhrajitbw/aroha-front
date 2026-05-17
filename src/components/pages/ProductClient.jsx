@@ -204,7 +204,7 @@ const ProductClient = ({ initialData }) => {
   const images = sanityContent?.galleryR2?.length > 0 ? sanityContent.galleryR2 : (product.images?.length > 0 ? product.images : [{ url: product.thumbnail }]);
 
   return (
-    <div className="relative text-stone-900 font-sans">
+    <div className="relative text-stone-900 font-sans pt-[var(--nav-height,80px)]">
       <main className="max-w-[1920px] mx-auto lg:grid lg:grid-cols-12 relative">
         {/* LEFT: IMAGE GALLERY — Acts as a track for the inner sticky element */}
         <div className="w-full lg:col-span-7 h-full">

@@ -168,7 +168,7 @@ export default function ShopClient({ initialData }) {
     const fetchProducts = async () => {
       if (!regionId) return;
 
-      // Skip fetch on mount if we just restored from cache
+      // Skip fetch on mount if we just restored from cache or if we are using the server-rendered initialData
       if (isInitialMount.current) {
         isInitialMount.current = false;
         if (isRestored.current) {
@@ -178,6 +178,9 @@ export default function ShopClient({ initialData }) {
           sessionStorage.removeItem('shop_scroll_pos');
           return;
         }
+        // Since we are not restoring from cache, we already have initialData from server SSR.
+        // We can safely skip this redundant first client-side fetch!
+        return;
       }
 
       if (filters.categories?.length > 0 && categories.length === 0) return;
@@ -358,7 +361,7 @@ export default function ShopClient({ initialData }) {
   };
 
   return (
-    <div className="min-h-screen pt-2 sm:pt-4 bg-gradient-to-br from-stone-50/30 via-white to-stone-100/30">
+    <div className="min-h-screen pt-[var(--nav-height,80px)] bg-gradient-to-br from-stone-50/30 via-white to-stone-100/30">
       <div className="pt-4 sm:pt-6 pb-6 sm:pb-8 px-3 sm:px-4 md:px-6 lg:px-8 xl:px-16">
         <div className="max-w-[2200px] mx-auto text-center space-y-4 sm:space-y-6">
           <motion.h1 

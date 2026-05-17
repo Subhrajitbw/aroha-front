@@ -170,13 +170,23 @@ const NavBar = ({ variant = "light" }) => {
     return "U";
   };
 
+  const paddingClass = isMobileDevice
+    ? (scrolled 
+        ? "pt-[calc(env(safe-area-inset-top,0px)+12px)] pb-3" 
+        : "pt-[calc(env(safe-area-inset-top,0px)+26px)] pb-6")
+    : "lg:py-3.5";
+
+  const transformClass = isMobileDevice && scrolled 
+    ? "-translate-y-full opacity-0 pointer-events-none" 
+    : "translate-y-0 opacity-100";
+
   return (
     <>
       <nav
         ref={navRef}
         className={`fixed z-50 transition-all duration-500 ${floatingPosition} ${
-          scrolled ? "rounded-[2rem] shadow-lg" : ""
-        } px-4 lg:px-6 py-2`}
+          scrolled && !isMobileDevice ? "rounded-[2rem] shadow-lg" : ""
+        } px-4 lg:px-6 ${paddingClass} ${transformClass}`}
         style={floatingStyles}
         onMouseLeave={handleNavAreaLeave}
         data-theme={effectiveTheme}
@@ -272,7 +282,7 @@ const NavBar = ({ variant = "light" }) => {
           {/* Center: Logo (absolute positioned) */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <Link
-              href="/home"
+              href="/"
               ref={logoRef}
               className={`text-xl lg:text-2xl font-light tracking-[0.3em] ${colors.logoColor} transition-all duration-500 hover:tracking-[0.5em] shrink-0`}
               style={{ fontFamily: "Playfair Display, serif", textDecoration: "none" }}

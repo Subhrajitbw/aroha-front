@@ -38,10 +38,9 @@
   }
 }
 
-/* Optimize image rendering */
+/* Optimize image rendering for luxury high-DPI/Retina photography */
 img {
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
+  image-rendering: auto;
 }
 
 /* Prevent layout shift during image loading */
@@ -163,5 +162,23 @@ small,
 
 .animate-maison-enter {
   animation: maison-fade-slide 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Luxury responsive layout vertical spacing tokens */
+.luxury-section {
+  padding-top: 3.5rem;
+  padding-bottom: 3.5rem;
+}
+@media (min-width: 640px) {
+  .luxury-section {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .luxury-section {
+    padding-top: 7rem;
+    padding-bottom: 7rem;
+  }
 }
 
