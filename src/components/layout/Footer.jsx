@@ -51,7 +51,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="relative w-full min-h-screen bg-stone-900 text-white overflow-hidden font-sans flex flex-col lg:justify-between">
+    <footer className="relative w-full min-h-screen bg-stone-900 text-white overflow-hidden font-sans flex flex-col lg:justify-between outline outline-1 outline-stone-900">
 
       {/* ─── Top Section ─── */}
       <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 pt-2 sm:pt-20 lg:pt-24 pb-12 sm:pb-16">
@@ -284,7 +284,7 @@ const Footer = () => {
       </div>
 
       {/* ─── Background watermark ─── */}
-      <div className="absolute bottom-0 left-0 right-0 pointer-events-none select-none overflow-hidden z-0">
+      <div className="absolute bottom-0 left-0 right-0 w-full max-w-full overflow-hidden pointer-events-none select-none z-0">
         <span
           className="block text-[20vw] sm:text-[16vw] font-serif text-stone-800/30 leading-none whitespace-nowrap -mb-[0.15em] -ml-[0.02em]"
           style={{ letterSpacing: "-0.04em" }}

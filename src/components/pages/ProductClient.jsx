@@ -8,6 +8,7 @@ import { ProductInfoCard } from "../shop/ProductInfoCard";
 import CustomDropdown from "../ui/CustomDropdown";
 import Breadcrumbs from "../ui/Breadcrumbs";
 import { motion } from 'framer-motion'
+import { AnimatePresence } from "framer-motion";
 const ProductClient = ({ initialData }) => {
   const router = useRouter();
   const desktopThumbnailRefs = useRef([]);
@@ -204,7 +205,7 @@ const ProductClient = ({ initialData }) => {
   const images = sanityContent?.galleryR2?.length > 0 ? sanityContent.galleryR2 : (product.images?.length > 0 ? product.images : [{ url: product.thumbnail }]);
 
   return (
-    <div className="relative text-stone-900 font-sans pt-[var(--nav-height,80px)]">
+    <div className="relative text-stone-900 font-sans pt-2 lg:pt-[var(--nav-height,80px)]">
       <main className="max-w-[1920px] mx-auto lg:grid lg:grid-cols-12 relative">
         {/* LEFT: IMAGE GALLERY — Acts as a track for the inner sticky element */}
         <div className="w-full lg:col-span-7 h-full">
@@ -212,7 +213,7 @@ const ProductClient = ({ initialData }) => {
             <div className="relative w-full max-w-[650px] aspect-square sm:rounded-[40px] overflow-hidden lg:shadow-sm lg:border border-stone-100/50 bg-stone-50 touch-pan-y">
               {images[currentImageIndex]?.url ? (
                 <AnimatePresence mode="wait">
-                  <motion.div 
+                  <motion.div
                     key={currentImageIndex}
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -232,10 +233,10 @@ const ProductClient = ({ initialData }) => {
                   >
                     {/* Skeleton for main image */}
                     <div className="absolute inset-0 bg-stone-100 animate-pulse" />
-                    <img 
-                      src={images[currentImageIndex]?.url} 
-                      className="relative w-full h-full object-cover z-10 pointer-events-none" 
-                      alt={product.title} 
+                    <img
+                      src={images[currentImageIndex]?.url}
+                      className="relative w-full h-full object-cover z-10 pointer-events-none"
+                      alt={product.title}
                     />
                   </motion.div>
                 </AnimatePresence>
@@ -379,7 +380,6 @@ const ProductClient = ({ initialData }) => {
       </main>
       <style dangerouslySetInnerHTML={{
         __html: `
-        html, body { overflow-x: visible !important; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />

@@ -168,7 +168,7 @@ export default function ProductCarousel() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full bg-[#fdfbf9] pb-[calc(72px+env(safe-area-inset-bottom,0px)+4px)] md:py-16 lg:py-24 selection:bg-stone-200 flex flex-col justify-center h-full overflow-hidden"
+      className="relative w-full py-4 bg-[#fdfbf9] pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:py-16 lg:py-24 selection:bg-stone-200 flex flex-col justify-center h-full overflow-hidden"
     >
       <div className="max-w-[1600px] w-full mx-auto px-4 md:px-8 lg:px-12 flex flex-col gap-2.5 lg:gap-10 h-full min-h-0">
 

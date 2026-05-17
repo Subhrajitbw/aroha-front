@@ -75,7 +75,7 @@ html::-webkit-scrollbar {
 }
 
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;

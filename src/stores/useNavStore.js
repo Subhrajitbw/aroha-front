@@ -11,13 +11,15 @@ export const useNavStore = create(
     (set) => ({
       navItems: [],
       megaMenuContent: {},
+      categoryThumbnails: {},
       isLoaded: false,
       isLoading: false,
       error: null,
 
-      setNavData: (navItems, megaMenuContent) => set({ 
+      setNavData: (navItems, megaMenuContent, categoryThumbnails) => set({ 
         navItems, 
         megaMenuContent, 
+        categoryThumbnails, 
         isLoaded: true, 
         isLoading: false 
       }),
@@ -31,7 +33,8 @@ export const useNavStore = create(
       // Only persist the data, not the loading states
       partialize: (state) => ({ 
         navItems: state.navItems, 
-        megaMenuContent: state.megaMenuContent 
+        megaMenuContent: state.megaMenuContent,
+        categoryThumbnails: state.categoryThumbnails
       }),
     }
   )

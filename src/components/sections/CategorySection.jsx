@@ -170,7 +170,7 @@ const CategorySection = () => {
   return (
     <section
       ref={sectionRef}
-      className="relative h-full w-full flex flex-col pb-[calc(72px+env(safe-area-inset-bottom,0px)+4px)] md:pt-24 md:pb-12 lg:pt-32 lg:pb-16 overflow-hidden bg-[#fdfbf9] text-stone-900 justify-center group/section"
+      className="relative h-full w-full flex flex-col pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:pt-24 md:pb-12 lg:pt-32 lg:pb-16 overflow-hidden bg-[#fdfbf9] text-stone-900 justify-center group/section"
     >
       <div className="flex flex-col gap-1 md:gap-6 w-full h-full max-w-[1600px] mx-auto py-4 px-4 md:px-8 lg:px-12 relative min-h-0">
 

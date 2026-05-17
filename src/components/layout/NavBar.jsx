@@ -184,7 +184,7 @@ const NavBar = ({ variant = "light" }) => {
     <>
       <nav
         ref={navRef}
-        className={`fixed z-50 transition-all duration-500 ${floatingPosition} ${
+        className={`fixed z-50 transition-all duration-500 hidden lg:block ${floatingPosition} ${
           scrolled && !isMobileDevice ? "rounded-[2rem] shadow-lg" : ""
         } px-4 lg:px-6 ${paddingClass} ${transformClass}`}
         style={floatingStyles}

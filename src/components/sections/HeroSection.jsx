@@ -202,7 +202,7 @@ const HeroSection = () => {
       </div>
 
       {/* ═══════ CONTENT ═══════ */}
-      <div className="absolute inset-0 z-10 flex flex-col justify-end pb-28 sm:pb-32 lg:pb-36 px-6 sm:px-10 lg:px-20">
+      <div className="absolute inset-0 z-10 flex flex-col justify-end pb-32 sm:pb-32 lg:pb-36 px-6 sm:px-10 lg:px-20">
         <div className="max-w-4xl">
 
           {/* Badge */}
@@ -274,7 +274,7 @@ const HeroSection = () => {
       </div>
 
       {/* ═══════ BOTTOM — PROGRESS + COUNTER ═══════ */}
-      <div className="absolute bottom-0 left-0 right-0 z-20">
+      <div className="absolute bottom-0 left-0 right-0 z-20 hidden sm:block">
         {/* Progress bar */}
         <div className="h-[1px] bg-white/10">
           <div ref={progressRef} className="h-full bg-white/40 origin-left" style={{ transform: "scaleX(0)" }} />
@@ -324,9 +324,9 @@ const HeroSection = () => {
       </div>
 
       {/* ═══════ BRAND WATERMARK ═══════ */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[1] pointer-events-none select-none">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-full overflow-hidden z-[1] pointer-events-none select-none flex justify-center items-center">
         <span
-          className="text-[20vw] sm:text-[15vw] font-serif text-white/[0.02] leading-none tracking-[-0.05em] whitespace-nowrap"
+          className="block text-[20vw] sm:text-[15vw] font-serif text-white/[0.02] leading-none tracking-[-0.05em] whitespace-nowrap"
           style={{ fontStyle: "italic" }}
         >
           Aroha

@@ -125,6 +125,7 @@ body {
   color: #1c1917;
   /* stone-900 */
   text-rendering: optimizeLegibility;
+  overflow-x: clip;
 }
 
 /* Stabilize global font weights for luxury readability */

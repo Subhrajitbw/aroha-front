@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useRef } from "react";
 import { usePathname, useRouter, useParams, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useMotionValue, animate } from "framer-motion";
 import { Filter, LayoutGrid, ChevronLeft, ChevronRight } from "lucide-react";
-import { sdk } from  "@/lib/medusaClient";
+import { sdk } from "@/lib/medusaClient";
 
 import { FilterSidebar } from "../shop/FilterSidebar";
 import { MobileFilterDrawer } from "../shop/MobileFilterDrawer";
@@ -95,7 +95,7 @@ export default function ShopClient({ initialData }) {
   // Sync category from URL params
   useEffect(() => {
     const handle = params.handle || null;
-    
+
     // Only update if handle actually changed
     if (handle !== selectedCategoryHandle) {
       setSelectedCategoryHandle(handle);
@@ -136,7 +136,7 @@ export default function ShopClient({ initialData }) {
           setProducts(parsed);
           if (savedPage) setPage(parseInt(savedPage, 10));
           isRestored.current = true;
-          
+
           if (savedScrollPos) {
             setTimeout(() => {
               window.scrollTo({ top: parseInt(savedScrollPos, 10), behavior: 'instant' });
@@ -216,7 +216,7 @@ export default function ShopClient({ initialData }) {
         } else {
           setProducts(prev => [...prev, ...mappedProducts]);
         }
-        
+
         if (typeof count !== 'undefined') {
           setTotalCount(count);
         }
@@ -361,10 +361,10 @@ export default function ShopClient({ initialData }) {
   };
 
   return (
-    <div className="min-h-screen pt-[var(--nav-height,80px)] bg-gradient-to-br from-stone-50/30 via-white to-stone-100/30">
+    <div className="min-h-screen pt-2 lg:pt-[var(--nav-height,80px)] bg-gradient-to-br from-stone-50/30 via-white to-stone-100/30">
       <div className="pt-4 sm:pt-6 pb-6 sm:pb-8 px-3 sm:px-4 md:px-6 lg:px-8 xl:px-16">
         <div className="max-w-[2200px] mx-auto text-center space-y-4 sm:space-y-6">
-          <motion.h1 
+          <motion.h1
             initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-light text-stone-900 tracking-[0.05em]"
             style={{ fontFamily: "'Playfair Display', serif" }}
@@ -402,9 +402,9 @@ export default function ShopClient({ initialData }) {
                     }
 
                     // Strict filter: only show categories that actually contain products
-                    const categoriesWithProducts = visibleCategories.filter(cat => 
-                      (cat.products?.length > 0) || 
-                      (cat.product_count > 0) || 
+                    const categoriesWithProducts = visibleCategories.filter(cat =>
+                      (cat.products?.length > 0) ||
+                      (cat.product_count > 0) ||
                       (cat.hasDirectProducts) ||
                       (cat.children?.some(child => child.products?.length > 0 || child.product_count > 0))
                     );
@@ -412,25 +412,25 @@ export default function ShopClient({ initialData }) {
                     return (
                       <>
                         {!selectedCategoryHandle && (
-                          <CategoryTab 
-                            category="All Objects" 
-                            isSelected={true} 
-                            onClick={() => goToCategory(null)} 
+                          <CategoryTab
+                            category="All Objects"
+                            isSelected={true}
+                            onClick={() => goToCategory(null)}
                           />
                         )}
                         {selectedCategoryHandle && (
-                          <CategoryTab 
-                            category="Explore All" 
-                            isSelected={false} 
-                            onClick={() => goToCategory(null)} 
+                          <CategoryTab
+                            category="Explore All"
+                            isSelected={false}
+                            onClick={() => goToCategory(null)}
                           />
                         )}
                         {categoriesWithProducts.map((cat) => (
-                          <CategoryTab 
-                            key={cat.id} 
-                            category={cat} 
-                            isSelected={selectedCategoryHandle === cat.handle} 
-                            onClick={() => goToCategory(cat.handle)} 
+                          <CategoryTab
+                            key={cat.id}
+                            category={cat}
+                            isSelected={selectedCategoryHandle === cat.handle}
+                            onClick={() => goToCategory(cat.handle)}
                           />
                         ))}
                       </>
@@ -452,23 +452,23 @@ export default function ShopClient({ initialData }) {
 
       <div className="max-w-[2200px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-16 pb-10 flex flex-col lg:flex-row gap-6 lg:gap-12">
         <aside className="hidden lg:block lg:w-72 xl:w-80 2xl:w-96 shrink-0">
-          <FilterSidebar 
-            filters={filters} 
-            onFiltersChange={(v) => {setFilters(v); setPage(1);}} 
-            collections={dynamicCollections} 
-            categories={categories} 
-            tags={availableTags} 
-            priceBounds={dynamicPriceBounds} 
+          <FilterSidebar
+            filters={filters}
+            onFiltersChange={(v) => { setFilters(v); setPage(1); }}
+            collections={dynamicCollections}
+            categories={categories}
+            tags={availableTags}
+            priceBounds={dynamicPriceBounds}
             selectedCategoryHandle={selectedCategoryHandle}
             onCategorySelect={handleCategoryNavigation}
-            className="sticky top-24" 
+            className="sticky top-24"
           />
         </aside>
 
         <main className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-4 mb-8">
-            <Breadcrumbs items={categoryBreadcrumbs} className="flex-1" />
-            
+            <Breadcrumbs items={categoryBreadcrumbs} className="flex-1 min-w-0" />
+
             <div className="flex items-center gap-2 sm:gap-4">
               {/* Filter Toggle */}
               <button
@@ -509,8 +509,8 @@ export default function ShopClient({ initialData }) {
               ) : (
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-6 gap-y-12">
-                    {loading ? Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i} />) 
-                    : currentProducts.map((p) => <ProductInfoCard key={p.id} product={p} isFluid={true} />)}
+                    {loading ? Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i} />)
+                      : currentProducts.map((p) => <ProductInfoCard key={p.id} product={p} isFluid={true} />)}
                   </div>
                   {!loading && hasMore && (
                     <div className="mt-20 flex justify-center">
@@ -526,7 +526,7 @@ export default function ShopClient({ initialData }) {
         </main>
       </div>
 
-      <MobileFilterDrawer isOpen={mobileFilterOpen} onClose={() => setMobileFilterOpen(false)} filters={filters} onFiltersChange={(v) => {setFilters(v); setPage(1);}} collections={dynamicCollections} categories={categories} tags={availableTags} priceBounds={dynamicPriceBounds} sort={sort} onSortChange={(v) => {setSort(v); setPage(1);}} selectedCategoryHandle={selectedCategoryHandle} onCategorySelect={handleCategoryNavigation} />
+      <MobileFilterDrawer isOpen={mobileFilterOpen} onClose={() => setMobileFilterOpen(false)} filters={filters} onFiltersChange={(v) => { setFilters(v); setPage(1); }} collections={dynamicCollections} categories={categories} tags={availableTags} priceBounds={dynamicPriceBounds} sort={sort} onSortChange={(v) => { setSort(v); setPage(1); }} selectedCategoryHandle={selectedCategoryHandle} onCategorySelect={handleCategoryNavigation} />
     </div>
   );
 }

@@ -23,14 +23,14 @@ export default function WishlistPage() {
   return (
     <div className="min-h-screen bg-[#fdfbf9] text-stone-900 pb-32">
       {/* Cinematic Header */}
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+      <section className="relative pt-4 lg:pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full opacity-[0.03]" 
-               style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, #1c1917 0%, transparent 70%)' }} />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full opacity-[0.03]"
+            style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, #1c1917 0%, transparent 70%)' }} />
         </div>
-        
+
         <div className="max-w-[1600px] mx-auto px-6 lg:px-12 relative">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
@@ -41,11 +41,11 @@ export default function WishlistPage() {
               <span>Curated Collection</span>
               <Sparkles size={12} />
             </div>
-            
+
             <h1 className="font-serif text-5xl lg:text-7xl xl:text-8xl tracking-tight text-stone-950 italic font-light">
               Your Sanctuary
             </h1>
-            
+
             <p className="text-stone-500 font-light tracking-[0.1em] text-sm md:text-base max-w-xl mx-auto leading-relaxed">
               A private archive of pieces that resonate with your space and spirit. Save your favorites for a future of refined living.
             </p>
@@ -70,14 +70,14 @@ export default function WishlistPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <ProductGrid 
-                products={items} 
-                loading={false} 
-                dimensions={dimensions} 
+              <ProductGrid
+                products={items}
+                loading={false}
+                dimensions={dimensions}
               />
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               key="empty-wishlist"
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -90,7 +90,7 @@ export default function WishlistPage() {
                   <Heart size={64} strokeWidth={0.5} className="text-stone-300" />
                 </div>
               </div>
-              
+
               <div className="text-center space-y-4">
                 <h2 className="text-3xl font-serif text-stone-900 italic">An Empty Canvas</h2>
                 <p className="text-stone-500 max-w-sm mx-auto font-light leading-relaxed">
@@ -99,15 +99,15 @@ export default function WishlistPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-6 pt-4">
-                <Link 
+                <Link
                   href="/shop"
                   className="group flex items-center gap-3 px-10 py-5 bg-stone-950 text-white rounded-full text-xs uppercase tracking-[0.25em] font-bold hover:bg-stone-800 transition-all shadow-xl shadow-stone-900/10 active:scale-95"
                 >
                   Explore Atelier
                   <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
-                
-                <Link 
+
+                <Link
                   href="/shop?filter=newOnly"
                   className="text-stone-400 hover:text-stone-900 text-xs uppercase tracking-[0.25em] font-bold transition-colors py-2 px-4"
                 >

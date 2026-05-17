@@ -73,7 +73,7 @@ function AboutSection({ onVideoClick }) {
         initial={{ opacity: 1 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1 }}
-        className="w-full h-full flex flex-col justify-center relative pb-[calc(72px+env(safe-area-inset-bottom,0px)+4px)] md:px-12 lg:px-20 pt-0 md:pt-0"
+        className="w-full h-full flex flex-col justify-center relative pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:px-12 lg:px-20 pt-0 md:pt-0"
       >
         {!isVideoExpanded ? (
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-12 lg:gap-16 w-full items-center max-w-7xl mx-auto h-full min-h-0 pt-[var(--nav-height,56px)] md:pt-0">

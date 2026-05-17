@@ -5,8 +5,8 @@ import NavBar from '../layout/NavBar';
 import Footer from '../layout/Footer';
 import SearchModal from '../layout/SearchModal';
 import AuthModal from '../auth/AuthModal';
-import CustomCursor from '../ui/CustomCursor';
 import BottomNavigation from '../layout/BottomNavigation';
+import CustomCursor from '../ui/CustomCursor';
 import { useSearchStore } from  '@/stores/searchStore';
 import { useAuthModalStore } from  '@/stores/useAuthModalStore';
 
@@ -41,7 +41,7 @@ export default function ClientLayout({ children }) {
     !pathname.startsWith("/product-categories/");
 
   return (
-    <div className="app-container min-h-[100dvh] flex flex-col pb-[calc(72px+env(safe-area-inset-bottom,0px))] lg:pb-0">
+    <div className="app-container min-h-[100dvh] flex flex-col">
       <CustomCursor />
       <NavBar 
         variant={getNavBarVariant()} 
@@ -51,15 +51,16 @@ export default function ClientLayout({ children }) {
       <SearchModal isOpen={isSearchOpen} onClose={closeSearch} />
       <AuthModal isOpen={isAuthOpen} onClose={closeAuth} />
       
-      {/* Top Spacer: pushes content below fixed nav (all devices) */}
+      {/* Top Spacer: pushes content below fixed nav (desktop only) */}
       {needsNavSpacer && (
         <div
+          className="hidden lg:block"
           aria-hidden="true"
-          style={{ height: 'var(--nav-height, 64px)' }}
+          style={{ height: 'var(--nav-height, 48px)' }}
         />
       )}
       
-      <main className="flex-1">
+      <main className="flex-1 pb-[calc(72px+env(safe-area-inset-bottom,0px))] lg:pb-0">
         {children}
       </main>
       

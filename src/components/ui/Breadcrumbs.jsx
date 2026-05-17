@@ -58,8 +58,8 @@ const Breadcrumbs = ({ className = "", items = null }) => {
   if (breadcrumbItems.length === 0) return null;
 
   return (
-    <nav aria-label="Breadcrumb" className={`flex items-center select-none ${className}`}>
-      <ol className="flex items-center space-x-2">
+    <nav aria-label="Breadcrumb" className={`flex items-center select-none min-w-0 ${className}`}>
+      <ol className="flex flex-wrap items-center space-x-2 gap-y-1 min-w-0">
         <li className="flex items-center">
           <Link
             href="/"

@@ -9,6 +9,7 @@ export const useNavData = () => {
   const {
     navItems,
     megaMenuContent,
+    categoryThumbnails,
     isLoaded,
     isLoading,
     setNavData,
@@ -44,12 +45,24 @@ export const useNavData = () => {
           if ((res.product_categories || []).length === 0) break;
         }
 
-        // ── 2. Fetch products to build inventory counts ─────────────────────
+        // ── 2. Fetch products to build inventory counts & thumbnails ────────
         const prodRes = await safeFetch(
-          sdk.store.product.list({ limit: 1000, fields: "id,categories.id" }),
+          sdk.store.product.list({ limit: 1000, fields: "id,thumbnail,categories.id" }),
           { products: [] }
         );
         const medusaProducts = prodRes.products || [];
+
+        // Build category thumbnail mapping using first available product image
+        const categoryThumbnails = {};
+        medusaProducts.forEach(p => {
+          if (p.thumbnail) {
+            (p.categories || []).forEach(cat => {
+              if (!categoryThumbnails[cat.id]) {
+                categoryThumbnails[cat.id] = p.thumbnail;
+              }
+            });
+          }
+        });
 
         // ── 3. Fetch curated categories from Sanity ─────────────────────────
         let curatedCategories = [];
@@ -125,6 +138,7 @@ export const useNavData = () => {
         let departments;
         if (curatedCategories.length > 0) {
           departments = curatedCategories
+            .filter(c => !curatedIds.has(c.parent_parent_category_id)) // parent check
             .filter(c => !curatedIds.has(c.parent_category_id))
             .filter(c => isValidDepartment(c))
             .sort((a, b) => (Number(a.metadata?.priority) || 100) - (Number(b.metadata?.priority) || 100));
@@ -154,10 +168,12 @@ export const useNavData = () => {
           const columns = sortTop5(childrenOf.get(dept.id) || []).map(col => {
             const colCat = catMap.get(col.id) || col;
             return {
+              id: colCat.id,
               title: colCat.name,
               href: `/product-categories/${colCat.handle}`,
               // Items = top 5 grandchildren with real products
               items: sortTop5(childrenOf.get(col.id) || []).map(item => ({
+                id: item.id,
                 name: item.name,
                 href: `/product-categories/${item.handle}`,
               })),
@@ -176,9 +192,11 @@ export const useNavData = () => {
         const shopColumns = departments.map(dept => {
           const deptCat = catMap.get(dept.id) || dept;
           return {
+            id: deptCat.id,
             title: deptCat.name,
             href: `/product-categories/${deptCat.handle}`,
             items: sortTop5(childrenOf.get(dept.id) || []).map(col => ({
+              id: col.id,
               name: col.name,
               href: `/product-categories/${col.handle}`,
             })),
@@ -214,7 +232,7 @@ export const useNavData = () => {
           finalNavItems.map(n => n.name),
           "| total curated:", curatedCategories.length
         );
-        setNavData(finalNavItems, megaMenus);
+        setNavData(finalNavItems, megaMenus, categoryThumbnails);
 
       } catch (err) {
         console.error("Nav fetch failure:", err);
@@ -271,6 +289,7 @@ export const useNavData = () => {
   return {
     navItems,
     megaMenuContent,
+    categoryThumbnails: categoryThumbnails || {},
     roomsMegaContent,
     shopMegaContent: megaMenuContent["shop"] || { columns: [] },
   };

@@ -45,27 +45,29 @@ export async function generateMetadata({ params }) {
 
 async function getProductData(handle) {
   try {
-    console.log(`[DEBUG] Fetching Sanity base product with handle: ${handle}`);
+    console.log(`[DEBUG] Fetching from Medusa with handle: ${handle}`);
 
-    const baseProduct = await sanityClient.fetch(
-      `*[_type == "product" && (handle == $handle || slug.current == $handle)][0]`,
-      { handle }
+    // 1. Fetch from Medusa FIRST
+    const { products: medusaProducts } = await sdk.store.product.list(
+      { handle },
+      {
+        fields: "id,title,subtitle,description,handle,thumbnail,*images,*options,*variants,*variants.calculated_price,*variants.prices,*variants.options,*variants.sku,*variants.manage_inventory,*variants.inventory_quantity,*collection,*type,*tags,material,weight,origin_country,metadata"
+      }
     );
 
-    // Log the base product details instead of just a boolean
-    console.log(`[DEBUG] Sanity baseProduct:`, baseProduct ? {
-      title: baseProduct.title,
-      medusaId: baseProduct.medusaId,
-      handle: baseProduct.handle,
-      slug: baseProduct.slug?.current
-    } : 'Not found');
+    if (!medusaProducts || medusaProducts.length === 0) {
+      console.log(`[DEBUG] No Medusa product found with handle: ${handle}`);
+      return null; // This correctly triggers 404 only if Medusa is missing it
+    }
 
-    if (!baseProduct) return null;
+    const medusaData = medusaProducts[0];
+    const medusaType = medusaData.type?.value || "";
 
-    console.log(`[DEBUG] Fetching full Sanity product data with medusaType: ${baseProduct.medusaType}`);
+    console.log(`[DEBUG] Medusa product retrieved. ID: ${medusaData.id}`);
 
+    // 2. Fetch enriched data from Sanity (Optional)
     const fullSanityProduct = await sanityClient.fetch(
-      `*[_type == "product" && (handle == $handle || slug.current == $handle)][0]{
+      `*[_type == "product" && (medusaId == $medusaId || handle == $handle || slug.current == $handle)][0]{
         ...,
         "galleryR2": galleryR2[]{ "url": coalesce(url, asset->url) },
         customizationOverride->{customizationAttributes},
@@ -92,42 +94,31 @@ async function getProductData(handle) {
         "defaultTrust": *[_type=="trustMaster" && isDefault==true][0]{content},
         relatedProducts[]->{ medusaId, title, handle, "thumbnailUrl": thumbnailR2.url, shortIntro }
       }`,
-      { handle, medusaType: baseProduct.medusaType }
+      { handle: medusaData.handle, medusaId: medusaData.id, medusaType }
     );
-
-    console.log(`[DEBUG] Full Sanity product retrieved:`, fullSanityProduct ? {
-      title: fullSanityProduct.title,
-      customizationOverrideSet: !!fullSanityProduct.customizationOverride,
-      relatedProductsLength: fullSanityProduct.relatedProducts?.length || 0
-    } : 'Not found');
-
-    // 2. Fetch from Medusa
-    console.log(`[DEBUG] Fetching from Medusa with ID: ${fullSanityProduct.medusaId}`);
-
-    const { product: medusaData } = await sdk.store.product.retrieve(
-      fullSanityProduct.medusaId,
-      {
-        fields: "id,title,subtitle,description,handle,thumbnail,*images,*options,*variants,*variants.calculated_price,*variants.prices,*variants.options,*variants.sku,*variants.manage_inventory,*variants.inventory_quantity,*collection,*type,*tags,material,weight,origin_country,metadata"
-      }
-    );
-
-    console.log(`[DEBUG] Medusa product retrieved. Variants: ${medusaData.variants || 0}`);
 
     // 3. Resolve Overrides (Server-side)
+    // If Sanity is missing, we still provide a valid structure so the UI doesn't crash
+    const sanityContent = fullSanityProduct || {
+      title: medusaData.title,
+      shortIntro: medusaData.subtitle || medusaData.description,
+      galleryR2: medusaData.images?.map(img => ({ url: img.url })) || [],
+    };
+
     const resolvedData = {
-      sanityContent: fullSanityProduct,
+      sanityContent: sanityContent,
       medusaProduct: medusaData,
       resolvedCustomization:
-        fullSanityProduct.customizationOverride?.customizationAttributes ||
-        fullSanityProduct.defaultCustomization?.customizationAttributes ||
+        fullSanityProduct?.customizationOverride?.customizationAttributes ||
+        fullSanityProduct?.defaultCustomization?.customizationAttributes ||
         [],
       resolvedAfterSales:
-        fullSanityProduct.afterSalesOverride ||
-        fullSanityProduct.defaultPolicy ||
+        fullSanityProduct?.afterSalesOverride ||
+        fullSanityProduct?.defaultPolicy ||
         null,
       resolvedTrust:
-        fullSanityProduct.trustOverride?.content ||
-        fullSanityProduct.defaultTrust?.content ||
+        fullSanityProduct?.trustOverride?.content ||
+        fullSanityProduct?.defaultTrust?.content ||
         null,
     };
 
