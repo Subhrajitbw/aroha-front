@@ -1,8 +1,6 @@
 import { sdk, customFetch } from '@/lib/medusaClient';
 import ShopClient from '@/components/pages/ShopClient';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export const metadata = {
   title: 'Shop | Aroha',
