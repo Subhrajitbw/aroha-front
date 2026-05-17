@@ -168,9 +168,9 @@ export default function ProductCarousel() {
   return (
     <section
       ref={sectionRef}
-      className="relative w-full bg-[#fdfbf9] pt-[calc(var(--nav-height,56px)+8px)] pb-[calc(72px+env(safe-area-inset-bottom,0px)+4px)] md:py-16 lg:py-24 selection:bg-stone-200 flex flex-col justify-center h-full overflow-hidden"
+      className="relative w-full bg-[#fdfbf9] pb-[calc(72px+env(safe-area-inset-bottom,0px)+4px)] md:py-16 lg:py-24 selection:bg-stone-200 flex flex-col justify-center h-full overflow-hidden"
     >
-      <div className="max-w-[1600px] w-full mx-auto px-4 md:px-8 lg:px-12 flex flex-col gap-4 lg:gap-10 h-full min-h-0">
+      <div className="max-w-[1600px] w-full mx-auto px-4 md:px-8 lg:px-12 flex flex-col gap-2.5 lg:gap-10 h-full min-h-0">
 
         {/* HEADER */}
         <div
@@ -296,9 +296,9 @@ export default function ProductCarousel() {
 
               {/* View Product Button for Mobile Hero */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 opacity-0 group-hover:opacity-100 transition-opacity lg:hidden">
-                 <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full p-4">
-                    <ArrowUpRight className="text-white w-6 h-6" />
-                 </div>
+                <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-full p-4">
+                  <ArrowUpRight className="text-white w-6 h-6" />
+                </div>
               </div>
 
               <Link
@@ -346,12 +346,12 @@ export default function ProductCarousel() {
                               }`}
                           >
                             {isActive && (
-                              <Image 
-                                src={product.image} 
-                                alt="" 
-                                fill 
+                              <Image
+                                src={product.image}
+                                alt=""
+                                fill
                                 sizes="24px"
-                                className="object-cover" 
+                                className="object-cover"
                               />
                             )}
                           </div>

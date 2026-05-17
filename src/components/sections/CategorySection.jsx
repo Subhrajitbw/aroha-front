@@ -52,7 +52,7 @@ const getMasonryClass = (index, chunkLength, chunkIdx) => {
     if (index === 0) return "md:col-span-2 md:row-span-2 col-span-2 row-span-2";
     if (index === 1) return "md:col-span-2 md:row-span-2 col-span-2 row-span-1";
   }
-  
+
   return "md:col-span-4 md:row-span-2 col-span-2 row-span-3";
 };
 
@@ -143,7 +143,7 @@ const CategorySection = () => {
             </div>
             <div className="h-4 w-24 bg-stone-100 rounded-full animate-pulse" />
           </div>
-          
+
           {/* Grid Skeleton */}
           <div className="grid grid-cols-2 md:grid-cols-4 grid-rows-3 md:grid-rows-2 gap-6 h-[600px]">
             <div className="md:col-span-2 md:row-span-2 col-span-2 row-span-1 bg-stone-100 rounded-[2rem] animate-pulse" />
@@ -170,9 +170,9 @@ const CategorySection = () => {
   return (
     <section
       ref={sectionRef}
-      className="relative h-full w-full flex flex-col pt-[calc(var(--nav-height,56px)+8px)] pb-[calc(72px+env(safe-area-inset-bottom,0px)+4px)] md:pt-24 md:pb-12 lg:pt-32 lg:pb-16 overflow-hidden bg-[#fdfbf9] text-stone-900 justify-center group/section"
+      className="relative h-full w-full flex flex-col pb-[calc(72px+env(safe-area-inset-bottom,0px)+4px)] md:pt-24 md:pb-12 lg:pt-32 lg:pb-16 overflow-hidden bg-[#fdfbf9] text-stone-900 justify-center group/section"
     >
-      <div className="flex flex-col gap-1.5 md:gap-6 w-full h-full max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 relative min-h-0">
+      <div className="flex flex-col gap-1 md:gap-6 w-full h-full max-w-[1600px] mx-auto py-4 px-4 md:px-8 lg:px-12 relative min-h-0">
 
         {/* HEADER AREA */}
         <div ref={headerRef} className="flex-none flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
@@ -233,7 +233,7 @@ const CategorySection = () => {
               key={`chunk-${chunkIdx}`}
               className="w-full h-full min-h-0 shrink-0 snap-center px-1"
             >
-              <div className={`w-full h-full grid ${mobileGridCols} ${desktopGridCols} grid-flow-dense gap-3 md:gap-6`}>
+              <div className="w-full h-[calc(100%-20px)] min-h-0 grid grid-cols-2 grid-rows-3 md:grid-cols-4 md:grid-rows-2 grid-flow-dense gap-3 md:gap-6">
                 {chunk.map((cat, idx) => (
                   <div
                     key={cat.id}

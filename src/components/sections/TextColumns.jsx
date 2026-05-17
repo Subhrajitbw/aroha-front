@@ -28,16 +28,16 @@ const TextColumn = ({
     };
 
     // Define the reusable glassmorphic style string
-//     const glassmorphicClasses = `
-//     bg-white/2 
-//     backdrop-blur-sm 
-//     shadow-2xl 
-//     rounded-2xl
-//   `;
+    //     const glassmorphicClasses = `
+    //     bg-white/2 
+    //     backdrop-blur-sm 
+    //     shadow-2xl 
+    //     rounded-2xl
+    //   `;
 
     return (
         <div
-            className={`h-full flex flex-col justify-around md:justify-between w-full md:w-1/2 pt-[calc(var(--nav-height,56px)+8px)] pb-[calc(72px+env(safe-area-inset-bottom,0px)+8px)] md:py-0 md:pt-24 ${invertLayout && isDesktop ? "items-end text-right" : "items-start text-left"
+            className={`h-full flex flex-col justify-around md:justify-between w-full md:w-1/2 pb-[calc(72px+env(safe-area-inset-bottom,0px)+4px)] md:py-0 md:pt-24 ${invertLayout && isDesktop ? "items-end text-right" : "items-start text-left"
                 }`}
             ref={textRef}
         >

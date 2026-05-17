@@ -85,6 +85,12 @@ export default function BottomNavigation() {
     },
   ];
 
+  const navThemeOverride = useMenuStore((state) => state.navThemeOverride);
+  const isFrontpage = pathname === "/" || pathname === "/home";
+  const effectiveTheme = navThemeOverride || (isFrontpage ? "dark" : "light");
+
+  const isDark = effectiveTheme === "dark";
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -93,12 +99,15 @@ export default function BottomNavigation() {
           animate={{ y: 0 }}
           exit={{ y: "100%" }}
           transition={{ type: "spring", stiffness: 350, damping: 30 }}
-          className="
+          className={`
             fixed bottom-0 left-0 right-0 z-50 lg:hidden
-            bg-white/95 backdrop-blur-2xl border-t border-black/5
-            shadow-[0_-8px_30px_rgba(0,0,0,0.03)]
+            transition-colors duration-500
+            ${isDark 
+              ? "bg-[#1c1917]/50 backdrop-blur-2xl border-t border-white/10 shadow-[0_-8px_30px_rgba(0,0,0,0.3)]" 
+              : "bg-[#fdfbf9]/60 backdrop-blur-2xl border-t border-black/5 shadow-[0_-8px_30px_rgba(0,0,0,0.03)]"
+            }
             pb-[calc(env(safe-area-inset-bottom,0px)+8px)] pt-3.5 px-6
-          "
+          `}
           style={{ willChange: "transform" }}
         >
           <div className="flex items-center justify-between max-w-md mx-auto">
@@ -114,28 +123,32 @@ export default function BottomNavigation() {
                     <motion.div
                       whileTap={{ scale: 0.9 }}
                       className={`
-                        transition-colors duration-300 p-1.5 rounded-2xl
+                        transition-all duration-300 p-1.5 rounded-2xl
                         ${item.isActive 
-                          ? "text-neutral-900 bg-neutral-900/5" 
-                          : "text-neutral-400 group-hover:text-neutral-600"
+                          ? (isDark ? "text-white bg-white/10" : "text-stone-900 bg-stone-900/5") 
+                          : (isDark ? "text-stone-400 group-hover:text-stone-200" : "text-stone-400 group-hover:text-stone-600")
                         }
                       `}
                     >
                       <Icon 
                         size={20} 
                         strokeWidth={item.isActive ? 2 : 1.5} 
-                        className={`transition-all duration-300 ${item.isActive && item.label === "Wishlist" ? "fill-neutral-900" : ""}`}
+                        className={`transition-all duration-300 ${item.isActive && item.label === "Wishlist" ? (isDark ? "fill-white" : "fill-stone-900") : ""}`}
                       />
                     </motion.div>
 
                     {/* dynamic notification badge */}
                     {item.badge !== null && item.badge !== undefined && (
                       <span 
-                        className="
+                        className={`
                           absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 
                           flex items-center justify-center rounded-full text-[9px] font-bold
-                          bg-neutral-900 text-white border border-white shadow-sm
-                        "
+                          border shadow-sm transition-colors duration-500
+                          ${isDark 
+                            ? "bg-white text-stone-950 border-stone-950" 
+                            : "bg-stone-900 text-white border-white"
+                          }
+                        `}
                       >
                         {item.badge}
                       </span>
@@ -146,7 +159,10 @@ export default function BottomNavigation() {
                   <span 
                     className={`
                       text-[9px] tracking-widest uppercase font-medium transition-colors duration-300
-                      ${item.isActive ? "text-neutral-900" : "text-neutral-400"}
+                      ${item.isActive 
+                        ? (isDark ? "text-white" : "text-stone-900") 
+                        : (isDark ? "text-stone-400" : "text-stone-400")
+                      }
                     `}
                   >
                     {item.label}
@@ -156,7 +172,7 @@ export default function BottomNavigation() {
                   {item.isActive && (
                     <motion.div
                       layoutId="activeTabIndicator"
-                      className="absolute -bottom-1.5 w-1 h-1 rounded-full bg-neutral-900"
+                      className={`absolute -bottom-1.5 w-1 h-1 rounded-full transition-colors duration-500 ${isDark ? "bg-white" : "bg-stone-900"}`}
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
                     />
                   )}

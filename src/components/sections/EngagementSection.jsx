@@ -16,7 +16,7 @@ const EngagementSection = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   const sectionRef = useRef(null);
   const headerRef = useRef(null);
   const cardsRef = useRef([]);
@@ -98,7 +98,7 @@ const EngagementSection = () => {
   if (items.length === 0) return null;
 
   return (
-    <section ref={sectionRef} className="w-full h-full flex flex-col justify-center pt-[calc(var(--nav-height,56px)+12px)] pb-[calc(72px+env(safe-area-inset-bottom,0px)+8px)] md:py-24">
+    <section ref={sectionRef} className="w-full h-full flex flex-col justify-center pb-[calc(72px+env(safe-area-inset-bottom,0px)+4px)] md:py-24">
       <div className="max-w-7xl mx-auto px-6 md:px-8 w-full">
         {/* Compact Header */}
         <div ref={headerRef} className="mb-10 md:mb-14 flex items-end justify-between">
@@ -133,12 +133,12 @@ const EngagementSection = () => {
           >
             {items.map((item) => (
               <SwiperSlide key={item.id}>
-                <Link 
+                <Link
                   href="/journal"
                   className="group block bg-white overflow-hidden shadow-sm hover:shadow-lg transition-all duration-500"
                 >
                   <div className="relative w-full aspect-[4/3] overflow-hidden bg-stone-100 flex-none">
-                    <Image 
+                    <Image
                       src={item.image}
                       alt={item.title}
                       fill
@@ -173,7 +173,7 @@ const EngagementSection = () => {
               >
                 {/* Image */}
                 <div className="relative w-full aspect-[4/3] overflow-hidden bg-stone-100">
-                  <Image 
+                  <Image
                     src={item.image}
                     alt={item.title}
                     fill
@@ -188,11 +188,11 @@ const EngagementSection = () => {
                   <h3 className="font-serif text-xl text-stone-900 mb-2 leading-tight group-hover:text-stone-600 transition-colors">
                     {item.title}
                   </h3>
-                  
+
                   <p className="text-stone-600 leading-relaxed text-sm font-light mb-4 line-clamp-2">
                     {item.description}
                   </p>
-                  
+
                   <span className="inline-flex items-center gap-2 text-xs uppercase tracking-wider text-stone-900 font-medium">
                     Read More
                     <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />

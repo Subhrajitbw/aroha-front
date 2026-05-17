@@ -170,7 +170,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     const wheelHandler = (e) => {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       if (e.cancelable) e.preventDefault();
-      
+
       if (isAnimating.current) return;
 
       if (Math.abs(e.deltaY) > 10) {
@@ -192,7 +192,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
       const currentX = e.touches[0].clientX;
       const deltaY = Math.abs(currentY - lastTouchY.current);
       const deltaX = Math.abs(currentX - lastTouchX.current);
-      
+
       if (deltaY > deltaX && e.cancelable) {
         e.preventDefault();
       }
@@ -200,7 +200,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
       if (swipeTriggered || isAnimating.current) return;
 
       const rawDeltaY = lastTouchY.current - currentY;
-      
+
       if (Math.abs(rawDeltaY) > 40) {
         swipeTriggered = true;
         changeSection(rawDeltaY > 0 ? 1 : -1);
@@ -228,7 +228,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     };
   }, [isLoading, isMenuOpen, animatedScrollToSection]);
 
-  const sectionClass = "h-[100dvh] w-full overflow-hidden bg-transparent lg:pb-0";
+  const sectionClass = "h-[100dvh] w-full py-4 overflow-hidden bg-transparent lg:pb-0";
   const sectionStyle = { contain: 'layout style paint', isolation: 'isolate' };
 
   // ---------------------------------------------------------
@@ -298,7 +298,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
             const aboutIndex = 3 + collections.length;
             const engagementIndex = 4 + collections.length;
             const footerIndex = 5 + collections.length;
-            
+
             return (
               <>
                 <div className={sectionClass} style={sectionStyle}>
