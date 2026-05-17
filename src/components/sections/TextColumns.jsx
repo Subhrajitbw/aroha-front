@@ -37,7 +37,7 @@ const TextColumn = ({
 
     return (
         <div
-            className={`h-screen flex flex-col justify-around md:justify-between w-full md:w-1/2 pb-8 md:pt-24 ${invertLayout && isDesktop ? "items-end text-right" : "items-start text-left"
+            className={`h-full flex flex-col justify-around md:justify-between w-full md:w-1/2 pt-[calc(var(--nav-height,56px)+8px)] pb-[calc(72px+env(safe-area-inset-bottom,0px)+8px)] md:py-0 md:pt-24 ${invertLayout && isDesktop ? "items-end text-right" : "items-start text-left"
                 }`}
             ref={textRef}
         >

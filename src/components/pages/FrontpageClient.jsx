@@ -144,7 +144,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     gsap.to(wrapperRef.current, {
       duration: animationDuration,
       ease: "power2.inOut",
-      y: `${-index * 100}vh`,
+      y: `${-index * 100}dvh`,
       force3D: true,
       onComplete: () => {
         isAnimating.current = false;

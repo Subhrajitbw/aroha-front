@@ -98,8 +98,8 @@ const EngagementSection = () => {
   if (items.length === 0) return null;
 
   return (
-    <section ref={sectionRef} className="w-full py-16 md:py-24">
-      <div className="max-w-7xl mx-auto px-6 md:px-8">
+    <section ref={sectionRef} className="w-full h-full flex flex-col justify-center pt-[calc(var(--nav-height,56px)+12px)] pb-[calc(72px+env(safe-area-inset-bottom,0px)+8px)] md:py-24">
+      <div className="max-w-7xl mx-auto px-6 md:px-8 w-full">
         {/* Compact Header */}
         <div ref={headerRef} className="mb-10 md:mb-14 flex items-end justify-between">
           <h2 className="font-serif text-3xl md:text-4xl text-stone-900">

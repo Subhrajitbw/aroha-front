@@ -170,9 +170,9 @@ const CategorySection = () => {
   return (
     <section
       ref={sectionRef}
-      className="relative h-full w-full flex flex-col pt-20 pb-20 md:pt-24 md:pb-12 lg:pt-32 lg:pb-16 overflow-hidden bg-[#fdfbf9] text-stone-900 justify-center group/section"
+      className="relative h-full w-full flex flex-col pt-[calc(var(--nav-height,56px)+8px)] pb-[calc(72px+env(safe-area-inset-bottom,0px)+4px)] md:pt-24 md:pb-12 lg:pt-32 lg:pb-16 overflow-hidden bg-[#fdfbf9] text-stone-900 justify-center group/section"
     >
-      <div className="flex flex-col gap-2 md:gap-6 w-full h-full max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 relative min-h-0">
+      <div className="flex flex-col gap-1.5 md:gap-6 w-full h-full max-w-[1600px] mx-auto px-4 md:px-8 lg:px-12 relative min-h-0">
 
         {/* HEADER AREA */}
         <div ref={headerRef} className="flex-none flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
@@ -308,21 +308,21 @@ const CategoryCard = ({ category, isLarge = false, priority = false }) => {
       </div>
 
       {/* Foreground Container: Mobile relies entirely on a minimalist approach (No product cards inside) */}
-      <div className="absolute inset-0 w-full h-full flex flex-col justify-end p-5 md:p-6 z-10 pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 w-full h-full flex flex-col justify-end p-3.5 md:p-6 z-10 pointer-events-none overflow-hidden">
 
         {/* Title Container - Centered and static on mobile. Translates dynamically on Desktop. */}
         <div className="transform transition-all duration-[800ms] ease-[cubic-bezier(0.16,1,0.3,1)] will-change-transform 
           translate-y-0 md:translate-y-0 md:group-hover:-translate-y-24 lg:group-hover:-translate-y-28
           flex flex-col items-start md:block">
-          <h3 className={`text-white/95 font-serif italic font-light ${isLarge ? "text-xl md:text-4xl lg:text-5xl" : "text-lg md:text-2xl"}`} style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
+          <h3 className={`text-white/95 font-serif italic font-light ${isLarge ? "text-lg md:text-4xl lg:text-5xl" : "text-base md:text-2xl"}`} style={{ textShadow: '0 1px 6px rgba(0,0,0,0.4)' }}>
             {category.name}
           </h3>
-          <div className="h-[2px] bg-white/60 mt-3 transition-all duration-700 w-12 md:w-0 md:group-hover:w-16 shadow-sm" />
+          <div className="h-[2px] bg-white/60 mt-2 transition-all duration-700 w-12 md:w-0 md:group-hover:w-16 shadow-sm" />
 
           {/* Mobile only explore pill since we lack mini-products */}
           <Link
             href={`/product-categories/${category.handle}`}
-            className="mt-4 md:hidden inline-flex items-center gap-2 px-5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] uppercase font-medium tracking-[0.2em] text-white/90 hover:bg-white/20 transition-colors pointer-events-auto relative z-20"
+            className="mt-2.5 md:hidden inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[9px] uppercase font-medium tracking-[0.2em] text-white/90 hover:bg-white/20 transition-colors pointer-events-auto relative z-20"
           >
             Explore <MoveRight size={12} />
           </Link>
