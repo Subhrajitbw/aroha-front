@@ -39,9 +39,13 @@ pids
 Thumbs.db
   
 .env.production
+<<<<<<< HEAD
 find_mismatches.py
 components_list.txt
 unused_files.txt
 
 .next
 public/images
+=======
+.next
+>>>>>>> 69acaae (chore: add .next directory to .gitignore)
