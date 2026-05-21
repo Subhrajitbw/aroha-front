@@ -2,7 +2,7 @@
 import { motion } from "framer-motion";
 import AnimatedText from "./AnimatedText";
 import TextContent from "./TextContent";
-import ProductSlider from "../ProductSlider";
+import ProductSlider from "../shop/ProductSlider";
 
 const TextColumn = ({
     products,
@@ -28,16 +28,16 @@ const TextColumn = ({
     };
 
     // Define the reusable glassmorphic style string
-//     const glassmorphicClasses = `
-//     bg-white/2 
-//     backdrop-blur-sm 
-//     shadow-2xl 
-//     rounded-2xl
-//   `;
+    //     const glassmorphicClasses = `
+    //     bg-white/2 
+    //     backdrop-blur-sm 
+    //     shadow-2xl 
+    //     rounded-2xl
+    //   `;
 
     return (
         <div
-            className={`h-screen flex flex-col justify-around md:justify-between w-full md:w-1/2 pb-8 md:pt-24 ${invertLayout && isDesktop ? "items-end text-right" : "items-start text-left"
+            className={`h-full flex flex-col justify-around md:justify-between w-full md:w-1/2 pb-[calc(96px+env(safe-area-inset-bottom,0px))] md:py-0 md:pt-24 ${invertLayout && isDesktop ? "items-end text-right" : "items-start text-left"
                 }`}
             ref={textRef}
         >

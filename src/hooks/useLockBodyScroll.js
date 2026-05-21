@@ -1,20 +1,35 @@
-import { useLayoutEffect } from 'react';
+import { useEffect } from 'react';
+
+let lockCount = 0;
+let savedScrollY = 0;
 
 function useLockBodyScroll(isLocked) {
-  useLayoutEffect(() => {
-    // Get original body overflow style
-    const originalStyle = window.getComputedStyle(document.body).overflow;
+  useEffect(() => {
+    if (!isLocked) return;
 
-    // Prevent scrolling on mount if isLocked is true
-    if (isLocked) {
+    lockCount++;
+
+    if (lockCount === 1) {
+      savedScrollY = window.scrollY;
       document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${savedScrollY}px`;
+      document.body.style.left = '0';
+      document.body.style.right = '0';
     }
 
-    // Re-enable scrolling when component unmounts
     return () => {
-      document.body.style.overflow = originalStyle;
+      lockCount = Math.max(0, lockCount - 1);
+      if (lockCount === 0) {
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        window.scrollTo(0, savedScrollY);
+      }
     };
-  }, [isLocked]); // Only re-run if isLocked changes
+  }, [isLocked]);
 }
 
 export default useLockBodyScroll;

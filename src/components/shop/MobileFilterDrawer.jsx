@@ -1,19 +1,26 @@
 // components/MobileFilterDrawer.jsx
+import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, SlidersHorizontal } from "lucide-react";
 import { FilterSidebar } from "./FilterSidebar";
+import useLockBodyScroll from  "@/hooks/useLockBodyScroll";
 
 export const MobileFilterDrawer = ({
   isOpen,
   onClose,
   filters,
   onFiltersChange,
+  collections,
   categories,
   tags,
   priceBounds,
   sort,
   onSortChange,
+  selectedCategoryHandle,
+  onCategorySelect,
 }) => {
+  useLockBodyScroll(isOpen);
+
   const sortOptions = [
     { value: "relevance", label: "Featured" },
     { value: "price-low", label: "Price: Low to High" },
@@ -31,7 +38,8 @@ export const MobileFilterDrawer = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50"
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-50"
             onClick={onClose}
           />
 
@@ -40,11 +48,11 @@ export const MobileFilterDrawer = ({
             initial={{ x: "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed inset-y-0 left-0 w-full max-w-sm bg-white/95 backdrop-blur-3xl z-50 overflow-hidden flex flex-col border-r border-stone-200/40"
+            transition={{ type: "tween", duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+            className="fixed inset-y-0 left-0 w-full max-w-sm bg-white z-50 overflow-hidden flex flex-col border-r border-stone-200/40"
           >
             <div className="flex items-center justify-between p-6 border-b border-stone-200/40">
-              <h2 className="text-xs uppercase tracking-[0.1em] font-normal text-stone-900">
+              <h2 className="text-sm uppercase tracking-[0.1em] font-bold text-stone-900">
                 Refine Selections
               </h2>
               <button
@@ -52,16 +60,20 @@ export const MobileFilterDrawer = ({
                 className="p-1 hover:text-stone-400 transition-colors"
                 aria-label="Close filters"
               >
-                <X className="w-5 h-5 text-stone-900 font-light" strokeWidth={1} />
+                <X className="w-5 h-5 text-stone-900" strokeWidth={1} />
               </button>
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto pb-20">
+            <div 
+              className="flex-1 overflow-y-auto pb-20 overscroll-contain"
+              onWheel={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+            >
               <div className="p-4 space-y-6">
                 {/* Sort section */}
                 <div className="space-y-4 pt-2">
-                  <p className="text-[10px] uppercase tracking-[0.2em] font-light text-stone-900">
+                  <p className="text-xs uppercase tracking-[0.2em] font-bold text-stone-900">
                     Sort by
                   </p>
                   <div className="relative">
@@ -89,6 +101,11 @@ export const MobileFilterDrawer = ({
                   priceBounds={priceBounds}
                   className="w-full"
                   isMobile
+                  selectedCategoryHandle={selectedCategoryHandle}
+                  onCategorySelect={(handle) => {
+                    onCategorySelect?.(handle);
+                    onClose(); // Close mobile drawer on navigation
+                  }}
                 />
               </div>
             </div>
@@ -98,7 +115,7 @@ export const MobileFilterDrawer = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="w-full text-xs tracking-[0.2em] uppercase px-4 py-4 bg-stone-900 text-white hover:bg-stone-800 transition-colors"
+                className="w-full flex items-center justify-center text-xs tracking-[0.2em] uppercase py-4 bg-stone-900 text-white hover:bg-stone-800 transition-colors"
               >
                 Show Results
               </button>
@@ -108,7 +125,7 @@ export const MobileFilterDrawer = ({
                   onFiltersChange({
                     priceRange: [priceBounds.min, priceBounds.max],
                     collections: [],
-                    categories: [],
+                    categories: selectedCategoryHandle ? [selectedCategoryHandle] : [],
                     tags: [],
                     discountedOnly: false,
                     newOnly: false,
@@ -116,7 +133,7 @@ export const MobileFilterDrawer = ({
                     ratings: [],
                   })
                 }
-                className="w-full text-xs tracking-[0.15em] uppercase px-4 py-3 text-stone-500 hover:text-stone-900 transition-colors"
+                className="w-full flex items-center justify-center text-xs tracking-[0.15em] uppercase py-3 text-stone-500 hover:text-stone-900 transition-colors"
               >
                 Clear Selections
               </button>

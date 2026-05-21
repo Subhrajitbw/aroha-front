@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
 
 // Animation variants for each item (column)
@@ -24,7 +24,7 @@ const MegaMenuColumn = ({ title, links, href, hasDivider }) => (
                     {links.map((link) => (
                         <li key={link.name || link.title} className="group">
                             <Link
-                                to={link.href}
+                                href={link.href}
                                 className="flex items-center justify-between rounded-md p-2 text-neutral-700 transition-all duration-200 hover:bg-neutral-100/50 hover:text-black hover:pl-3"
                             >
                                 <span>{link.name || link.title}</span>
@@ -38,7 +38,7 @@ const MegaMenuColumn = ({ title, links, href, hasDivider }) => (
             {/* "View More" Expanding Button */}
             <div className="mt-auto pt-4 flex justify-center">
                 <Link
-                    to={href}
+                    href={href}
                     className="group relative flex items-center justify-center h-10 w-10 hover:w-32 rounded-full bg-neutral-800 text-white transition-all duration-300 ease-in-out overflow-hidden origin-right"
                 >
                     {/* Label appears only when expanded - positioned to the left of icon */}

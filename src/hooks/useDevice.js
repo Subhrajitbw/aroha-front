@@ -4,10 +4,12 @@ const useDevice = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
+  const [screenWidth, setScreenWidth] = useState(1200);
 
   useEffect(() => {
     const checkDevice = () => {
       const width = window.innerWidth;
+      setScreenWidth(width);
       
       if (width < 768) {
         setIsMobile(true);
@@ -38,12 +40,11 @@ const useDevice = () => {
     isMobile,
     isTablet,
     isDesktop,
+    screenWidth,
     // Utility combinations
     isMobileOrTablet: isMobile || isTablet,
     isNotDesktop: !isDesktop,
     isNotMobile: !isMobile,
-    // Additional utility properties
-    screenWidth: typeof window !== 'undefined' ? window.innerWidth : 1200,
     deviceType: isMobile ? 'mobile' : isTablet ? 'tablet' : 'desktop'
   };
 };

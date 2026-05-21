@@ -1,6 +1,6 @@
 // components/sections/MobileSlider.jsx
 import { motion } from "framer-motion";
-import { ProductInfoCard } from "../ProductInfoCard";
+import { ProductInfoCard } from "../shop/ProductInfoCard";
 
 const MobileSlider = ({
   products,

@@ -1,0 +1,29 @@
+# Aroha House - AI & SEO Optimized Robots.txt
+User-agent: *
+Allow: /
+
+# Specifically allow major AI search engine crawlers
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Disallow sensitive paths if any exist in the future
+Disallow: /admin
+Disallow: /account/settings
+
+# Sitemap location
+Sitemap: https://arohahouse.com/sitemap.xml

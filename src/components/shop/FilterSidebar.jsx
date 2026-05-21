@@ -1,5 +1,5 @@
 // components/FilterSidebar.jsx
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Filter,
@@ -8,6 +8,9 @@ import {
   Sparkles,
   Crown,
   Diamond,
+  RotateCcw,
+  Plus,
+  Minus
 } from "lucide-react";
 import { PriceRangeSlider } from "./PricingRangeSlider";
 
@@ -21,64 +24,42 @@ const FilterSection = ({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`relative ${
-        accent ? "bg-gradient-to-r from-stone-50/50 to-amber-50/30" : ""
-      } ${
-        accent ? "-mx-4 px-4 py-4 rounded-xl mb-3" : "py-4"
-      } first:pt-0 last:pb-0`}
-    >
-      <motion.button
-        whileHover={{ x: 2 }}
+    <div className={`relative ${accent ? "bg-stone-50/40 rounded-2xl mb-4 px-2" : "mb-2"}`}>
+      <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between text-left group relative overflow-hidden"
+        className="w-full flex items-center justify-between py-4 px-2 text-left group"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {icon && (
-            <span className={`${accent ? "text-stone-600" : "text-stone-400"} transition-all duration-300`}>
+            <span className={`transition-transform duration-500 group-hover:scale-110 ${accent ? "text-amber-600" : "text-stone-400"}`}>
               {icon}
             </span>
           )}
-          <span className="text-xs uppercase tracking-[0.1em] font-normal text-stone-900 group-hover:text-stone-500 transition-colors duration-300">
+          <span className="text-[10px] uppercase tracking-[0.25em] font-bold text-stone-900 group-hover:text-stone-600 transition-colors">
             {title}
           </span>
         </div>
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.4, ease: [0.04, 0.62, 0.23, 0.98] }}
-          className="text-stone-400 group-hover:text-stone-900 transition-colors duration-300 text-lg font-normal leading-none"
-        >
-          {isOpen ? "−" : "+"}
-        </motion.div>
-      </motion.button>
+        <div className="text-stone-300 group-hover:text-stone-900 transition-colors">
+          {isOpen ? <Minus size={14} strokeWidth={1} /> : <Plus size={14} strokeWidth={1} />}
+        </div>
+      </button>
 
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
-            initial={{ height: 0, opacity: 0, y: -10 }}
-            animate={{ height: "auto", opacity: 1, y: 0 }}
-            exit={{ height: 0, opacity: 0, y: -10 }}
-            transition={{
-              duration: 0.5,
-              ease: [0.04, 0.62, 0.23, 0.98],
-              opacity: { duration: 0.3 },
-            }}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden"
           >
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
-              className="pt-4"
-            >
+            <div className="pb-6 px-2 space-y-1">
               {children}
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </div>
   );
 };
 
@@ -88,12 +69,13 @@ const LuxuryCheckbox = ({
   checked,
   onChange,
   count,
-  premium = false,
-  featured = false,
+  isChild = false
 }) => (
   <label
     htmlFor={id}
-    className="flex items-center justify-between group cursor-pointer py-1.5 transition-all duration-300 relative"
+    className={`flex items-center justify-between group cursor-pointer py-2 rounded-lg transition-all duration-300 ${
+      checked ? "bg-stone-100/50 px-3 -mx-3" : "hover:bg-stone-50/50 px-3 -mx-3"
+    }`}
   >
     <div className="flex items-center space-x-3">
       <div className="relative flex items-center justify-center">
@@ -105,49 +87,56 @@ const LuxuryCheckbox = ({
           className="sr-only"
         />
         <div
-          className={`w-3.5 h-3.5 border flex items-center justify-center transition-all duration-300 ${
-            checked ? "bg-stone-900 border-stone-900" : "bg-transparent border-stone-300 group-hover:border-stone-500"
+          className={`w-4 h-4 border rounded-sm flex items-center justify-center transition-all duration-500 ${
+            checked ? "bg-stone-900 border-stone-900 scale-110" : "bg-transparent border-stone-200 group-hover:border-stone-400"
           }`}
         >
           {checked && (
-            <motion.svg
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="w-2.5 h-2.5 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="square"
-                strokeLinejoin="miter"
-                strokeWidth={2.5}
-                d="M5 13l4 4L19 7"
-              />
-            </motion.svg>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="w-1.5 h-1.5 bg-white rounded-full"
+            />
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <span className={`text-xs font-normal tracking-wide transition-colors duration-300 ${checked ? "text-stone-900" : "text-stone-600 group-hover:text-stone-900"}`}>
-          {label}
-        </span>
-      </div>
+      <span className={`text-[11px] tracking-wide transition-colors duration-300 ${
+        checked ? "text-stone-950 font-bold" : "text-stone-600 group-hover:text-stone-950 font-medium"
+      }`}>
+        {label}
+      </span>
     </div>
 
     {typeof count === "number" && (
-      <span className="text-[11px] text-stone-400 font-normal tracking-widest">
-        ({count})
+      <span className={`text-[9px] tracking-widest font-bold transition-all duration-500 ${
+        checked ? "text-stone-900 scale-110" : "text-stone-300 group-hover:text-stone-400"
+      }`}>
+        {count.toString().padStart(2, '0')}
       </span>
     )}
   </label>
 );
 
-// Build tree from parent_category_id, still keyed by id internally
+// Build tree from parent_category_id, filtering out categories with no products
 const buildCategoryTree = (categories) => {
   const map = new Map();
+  
+  // First pass: identify active categories
   (categories || []).forEach((c) => {
-    map.set(c.id, { ...c, children: [] });
+    // Priority 1: Use pre-calculated hasDirectProducts from custom backend route
+    // Priority 2: Use products array length
+    // Priority 3: Use product_count
+    let finalHasProducts = false;
+    
+    if (c.hasDirectProducts !== undefined) {
+      finalHasProducts = !!c.hasDirectProducts;
+    } else if (c.products && Array.isArray(c.products)) {
+      finalHasProducts = c.products.length > 0;
+    } else if (c.product_count !== undefined) {
+      finalHasProducts = c.product_count > 0;
+    }
+
+    map.set(c.id, { ...c, children: [], hasDirectProducts: finalHasProducts });
   });
 
   const roots = [];
@@ -158,31 +147,67 @@ const buildCategoryTree = (categories) => {
       roots.push(cat);
     }
   });
-  return roots;
+
+  // Prune tree: Keep node only if it has direct products OR its children have products
+  const pruneEmptyCategories = (nodes) => {
+    const pruned = nodes.filter(node => {
+      const activeChildren = pruneEmptyCategories(node.children);
+      node.children = activeChildren;
+      return node.hasDirectProducts || activeChildren.length > 0;
+    });
+    
+    return pruned;
+  };
+
+  return pruneEmptyCategories(roots);
 };
 
-// NOTE: CategoryNode now toggles by HANDLE, not ID
-const CategoryNode = ({ node, filters, onToggle }) => {
-  const handle = node.handle; // Medusa handle
+const CategoryNode = ({ node, filters, onToggle, level = 0, selectedCategoryHandle }) => {
+  const handle = node.handle;
+  // Support up to 4 levels of category nesting
+  if (level > 3) return null;
+
+  // Recursively determine if any descendant is active
+  const checkHasActiveDescendant = (n) => {
+    if (!n.children) return false;
+    if (n.children.some(c => c.handle === selectedCategoryHandle)) return true;
+    return n.children.some(c => checkHasActiveDescendant(c));
+  };
+
+  const isActive = selectedCategoryHandle === handle;
+  const hasActiveDescendant = checkHasActiveDescendant(node);
+  const isExpanded = isActive || hasActiveDescendant;
+
   return (
-    <div key={node.id}>
+    <div key={node.id} className={level === 0 ? "mb-1" : "mt-1"}>
       <LuxuryCheckbox
         id={`cat-${handle}`}
         label={node.name || node.title}
         checked={filters.categories?.includes(handle) || false}
         onChange={() => onToggle(handle)}
+        isChild={level > 0}
       />
-      {node.children?.length > 0 && (
-        <div className="ml-4 border-l border-stone-200/70 pl-3 mt-1 space-y-1">
-          {node.children.map((child) => (
-            <CategoryNode
-              key={child.id}
-              node={child}
-              filters={filters}
-              onToggle={onToggle}
-            />
-          ))}
-        </div>
+      
+      {/* Subcategories only expand if the parent or a sibling subcategory is active */}
+      {node.children?.length > 0 && isExpanded && (
+        <AnimatePresence>
+          <motion.div 
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            className={`overflow-hidden ${level === 0 ? "ml-4 pl-3 mt-1 border-l border-stone-100" : "ml-4 pl-2 border-l border-stone-100/50"}`}
+          >
+            {node.children.map((child) => (
+              <CategoryNode
+                key={child.id}
+                node={child}
+                filters={filters}
+                onToggle={onToggle}
+                level={level + 1}
+                selectedCategoryHandle={selectedCategoryHandle}
+              />
+            ))}
+          </motion.div>
+        </AnimatePresence>
       )}
     </div>
   );
@@ -197,9 +222,14 @@ export const FilterSidebar = ({
   tags = [],
   className = "",
   isMobile = false,
+  selectedCategoryHandle = null,
+  onCategorySelect,
 }) => {
   const ratings = [5, 4, 3, 2];
-  const categoryTree = buildCategoryTree(categories);
+  
+  const categoryTree = useMemo(() => {
+    return buildCategoryTree(categories);
+  }, [categories]);
 
   const handleCollectionToggle = (id) => {
     const current = filters.collections || [];
@@ -209,7 +239,6 @@ export const FilterSidebar = ({
     onFiltersChange({ ...filters, collections: next });
   };
 
-  // Toggle categories by HANDLE
   const handleCategoryToggle = (handle) => {
     const current = filters.categories || [];
     const next = current.includes(handle)
@@ -222,37 +251,129 @@ export const FilterSidebar = ({
     onFiltersChange({ ...filters, [key]: !filters[key] });
   };
 
+  const clearAll = () => {
+    onFiltersChange({
+      priceRange: [priceBounds.min, priceBounds.max],
+      collections: [],
+      categories: selectedCategoryHandle ? [selectedCategoryHandle] : [],
+      tags: [],
+      discountedOnly: false,
+      newOnly: false,
+      inStockOnly: false,
+      ratings: [],
+    });
+  };
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (filters.collections?.length > 0) count++;
+    if (filters.categories?.length > (selectedCategoryHandle ? 1 : 0)) count++;
+    if (filters.tags?.length > 0) count++;
+    if (filters.discountedOnly) count++;
+    if (filters.newOnly) count++;
+    if (filters.inStockOnly) count++;
+    if (filters.ratings?.length > 0) count++;
+    return count;
+  }, [filters, selectedCategoryHandle]);
+
   return (
     <motion.aside
-      initial={{ opacity: 0, x: isMobile ? 0 : -30 }}
+      initial={{ opacity: 0, x: isMobile ? 0 : -20 }}
       animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.8, delay: 0.2 }}
+      transition={{ duration: 0.6 }}
       className={`${isMobile ? "w-full" : "w-72"} ${className}`}
     >
       <div className={isMobile ? "" : "sticky top-32"}>
-        <div
-          className={`relative ${!isMobile ? "border-r border-stone-200/40 pr-6 mr-6" : ""} bg-transparent`}
-        >
-          {/* Header */}
-          {!isMobile && (
-            <div className="mb-10 pb-4 border-b border-stone-200/40">
-              <h2 className="text-xs uppercase tracking-[0.1em] font-normal text-stone-900">
-                Refine Selections
+        <div className={`relative ${!isMobile ? "pr-6" : ""} bg-transparent`}>
+          {/* Production-Grade Header */}
+          <div className="flex items-center justify-between mb-8 pb-4 border-b border-stone-100">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[11px] uppercase tracking-[0.2em] font-bold text-stone-900">
+                Filters
               </h2>
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-stone-900 text-white text-[8px] flex items-center justify-center font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
             </div>
-          )}
+            
+            {activeFilterCount > 0 && (
+              <button 
+                onClick={clearAll}
+                className="group flex items-center gap-1.5 text-[9px] uppercase tracking-[0.15em] text-stone-400 hover:text-stone-950 transition-colors"
+              >
+                <RotateCcw size={10} className="group-hover:rotate-[-45deg] transition-transform duration-500" />
+                Clear
+              </button>
+            )}
+          </div>
 
-          <div className="space-y-2 relative z-10">
+          <div className="space-y-1">
+            {/* Categories - Intelligent Tree */}
+            <FilterSection
+              title="Categories"
+              defaultOpen
+              icon={<Diamond className="w-3.5 h-3.5" />}
+            >
+              <div className="space-y-0.5">
+                {categoryTree.map((cat) => (
+                  <CategoryNode
+                    key={cat.id}
+                    node={cat}
+                    filters={filters}
+                    onToggle={onCategorySelect || handleCategoryToggle}
+                    selectedCategoryHandle={selectedCategoryHandle}
+                  />
+                ))}
+              </div>
+            </FilterSection>
+
+            {/* Price Architecture */}
+            <FilterSection title="Investment" defaultOpen>
+              <div className="pt-2">
+                <PriceRangeSlider
+                  min={priceBounds.min || 0}
+                  max={priceBounds.max || 0}
+                  value={filters.priceRange || [priceBounds.min, priceBounds.max]}
+                  onChange={(nextRange) => onFiltersChange({ ...filters, priceRange: nextRange })}
+                  step={1000}
+                />
+                <div className="mt-6 flex items-center justify-between text-[10px] tracking-widest text-stone-400 uppercase font-medium">
+                  <span>Min</span>
+                  <span>Max</span>
+                </div>
+              </div>
+            </FilterSection>
+
+            {/* Curation Filters */}
+            <FilterSection title="Curations" icon={<Crown className="w-3.5 h-3.5" />}>
+              <div className="space-y-0.5">
+                <LuxuryCheckbox
+                  id="hl-discount"
+                  label="Private Sale"
+                  checked={filters.discountedOnly || false}
+                  onChange={() => toggleFlag("discountedOnly")}
+                />
+                <LuxuryCheckbox
+                  id="hl-new"
+                  label="New Arrivals"
+                  checked={filters.newOnly || false}
+                  onChange={() => toggleFlag("newOnly")}
+                />
+                <LuxuryCheckbox
+                  id="hl-stock"
+                  label="Ready to Ship"
+                  checked={filters.inStockOnly || false}
+                  onChange={() => toggleFlag("inStockOnly")}
+                />
+              </div>
+            </FilterSection>
+
             {/* Collections */}
             {collections.length > 0 && (
-              <FilterSection
-                title="Collections"
-                defaultOpen
-
-                accent
-                icon={<Diamond className="w-4 h-4" />}
-              >
-                <div className="space-y-1">
+              <FilterSection title="Collections">
+                <div className="space-y-0.5">
                   {collections.map((col) => (
                     <LuxuryCheckbox
                       key={col.id}
@@ -266,27 +387,10 @@ export const FilterSidebar = ({
               </FilterSection>
             )}
 
-            {/* Categories (by handle) */}
-            <FilterSection
-              title="Categories"
-              icon={<Diamond className="w-4 h-4" />}
-            >
-              <div className="space-y-1">
-                {categoryTree.map((cat) => (
-                  <CategoryNode
-                    key={cat.id}
-                    node={cat}
-                    filters={filters}
-                    onToggle={handleCategoryToggle}
-                  />
-                ))}
-              </div>
-            </FilterSection>
-
-            {/* Tags / Suitability */}
+            {/* Suitability / Tags */}
             {tags && tags.length > 0 && (
               <FilterSection title="Suitability">
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {tags.map((tag) => (
                     <LuxuryCheckbox
                       key={tag}
@@ -306,85 +410,26 @@ export const FilterSidebar = ({
               </FilterSection>
             )}
 
-            {/* Price range */}
-            <FilterSection
-              title="Price"
-              defaultOpen
-            >
-              <div className="space-y-6 pt-2">
-                <PriceRangeSlider
-                  min={priceBounds.min || 0}
-                  max={priceBounds.max || 0}
-                  value={
-                    filters.priceRange || [priceBounds.min, priceBounds.max]
-                  }
-                  onChange={(nextRange) =>
-                    onFiltersChange({ ...filters, priceRange: nextRange })
-                  }
-                  step={1000}
-                />
-                <div className="text-[11px] text-stone-500">
-                  Maximum price:{" "}
-                  {new Intl.NumberFormat("en-IN", {
-                    style: "currency",
-                    currency: "INR",
-                    maximumFractionDigits: 0,
-                  }).format(priceBounds.max || 0)}
-                </div>
-              </div>
-            </FilterSection>
-
-            {/* Highlights */}
-            <FilterSection title="Filters" icon={<Crown className="w-4 h-4" />}>
+            {/* Ratings - Restored with Luxury Feel */}
+            <FilterSection title="Ratings" icon={<Star className="w-3.5 h-3.5" />}>
               <div className="space-y-1">
-                <LuxuryCheckbox
-                  id="hl-discount"
-                  label="On sale only"
-                  checked={filters.discountedOnly || false}
-                  onChange={() => toggleFlag("discountedOnly")}
-                  premium
-                />
-                <LuxuryCheckbox
-                  id="hl-new"
-                  label="New arrivals"
-                  checked={filters.newOnly || false}
-                  onChange={() => toggleFlag("newOnly")}
-                  featured
-                />
-                <LuxuryCheckbox
-                  id="hl-stock"
-                  label="In stock only"
-                  checked={filters.inStockOnly || false}
-                  onChange={() => toggleFlag("inStockOnly")}
-                />
-              </div>
-            </FilterSection>
-
-            {/* Ratings */}
-            <FilterSection title="Ratings" icon={<Star className="w-4 h-4" />}>
-              <div className="space-y-2">
                 {ratings.map((rating) => (
                   <LuxuryCheckbox
                     key={rating}
                     id={`rating-${rating}`}
                     label={
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <div className="flex items-center">
-                          {Array.from({ length: rating }).map((_, i) => (
+                          {Array.from({ length: 5 }).map((_, i) => (
                             <Star
                               key={i}
-                              className="w-3 h-3 fill-amber-400 text-amber-400"
-                            />
-                          ))}
-                          {Array.from({ length: 5 - rating }).map((_, i) => (
-                            <Star
-                              key={i}
-                              className="w-3 h-3 text-stone-200"
+                              size={10}
+                              className={i < rating ? "fill-stone-900 text-stone-900" : "text-stone-200"}
                             />
                           ))}
                         </div>
-                        <span className="text-xs text-stone-600 font-light">
-                          and above
+                        <span className="text-[9px] uppercase tracking-tighter text-stone-400 font-bold ml-1">
+                          & Up
                         </span>
                       </div>
                     }

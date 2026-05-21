@@ -39,3 +39,9 @@ pids
 Thumbs.db
   
 .env.production
+find_mismatches.py
+components_list.txt
+unused_files.txt
+
+.next
+public/images

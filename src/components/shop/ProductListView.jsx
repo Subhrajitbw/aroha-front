@@ -2,9 +2,23 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Heart, Eye, Star, Sparkles, Plus, ShoppingCart } from "lucide-react";
+import { useWishlistStore } from "@/stores/useWishlistStore";
+
+const getStableValue = (id, min, max) => {
+  if (!id) return min;
+  let hash = 0;
+  const str = String(id);
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return min + (Math.abs(hash) % (max - min + 1));
+};
 
 const FlatProductItem = ({ product, index, onAddToCart }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const { toggleWishlist, isInWishlist } = useWishlistStore();
+  const isWishlisted = isInWishlist(product?.id || product?._id || product?.handle);
 
   return (
     <motion.div
@@ -67,7 +81,7 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
                 {product.rating || 4.9}
               </span>
               <span className="text-xs text-stone-400">
-                ({product.reviewCount || Math.floor(Math.random() * 150) + 50})
+                ({product.reviewCount || getStableValue(product.id || product._id, 50, 200)})
               </span>
             </div>
 
@@ -76,7 +90,7 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
               <div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-lg font-bold text-stone-900">
-                    ₹{(product.price?.amount || product.price || Math.floor(Math.random() * 125000) + 35000).toLocaleString()}
+                    ₹{(product.price?.amount || product.price || getStableValue(product.id || product._id, 35000, 160000)).toLocaleString()}
                   </span>
                   {product.originalPrice && (
                     <span className="text-sm text-stone-400 line-through">
@@ -94,14 +108,29 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
                 )}
               </div>
               
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => onAddToCart && onAddToCart(product)}
-                className="p-2.5 bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-all duration-300"
-              >
-                <ShoppingCart className="w-4 h-4" />
-              </motion.button>
+              <div className="flex items-center gap-2">
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleWishlist(product);
+                  }}
+                  className={`p-2.5 rounded-lg transition-all duration-300 ${
+                    isWishlisted ? 'bg-red-50 text-red-500' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  }`}
+                >
+                  <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-red-500' : ''}`} />
+                </motion.button>
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onAddToCart && onAddToCart(product)}
+                  className="p-2.5 bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-all duration-300"
+                >
+                  <ShoppingCart className="w-4 h-4" />
+                </motion.button>
+              </div>
             </div>
           </div>
         </div>
@@ -132,9 +161,13 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
             <motion.button 
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleWishlist(product);
+              }}
               className="p-3 bg-white rounded-lg shadow-sm"
             >
-              <Heart className="w-5 h-5 text-stone-600" />
+              <Heart className={`w-5 h-5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-stone-600'}`} />
             </motion.button>
             <motion.button 
               whileHover={{ scale: 1.1 }}
@@ -181,7 +214,7 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
               {product.rating || 4.9}
             </span>
             <span className="text-xs lg:text-sm text-stone-400">
-              ({product.reviewCount || Math.floor(Math.random() * 150) + 50} reviews)
+              ({product.reviewCount || getStableValue(product.id || product._id, 50, 200)} reviews)
             </span>
           </div>
         </div>
@@ -191,7 +224,7 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
           <div>
             <div className="flex items-baseline gap-3 justify-end">
               <span className="text-xl lg:text-2xl xl:text-3xl font-bold text-stone-900">
-                ₹{(product.price?.amount || product.price || Math.floor(Math.random() * 125000) + 35000).toLocaleString()}
+                ₹{(product.price?.amount || product.price || getStableValue(product.id || product._id, 35000, 160000)).toLocaleString()}
               </span>
               {product.originalPrice && (
                 <span className="text-sm lg:text-base text-stone-400 line-through">

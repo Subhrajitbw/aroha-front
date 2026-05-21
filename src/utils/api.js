@@ -1,7 +1,7 @@
 // utils/api.js - Enhanced API client with automatic token refresh
-import useAuthStore from '../stores/useAuthStore';
+import useAuthStore from  '@/stores/useAuthStore';
 
-const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || 'http://localhost:9000';
 
 // Create enhanced fetch wrapper
 const createApiClient = () => {

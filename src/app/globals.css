@@ -1,0 +1,184 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,700;1,400&family=Open+Sans:wght@300;400;500;700&family=Poppins:wght@300;400;500;700&family=Raleway:wght@300;400;500;700&display=swap');
+
+@font-face {
+  font-family: "Cabinet Grotesk";
+  src: url("/CabinetGrotesk-Regular.otf");
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: "Cabinet Grotesk mid";
+  src: url("/CabinetGrotesk-Medium.otf");
+  font-weight: 500;
+}
+
+@font-face {
+  font-family: "Cabinet Grotesk bold";
+  src: url("/CabinetGrotesk-Bold.otf");
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: "NewYork";
+  src: url("/NewYork PERSONAL USE.otf");
+  font-weight: 400;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Navbar height — updated at runtime by ResizeObserver in NavBar.jsx */
+:root {
+  --nav-height: 56px; /* mobile default */
+}
+@media (min-width: 1024px) {
+  :root {
+    --nav-height: 48px; /* desktop default */
+  }
+}
+
+/* Optimize image rendering for luxury high-DPI/Retina photography */
+img {
+  image-rendering: auto;
+}
+
+/* Prevent layout shift during image loading */
+.hero-slide-container {
+  contain: layout style paint;
+}
+
+/* GPU acceleration for smooth animations */
+.hero-slide-image {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbars globally while keeping scroll functionality */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+html {
+  font-size: 16px;
+  /* Fill the complete viewport including home-indicator area */
+  height: 100%;
+  min-height: 100dvh;
+  height: -webkit-fill-available;
+}
+
+body {
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #1c1917; /* stone-900 */
+  text-rendering: optimizeLegibility;
+  /* Stretch body to fill the full screen — prevents white gap at bottom in PWA standalone */
+  min-height: 100%;
+  min-height: 100dvh;
+  /* Bottom safe area padding prevents content clipping behind home indicator.
+     Top is intentionally excluded — NavBar already handles safe-area-inset-top
+     to avoid double-padding the status bar area. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  box-sizing: border-box;
+}
+
+/* Override body safe-area for full-bleed sections: add this class to wrappers that should
+   stretch edge-to-edge (hero videos, landing page, etc.) */
+.full-bleed {
+  margin-left: calc(-1 * env(safe-area-inset-left, 0px));
+  margin-right: calc(-1 * env(safe-area-inset-right, 0px));
+}
+
+/* Stabilize global font weights for luxury readability */
+* {
+  font-weight: 400;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: inherit;
+  color: #1c1917;
+}
+
+small,
+.text-xs,
+.text-\[10px\] {
+  font-weight: 500 !important;
+  letter-spacing: 0.05em;
+}
+
+*:focus {
+  outline: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+}
+
+* {
+  overflow-anchor: none;
+}
+
+@keyframes maison-fade-slide {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-maison-enter {
+  animation: maison-fade-slide 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Luxury responsive layout vertical spacing tokens */
+.luxury-section {
+  padding-top: 3.5rem;
+  padding-bottom: 3.5rem;
+}
+@media (min-width: 640px) {
+  .luxury-section {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+}
+@media (min-width: 1024px) {
+  .luxury-section {
+    padding-top: 7rem;
+    padding-bottom: 7rem;
+  }
+}
+
