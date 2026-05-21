@@ -81,6 +81,15 @@ body {
   overscroll-behavior-y: none;
 }
 
+/* ── Scroll Lock: freezes background page scroll when a bottom-nav panel is open.
+   Works on iOS Safari (where overflow:hidden on body is ignored).
+   JS saves scrollY → applies top: -scrollY px → restores on close. */
+body.scroll-locked {
+  position: fixed;
+  width: 100%;
+  overflow-y: scroll; /* keep scrollbar width to avoid layout jump */
+}
+
 html {
   font-size: 16px;
   /* Fill the complete viewport including home-indicator area */

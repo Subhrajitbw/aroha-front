@@ -72,18 +72,36 @@ export default function BottomNavigation() {
     setActiveConsoleTab(null);
   }, [pathname]);
 
-  // ── Scroll Lock System (Prevents background page from scrolling when Console is open) ──
+  // ── Scroll Lock System ─────────────────────────────────────────────────────
+  // Uses the position:fixed trick so iOS Safari (which ignores overflow:hidden
+  // on body) also gets a fully frozen background when the console panel is open.
   useEffect(() => {
+    const body = document.body;
+
     if (activeConsoleTab !== null) {
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
+      // Capture current scroll position before locking
+      const scrollY = window.scrollY;
+      body.style.top = `-${scrollY}px`;
+      body.classList.add("scroll-locked");
     } else {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
+      // Read the saved scroll position back from inline style
+      const savedTop = body.style.top;
+      body.classList.remove("scroll-locked");
+      body.style.top = "";
+      // Restore scroll position without animation
+      if (savedTop) {
+        window.scrollTo({ top: parseInt(savedTop || "0", 10) * -1, behavior: "instant" });
+      }
     }
+
     return () => {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
+      // Cleanup on unmount: always restore body to normal
+      const savedTop = body.style.top;
+      body.classList.remove("scroll-locked");
+      body.style.top = "";
+      if (savedTop) {
+        window.scrollTo({ top: parseInt(savedTop || "0", 10) * -1, behavior: "instant" });
+      }
     };
   }, [activeConsoleTab]);
 
