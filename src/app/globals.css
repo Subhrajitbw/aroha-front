@@ -90,6 +90,11 @@ body.scroll-locked {
   overflow-y: scroll; /* keep scrollbar width to avoid layout jump */
 }
 
+/* Next.js uses <html> as the primary scroll container — lock it too */
+html.scroll-locked {
+  overflow: hidden;
+}
+
 html {
   font-size: 16px;
   /* Fill the complete viewport including home-indicator area */

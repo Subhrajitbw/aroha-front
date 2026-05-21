@@ -77,16 +77,20 @@ export default function BottomNavigation() {
   // on body) also gets a fully frozen background when the console panel is open.
   useEffect(() => {
     const body = document.body;
+    const html = document.documentElement;
 
     if (activeConsoleTab !== null) {
       // Capture current scroll position before locking
       const scrollY = window.scrollY;
       body.style.top = `-${scrollY}px`;
       body.classList.add("scroll-locked");
+      // Also lock <html> — Next.js scrolls on the html element, not just body
+      html.classList.add("scroll-locked");
     } else {
       // Read the saved scroll position back from inline style
       const savedTop = body.style.top;
       body.classList.remove("scroll-locked");
+      html.classList.remove("scroll-locked");
       body.style.top = "";
       // Restore scroll position without animation
       if (savedTop) {
@@ -95,9 +99,10 @@ export default function BottomNavigation() {
     }
 
     return () => {
-      // Cleanup on unmount: always restore body to normal
+      // Cleanup on unmount: always restore body/html to normal
       const savedTop = body.style.top;
       body.classList.remove("scroll-locked");
+      html.classList.remove("scroll-locked");
       body.style.top = "";
       if (savedTop) {
         window.scrollTo({ top: parseInt(savedTop || "0", 10) * -1, behavior: "instant" });
@@ -234,11 +239,11 @@ export default function BottomNavigation() {
             </div>
 
             {/* BOUNDED CONTENT BODY */}
-            <div className="flex-1 relative overflow-hidden flex flex-col h-full bg-[#141210]">
+            <div className="flex-1 relative overflow-hidden flex flex-col min-h-0 bg-[#141210]">
               
               {/* ── MODE A: CATEGORIES EXPLORER (DESKTOP MEGA MENU LOOK) ────── */}
               {activeConsoleTab === "categories" && (
-                <div className="flex w-full h-full pointer-events-auto">
+                <div className="flex w-full min-h-0 flex-1 pointer-events-auto">
                   
                   {/* Left Sidebar (Fully Scrollable, overscroll isolated) */}
                   <div 
@@ -347,7 +352,7 @@ export default function BottomNavigation() {
 
               {/* ── MODE B: YOU EXPLORER (MINIMAL CONSOLE SYSTEM) ──────────────── */}
               {activeConsoleTab === "you" && (
-                <div className="flex flex-col w-full h-full pointer-events-auto">
+                <div className="flex flex-col w-full flex-1 min-h-0 pointer-events-auto">
                   
                   {/* FIXED HEADER: Premium Profile card */}
                   <div className="p-5 flex-none border-b flex flex-col gap-4 relative shadow-sm bg-stone-950 border-white/5">
