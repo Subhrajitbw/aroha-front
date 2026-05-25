@@ -150,7 +150,7 @@ const HeroSection = ({ heroData }) => {
   const slide = slides[current]
 
   return (
-    <section ref={heroRef} className="relative h-screen w-full bg-stone-950 overflow-hidden text-white select-none">
+    <section ref={heroRef} className="relative h-[100dvh] w-full bg-stone-950 overflow-hidden text-white select-none">
 
       {/* ═══════ VIDEO LAYERS ═══════ */}
       <div className="absolute inset-0">

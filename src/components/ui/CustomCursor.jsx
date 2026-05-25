@@ -41,11 +41,11 @@ const CustomCursor = () => {
     const handleMouseOver = (e) => {
       if (e.target.closest('a, button, [role="button"], input, select, textarea, .cursor-pointer')) {
         setIsHovering(true);
-        if (ringRef.current) gsap.to(ringRef.current, { scale: 1.8, backgroundColor: "rgba(255, 255, 255, 0.1)", duration: 0.3 });
+        if (ringRef.current) gsap.to(ringRef.current, { scale: 1.5, borderWidth: "1.5px", duration: 0.3 });
         if (cursorRef.current) gsap.to(cursorRef.current, { scale: 0, duration: 0.2 });
       } else {
         setIsHovering(false);
-        if (ringRef.current) gsap.to(ringRef.current, { scale: 1, backgroundColor: "transparent", duration: 0.3 });
+        if (ringRef.current) gsap.to(ringRef.current, { scale: 1, borderWidth: "1px", duration: 0.3 });
         if (cursorRef.current) gsap.to(cursorRef.current, { scale: 1, duration: 0.2 });
       }
     };
@@ -66,13 +66,13 @@ const CustomCursor = () => {
       {/* Outer Ring */}
       <div
         ref={ringRef}
-        className="fixed top-0 left-0 w-8 h-8 rounded-full border border-white/60 pointer-events-none z-[9999] hidden md:block"
+        className="fixed top-0 left-0 w-8 h-8 rounded-full border border-white pointer-events-none z-[9999] hidden md:block mix-blend-difference"
         style={{ transform: "translate(-50%, -50%)" }}
       />
       {/* Inner Dot */}
       <div
         ref={cursorRef}
-        className="fixed top-0 left-0 w-1.5 h-1.5 bg-white rounded-full pointer-events-none z-[10000] hidden md:block"
+        className="fixed top-0 left-0 w-1.5 h-1.5 bg-white rounded-full pointer-events-none z-[10000] hidden md:block mix-blend-difference"
         style={{ transform: "translate(-50%, -50%)" }}
       />
     </>
