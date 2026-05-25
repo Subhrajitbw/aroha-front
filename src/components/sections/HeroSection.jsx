@@ -84,7 +84,7 @@ const HeroSection = ({ heroData }) => {
 
   // ── Progress bar + text animation ──
   useEffect(() => {
-    if (loading || !slides.length) return
+    if (!slides.length) return
     const duration = slides[current]?.autoPlayDuration ? slides[current].autoPlayDuration / 1000 : 8
 
     // Reset & animate progress
