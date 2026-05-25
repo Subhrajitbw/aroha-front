@@ -2,60 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from "react"
 import { sanityClient } from "@/lib/sanityClient"
 import gsap from "gsap"
 
-// 4 video slides — Mixkit interior / home decor videos (verified 200 OK)
-const DEFAULT_VIDEO_SLIDES = [
-  {
-    backgroundType: "video",
-    videoUrl: "https://assets.mixkit.co/videos/4046/4046-720.mp4",
-    heading: "Crafted for Living",
-    subheading: "Handcrafted interiors for those who live deliberately.",
-    badge: "New Season '25",
-    alignment: "left",
-    overlayStrength: 50,
-    autoPlayDuration: 8000,
-    ctaPrimary: { text: "Explore", link: "/shop" },
-    ctaSecondary: { text: "Our Story", link: "/about" },
-  },
-  {
-    backgroundType: "video",
-    videoUrl: "https://assets.mixkit.co/videos/4030/4030-720.mp4",
-    heading: "Spaces of Intention",
-    subheading: "Where material meets meaning. Every surface refined.",
-    badge: "Editorial",
-    alignment: "left",
-    overlayStrength: 55,
-    autoPlayDuration: 8000,
-    ctaPrimary: { text: "Shop Now", link: "/shop" },
-    ctaSecondary: { text: "Lookbook", link: "/lookbook" },
-  },
-  {
-    backgroundType: "video",
-    videoUrl: "https://assets.mixkit.co/videos/4198/4198-720.mp4",
-    heading: "Material & Form",
-    subheading: "Artisan-selected textures for spaces that tell stories.",
-    badge: "Curated Edit",
-    alignment: "left",
-    overlayStrength: 50,
-    autoPlayDuration: 8000,
-    ctaPrimary: { text: "View Pieces", link: "/shop" },
-    ctaSecondary: { text: "Rooms", link: "/rooms" },
-  },
-  {
-    backgroundType: "video",
-    videoUrl: "https://assets.mixkit.co/videos/4047/4047-720.mp4",
-    heading: "The Aroha Standard",
-    subheading: "Every detail considered. Luxury without compromise.",
-    badge: "Signature",
-    alignment: "left",
-    overlayStrength: 55,
-    autoPlayDuration: 8000,
-    ctaPrimary: { text: "Discover", link: "/shop" },
-    ctaSecondary: { text: "Contact", link: "/contact" },
-  },
-]
-
 const HeroSection = ({ heroData }) => {
-  const [slides, setSlides] = useState(heroData?.slides || DEFAULT_VIDEO_SLIDES)
+  const [slides, setSlides] = useState(heroData?.slides || [])
   const [current, setCurrent] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [globalVideoUrl, setGlobalVideoUrl] = useState(heroData?.globalVideoUrl || null)
@@ -76,8 +24,8 @@ const HeroSection = ({ heroData }) => {
       if (idx === current) {
         video.currentTime = 0
         video.muted = true // Force muted state in JS to bypass iOS Safari autoplay restrictions
-        video.play().catch((err) => { 
-          console.warn("Video autoplay blocked:", err) 
+        video.play().catch((err) => {
+          console.warn("Video autoplay blocked:", err)
         })
       } else {
         video.pause()
@@ -263,8 +211,8 @@ const HeroSection = ({ heroData }) => {
           >
             <span
               className={`block rounded-full transition-all duration-500 ${idx === current
-                  ? "w-[3px] h-10 bg-white"
-                  : "w-[3px] h-4 bg-white/25 group-hover:bg-white/50 group-hover:h-6"
+                ? "w-[3px] h-10 bg-white"
+                : "w-[3px] h-4 bg-white/25 group-hover:bg-white/50 group-hover:h-6"
                 }`}
             />
           </button>
