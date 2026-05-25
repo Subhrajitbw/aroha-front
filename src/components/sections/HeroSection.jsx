@@ -76,7 +76,7 @@ const HeroSection = ({ heroData }) => {
   const prevSlide = useCallback(() => setCurrent(c => c === 0 ? slides.length - 1 : c - 1), [slides.length])
 
 
-  if (!slides.length) return null
+  if (!slides.length && !globalVideoUrl) return null
 
   const slide = slides[current]
 
@@ -135,125 +135,133 @@ const HeroSection = ({ heroData }) => {
       </div>
 
       {/* ═══════ CONTENT ═══════ */}
-      <div className="absolute inset-0 z-10 flex flex-col justify-end pb-32 sm:pb-32 lg:pb-36 px-6 sm:px-10 lg:px-20">
-        <div className="max-w-4xl">
+      {slide && (
+        <div className="absolute inset-0 z-10 flex flex-col justify-end pb-32 sm:pb-32 lg:pb-36 px-6 sm:px-10 lg:px-20">
+          <div className="max-w-4xl">
 
-          {/* Badge */}
-          {slide.badge && (
-            <div className="hero-badge mb-6 sm:mb-8">
-              <span className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] uppercase tracking-[0.3em] font-medium text-white/60">
-                <span className="w-6 h-px bg-white/40" />
-                {slide.badge}
-              </span>
-            </div>
-          )}
+            {/* Badge */}
+            {slide.badge && (
+              <div className="hero-badge mb-6 sm:mb-8">
+                <span className="inline-flex items-center gap-2 text-[10px] sm:text-[11px] uppercase tracking-[0.3em] font-medium text-white/60">
+                  <span className="w-6 h-px bg-white/40" />
+                  {slide.badge}
+                </span>
+              </div>
+            )}
 
-          {/* Heading */}
-          <h1 className="hero-heading text-[clamp(2.5rem,8vw,7rem)] font-serif font-light leading-[0.95] tracking-[-0.02em] text-white mb-5 sm:mb-6">
-            {slide.heading}
-          </h1>
+            {/* Heading */}
+            {slide.heading && (
+              <h1 className="hero-heading text-[clamp(2.5rem,8vw,7rem)] font-serif font-light leading-[0.95] tracking-[-0.02em] text-white mb-5 sm:mb-6">
+                {slide.heading}
+              </h1>
+            )}
 
-          {/* Subheading */}
-          {slide.subheading && (
-            <p className="hero-sub text-sm sm:text-base lg:text-lg text-white/50 font-light max-w-lg leading-relaxed mb-8 sm:mb-10">
-              {slide.subheading}
-            </p>
-          )}
+            {/* Subheading */}
+            {slide.subheading && (
+              <p className="hero-sub text-sm sm:text-base lg:text-lg text-white/50 font-light max-w-lg leading-relaxed mb-8 sm:mb-10">
+                {slide.subheading}
+              </p>
+            )}
 
-          {/* CTAs */}
-          {(slide.ctaPrimary?.text || slide.ctaSecondary?.text) && (
-            <div className="hero-cta flex items-center gap-4 sm:gap-5">
-              {slide.ctaPrimary?.text && (
-                <a
-                  href={slide.ctaPrimary.link}
-                  className="group flex items-center gap-3 px-7 py-3.5 bg-white text-stone-950 text-[11px] sm:text-xs uppercase tracking-[0.2em] font-semibold rounded-full hover:bg-stone-100 transition-all duration-300"
-                >
-                  {slide.ctaPrimary.text}
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:translate-x-1 transition-transform">
-                    <path d="M5 12h14M12 5l7 7-7 7" />
-                  </svg>
-                </a>
-              )}
-              {slide.ctaSecondary?.text && (
-                <a
-                  href={slide.ctaSecondary.link}
-                  className="text-[11px] sm:text-xs uppercase tracking-[0.2em] font-medium text-white/50 hover:text-white border-b border-white/20 hover:border-white/60 pb-1 transition-all duration-300"
-                >
-                  {slide.ctaSecondary.text}
-                </a>
-              )}
-            </div>
-          )}
+            {/* CTAs */}
+            {(slide.ctaPrimary?.text || slide.ctaSecondary?.text) && (
+              <div className="hero-cta flex items-center gap-4 sm:gap-5">
+                {slide.ctaPrimary?.text && (
+                  <a
+                    href={slide.ctaPrimary.link}
+                    className="group flex items-center gap-3 px-7 py-3.5 bg-white text-stone-950 text-[11px] sm:text-xs uppercase tracking-[0.2em] font-semibold rounded-full hover:bg-stone-100 transition-all duration-300"
+                  >
+                    {slide.ctaPrimary.text}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:translate-x-1 transition-transform">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                  </a>
+                )}
+                {slide.ctaSecondary?.text && (
+                  <a
+                    href={slide.ctaSecondary.link}
+                    className="text-[11px] sm:text-xs uppercase tracking-[0.2em] font-medium text-white/50 hover:text-white border-b border-white/20 hover:border-white/60 pb-1 transition-all duration-300"
+                  >
+                    {slide.ctaSecondary.text}
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ═══════ RIGHT SIDE — VERTICAL SLIDE INDICATOR ═══════ */}
-      <div className="absolute right-6 sm:right-10 lg:right-16 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-4">
-        {slides.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => setCurrent(idx)}
-            className="group relative flex items-center justify-center"
-          >
-            <span
-              className={`block rounded-full transition-all duration-500 ${idx === current
-                ? "w-[3px] h-10 bg-white"
-                : "w-[3px] h-4 bg-white/25 group-hover:bg-white/50 group-hover:h-6"
-                }`}
-            />
-          </button>
-        ))}
-      </div>
+      {slides.length > 1 && (
+        <div className="absolute right-6 sm:right-10 lg:right-16 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center gap-4">
+          {slides.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrent(idx)}
+              className="group relative flex items-center justify-center"
+            >
+              <span
+                className={`block rounded-full transition-all duration-500 ${idx === current
+                  ? "w-[3px] h-10 bg-white"
+                  : "w-[3px] h-4 bg-white/25 group-hover:bg-white/50 group-hover:h-6"
+                  }`}
+              />
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ═══════ BOTTOM — PROGRESS + COUNTER ═══════ */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 hidden sm:block">
-        {/* Progress bar */}
-        <div className="h-[1px] bg-white/10">
-          <div ref={progressRef} className="h-full bg-white/40 origin-left" style={{ transform: "scaleX(0)" }} />
-        </div>
-
-        {/* Bottom bar */}
-        <div className="flex items-center justify-between px-6 sm:px-10 lg:px-20 py-5 sm:py-6">
-          {/* Counter */}
-          <div className="flex items-center gap-3">
-            <span className="text-[11px] font-mono text-white/80 tabular-nums">
-              {String(current + 1).padStart(2, "0")}
-            </span>
-            <span className="w-8 h-px bg-white/20" />
-            <span className="text-[11px] font-mono text-white/30 tabular-nums">
-              {String(slides.length).padStart(2, "0")}
-            </span>
+      {slides.length > 1 && (
+        <div className="absolute bottom-0 left-0 right-0 z-20 hidden sm:block">
+          {/* Progress bar */}
+          <div className="h-[1px] bg-white/10">
+            <div ref={progressRef} className="h-full bg-white/40 origin-left" style={{ transform: "scaleX(0)" }} />
           </div>
 
-          {/* Nav arrows */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={prevSlide}
-              className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all duration-300"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/60">
-                <path d="M19 12H5M12 19l-7-7 7-7" />
+          {/* Bottom bar */}
+          <div className="flex items-center justify-between px-6 sm:px-10 lg:px-20 py-5 sm:py-6">
+            {/* Counter */}
+            <div className="flex items-center gap-3">
+              <span className="text-[11px] font-mono text-white/80 tabular-nums">
+                {String(current + 1).padStart(2, "0")}
+              </span>
+              <span className="w-8 h-px bg-white/20" />
+              <span className="text-[11px] font-mono text-white/30 tabular-nums">
+                {String(slides.length).padStart(2, "0")}
+              </span>
+            </div>
+
+            {/* Nav arrows */}
+            <div className="flex items-center gap-1">
+              <button
+                onClick={prevSlide}
+                className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all duration-300"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/60">
+                  <path d="M19 12H5M12 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={nextSlide}
+                className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all duration-300"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/60">
+                  <path d="M5 12h14M12 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Scroll hint */}
+            <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-white/25 font-medium">
+              <span>Scroll</span>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M12 5v14M19 12l-7 7-7-7" />
               </svg>
-            </button>
-            <button
-              onClick={nextSlide}
-              className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 hover:border-white/30 hover:bg-white/5 transition-all duration-300"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/60">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Scroll hint */}
-          <div className="hidden sm:flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-white/25 font-medium">
-            <span>Scroll</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M12 5v14M19 12l-7 7-7-7" />
-            </svg>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ═══════ BRAND WATERMARK ═══════ */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-full overflow-hidden z-[1] pointer-events-none select-none flex justify-center items-center">
