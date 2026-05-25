@@ -75,7 +75,10 @@ const HeroSection = ({ heroData }) => {
       if (!video || slide.backgroundType !== "video") return
       if (idx === current) {
         video.currentTime = 0
-        video.play().catch(() => { })
+        video.muted = true // Force muted state in JS to bypass iOS Safari autoplay restrictions
+        video.play().catch((err) => { 
+          console.warn("Video autoplay blocked:", err) 
+        })
       } else {
         video.pause()
       }
@@ -172,7 +175,7 @@ const HeroSection = ({ heroData }) => {
                 <video
                   ref={el => (videoRefs.current[idx] = el)}
                   src={getDirectVideoUrl(s.videoUrl)}
-                  muted loop playsInline preload="metadata" disablePictureInPicture
+                  autoPlay muted loop playsInline preload="metadata" disablePictureInPicture
                   className="w-full h-full object-cover"
                   style={{ willChange: "transform" }}
                 />
