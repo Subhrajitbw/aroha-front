@@ -1,4 +1,5 @@
 import { sdk } from '@/lib/medusaClient';
+import { sanityClient } from '@/lib/sanityClient';
 import FrontpageClient from '@/components/pages/FrontpageClient';
 import JsonLd from '@/components/seo/JsonLd';
 
@@ -32,9 +33,36 @@ async function getCollections() {
   }
 }
 
+async function getHeroData() {
+  try {
+    const query = `*[_type == "heroSlider"][0]{
+      globalVideoUrl,
+      slides[]{
+        backgroundType, heading, subheading, badge, alignment,
+        overlayStrength, autoPlayDuration, image, videoUrl,
+        ctaPrimary, ctaSecondary
+      }
+    }`;
+    const data = await sanityClient.fetch(query);
+    if (data) {
+      const validSlides = data.globalVideoUrl 
+        ? data.slides 
+        : data.slides?.filter(s => (s.backgroundType === "video" && s.videoUrl) || (s.backgroundType === "image" && s.image));
+      return {
+        globalVideoUrl: data.globalVideoUrl || null,
+        slides: validSlides?.length ? validSlides.slice(0, 4) : null
+      };
+    }
+  } catch (err) {
+    console.error("Failed to fetch Hero data on server:", err);
+  }
+  return null;
+}
+
 export default async function HomePage() {
   // Disable server-side fetch temporarily to fix hanging/blank page
   const initialCollections = []; 
+  const heroData = await getHeroData(); 
   
   const websiteSchema = {
     '@context': 'https://schema.org',
@@ -51,7 +79,7 @@ export default async function HomePage() {
   return (
     <>
       <JsonLd data={websiteSchema} />
-      <FrontpageClient initialCollections={initialCollections} />
+      <FrontpageClient initialCollections={initialCollections} heroData={heroData} />
     </>
   );
 }

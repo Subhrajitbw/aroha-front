@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
-import { sanityClient } from  "@/lib/sanityClient"
+import { sanityClient } from "@/lib/sanityClient"
 import gsap from "gsap"
 
 // 4 video slides — Mixkit interior / home decor videos (verified 200 OK)
@@ -54,55 +54,18 @@ const DEFAULT_VIDEO_SLIDES = [
   },
 ]
 
-const HeroSection = () => {
-  const [slides, setSlides] = useState(DEFAULT_VIDEO_SLIDES)
+const HeroSection = ({ heroData }) => {
+  const [slides, setSlides] = useState(heroData?.slides || DEFAULT_VIDEO_SLIDES)
   const [current, setCurrent] = useState(0)
-  const [loading, setLoading] = useState(true)
   const [isPaused, setIsPaused] = useState(false)
+  const [globalVideoUrl, setGlobalVideoUrl] = useState(heroData?.globalVideoUrl || null)
 
   const videoRefs = useRef([])
   const heroRef = useRef(null)
   const progressRef = useRef(null)
   const autoplayRef = useRef(null)
 
-  // ── Fetch CMS slides ──
-  useEffect(() => {
-    const fetchSlides = async () => {
-      // Fail-safe: don't let a slow CMS fetch block the landing page
-      const timeout = setTimeout(() => setLoading(false), 3000);
-
-      try {
-        const query = `*[_type == "heroSlider"][0]{
-          slides[]{
-            backgroundType, heading, subheading, badge, alignment,
-            overlayStrength, autoPlayDuration, image, videoUrl,
-            ctaPrimary, ctaSecondary
-          }
-        }`
-        const data = await sanityClient.fetch(query)
-        if (data?.slides?.length) {
-          const videoSlides = data.slides.filter(s => s.backgroundType === "video" && s.videoUrl)
-          if (videoSlides.length >= 4) setSlides(videoSlides.slice(0, 4))
-        }
-      } catch (err) {
-        console.error("Hero fetch error:", err)
-      } finally {
-        clearTimeout(timeout);
-        setLoading(false)
-      }
-    }
-    fetchSlides()
-  }, [])
-
-  // ── Preload all videos ──
-  useEffect(() => {
-    if (!slides.length) return
-    slides.forEach((slide, idx) => {
-      if (slide.backgroundType !== "video") return
-      const video = videoRefs.current[idx]
-      if (video) video.load()
-    })
-  }, [slides])
+  // Removed manual video preload effect to save memory
 
   // ── Play/pause on slide change ──
   useEffect(() => {
@@ -112,7 +75,7 @@ const HeroSection = () => {
       if (!video || slide.backgroundType !== "video") return
       if (idx === current) {
         video.currentTime = 0
-        video.play().catch(() => {})
+        video.play().catch(() => { })
       } else {
         video.pause()
       }
@@ -134,21 +97,21 @@ const HeroSection = () => {
     const ctx = gsap.context(() => {
       // Check if elements exist in scope before animating to avoid warnings
       if (document.querySelector(".hero-heading")) {
-        gsap.fromTo(".hero-heading", { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 1, ease: "power3.out", delay: 0.1 })
+        gsap.fromTo(".hero-heading", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, ease: "expo.out", delay: 0.1 })
       }
       if (document.querySelector(".hero-sub")) {
-        gsap.fromTo(".hero-sub", { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: 0.8, ease: "power3.out", delay: 0.35 })
+        gsap.fromTo(".hero-sub", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "expo.out", delay: 0.2 })
       }
       if (document.querySelector(".hero-cta")) {
-        gsap.fromTo(".hero-cta", { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.7, ease: "power3.out", delay: 0.55 })
+        gsap.fromTo(".hero-cta", { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, ease: "expo.out", delay: 0.3 })
       }
       if (document.querySelector(".hero-badge")) {
-        gsap.fromTo(".hero-badge", { x: -20, opacity: 0 }, { x: 0, opacity: 1, duration: 0.6, ease: "power3.out", delay: 0.2 })
+        gsap.fromTo(".hero-badge", { x: -15, opacity: 0 }, { x: 0, opacity: 1, duration: 0.4, ease: "expo.out", delay: 0.15 })
       }
     }, heroRef.current) // Pass .current as the scope
 
     return () => ctx.revert()
-  }, [current, slides, loading])
+  }, [current, slides])
 
   // ── Autoplay ──
   useEffect(() => {
@@ -161,7 +124,27 @@ const HeroSection = () => {
   const nextSlide = useCallback(() => setCurrent(c => (c + 1) % slides.length), [slides.length])
   const prevSlide = useCallback(() => setCurrent(c => c === 0 ? slides.length - 1 : c - 1), [slides.length])
 
-  if (loading) return <div className="h-screen w-full bg-stone-950" />
+  // Helper to convert Google Drive share links to direct video stream URLs
+  const getDirectVideoUrl = (url) => {
+    if (!url) return url;
+
+    // Match /file/d/ID/view or /d/ID
+    let match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+
+    // Match ?id=ID
+    if (!match) {
+      match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    }
+
+    if (match && match[1]) {
+      // confirm=t attempts to bypass the large file virus scan warning
+      return `https://drive.google.com/uc?export=download&confirm=t&id=${match[1]}`;
+    }
+
+    return url;
+  }
+
+
   if (!slides.length) return null
 
   const slide = slides[current]
@@ -171,34 +154,47 @@ const HeroSection = () => {
 
       {/* ═══════ VIDEO LAYERS ═══════ */}
       <div className="absolute inset-0">
-        {slides.map((s, idx) => (
-          <div
-            key={idx}
-            className="absolute inset-0 transition-opacity duration-[1200ms] ease-in-out"
-            style={{ opacity: idx === current ? 1 : 0 }}
-          >
-            {s.backgroundType === "video" ? (
-              <video
-                ref={el => (videoRefs.current[idx] = el)}
-                src={s.videoUrl}
-                muted loop playsInline preload="auto"
-                className="w-full h-full object-cover scale-[1.05]"
-              />
-            ) : (
-              <img src={s.image?.url} alt={s.heading} className="w-full h-full object-cover scale-[1.05]" />
-            )}
-          </div>
-        ))}
+        {globalVideoUrl ? (
+          <video
+            src={getDirectVideoUrl(globalVideoUrl)}
+            autoPlay muted loop playsInline disablePictureInPicture
+            className="w-full h-full object-cover"
+            style={{ willChange: "transform" }}
+          />
+        ) : (
+          slides.map((s, idx) => (
+            <div
+              key={idx}
+              className="absolute inset-0 transition-opacity duration-[1200ms] ease-in-out"
+              style={{ opacity: idx === current ? 1 : 0 }}
+            >
+              {s.backgroundType === "video" ? (
+                <video
+                  ref={el => (videoRefs.current[idx] = el)}
+                  src={getDirectVideoUrl(s.videoUrl)}
+                  muted loop playsInline preload="metadata" disablePictureInPicture
+                  className="w-full h-full object-cover"
+                  style={{ willChange: "transform" }}
+                />
+              ) : (
+                <img src={s.image?.url} alt={s.heading} className="w-full h-full object-cover" style={{ willChange: "transform" }} />
+              )}
+            </div>
+          ))
+        )}
 
-        {/* ═══════ CINEMATIC OVERLAY SYSTEM ═══════ */}
-        {/* Bottom gradient — ensures text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/40 to-transparent" />
-        {/* Left gradient — text side protection */}
-        <div className="absolute inset-0 bg-gradient-to-r from-stone-950/70 via-stone-950/20 to-transparent" />
-        {/* Top vignette */}
-        <div className="absolute inset-0 bg-gradient-to-b from-stone-950/50 via-transparent to-transparent" />
-        {/* Global darkening for text contrast */}
-        <div className="absolute inset-0 bg-stone-950/20" />
+        {/* ═══════ CINEMATIC OVERLAY SYSTEM (Optimized to single layer) ═══════ */}
+        <div
+          className="absolute inset-0 z-0 pointer-events-none"
+          style={{
+            background: `
+              linear-gradient(to top, rgba(28,25,23,1) 0%, rgba(28,25,23,0.4) 40%, transparent 100%),
+              linear-gradient(to right, rgba(28,25,23,0.7) 0%, rgba(28,25,23,0.2) 50%, transparent 100%),
+              linear-gradient(to bottom, rgba(28,25,23,0.5) 0%, transparent 30%),
+              rgba(28,25,23,0.2)
+            `
+          }}
+        />
       </div>
 
       {/* ═══════ CONTENT ═══════ */}
@@ -263,11 +259,10 @@ const HeroSection = () => {
             className="group relative flex items-center justify-center"
           >
             <span
-              className={`block rounded-full transition-all duration-500 ${
-                idx === current
+              className={`block rounded-full transition-all duration-500 ${idx === current
                   ? "w-[3px] h-10 bg-white"
                   : "w-[3px] h-4 bg-white/25 group-hover:bg-white/50 group-hover:h-6"
-              }`}
+                }`}
             />
           </button>
         ))}

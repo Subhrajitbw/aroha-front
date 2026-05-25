@@ -25,6 +25,7 @@ import { useWishlistStore } from "@/stores/useWishlistStore";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { useAuthModalStore } from "@/stores/useAuthModalStore";
 import { useNavData } from "@/hooks/useNavData";
+import useLockBodyScroll from "@/hooks/useLockBodyScroll";
 import { sdk } from "@/lib/medusaClient";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -72,40 +73,37 @@ export default function BottomNavigation() {
     setActiveConsoleTab(null);
   }, [pathname]);
 
-  // ── Scroll Lock System ─────────────────────────────────────────────────────
-  // Uses the position:fixed trick so iOS Safari (which ignores overflow:hidden
-  // on body) also gets a fully frozen background when the console panel is open.
-  useEffect(() => {
-    const body = document.body;
-    const html = document.documentElement;
+  // Unified Scroll Lock System
+  useLockBodyScroll(activeConsoleTab !== null);
 
-    if (activeConsoleTab !== null) {
-      // Capture current scroll position before locking
-      const scrollY = window.scrollY;
-      body.style.top = `-${scrollY}px`;
-      body.classList.add("scroll-locked");
-      // Also lock <html> — Next.js scrolls on the html element, not just body
-      html.classList.add("scroll-locked");
-    } else {
-      // Read the saved scroll position back from inline style
-      const savedTop = body.style.top;
-      body.classList.remove("scroll-locked");
-      html.classList.remove("scroll-locked");
-      body.style.top = "";
-      // Restore scroll position without animation
-      if (savedTop) {
-        window.scrollTo({ top: parseInt(savedTop || "0", 10) * -1, behavior: "instant" });
-      }
-    }
+  // ── Event isolation: prevent FrontpageClient's window-level scroll hijacker
+  // from catching wheel/touch events that originate inside the bottom nav sheet.
+  // React's stopPropagation() does NOT prevent native window.addEventListener
+  // handlers, so we must use native DOM capture-phase listeners.
+  useEffect(() => {
+    if (activeConsoleTab === null) return;
+
+    const handler = (e) => e.stopPropagation();
+    let sheetEl = null;
+
+    // Wait a tick for the sheet DOM to render via Framer Motion
+    const raf = requestAnimationFrame(() => {
+      sheetEl = document.querySelector('.bottom-nav-sheet');
+      if (!sheetEl) return;
+
+      sheetEl.addEventListener('wheel', handler, { passive: false });
+      sheetEl.addEventListener('touchstart', handler, { passive: true });
+      sheetEl.addEventListener('touchmove', handler, { passive: false });
+      sheetEl.addEventListener('touchend', handler, { passive: true });
+    });
 
     return () => {
-      // Cleanup on unmount: always restore body/html to normal
-      const savedTop = body.style.top;
-      body.classList.remove("scroll-locked");
-      html.classList.remove("scroll-locked");
-      body.style.top = "";
-      if (savedTop) {
-        window.scrollTo({ top: parseInt(savedTop || "0", 10) * -1, behavior: "instant" });
+      cancelAnimationFrame(raf);
+      if (sheetEl) {
+        sheetEl.removeEventListener('wheel', handler);
+        sheetEl.removeEventListener('touchstart', handler);
+        sheetEl.removeEventListener('touchmove', handler);
+        sheetEl.removeEventListener('touchend', handler);
       }
     };
   }, [activeConsoleTab]);
@@ -191,7 +189,7 @@ export default function BottomNavigation() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setActiveConsoleTab(null)}
-            className="fixed inset-0 z-[100] bg-stone-950/60 backdrop-blur-md lg:hidden"
+            className="fixed inset-0 z-[100] bg-stone-950/60 backdrop-blur-md lg:hidden touch-none"
           />
 
           {/* Sliding Bottom Sheet Console */}
@@ -200,14 +198,17 @@ export default function BottomNavigation() {
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 350, damping: 30 }}
-            className={`
+            transition={{ type: "spring", stiffness: 450, damping: 32 }}
+            className={`bottom-nav-sheet
               fixed inset-x-0 bottom-0 z-[101] rounded-t-[2rem] border-t h-[75vh] max-h-[75vh] overflow-hidden lg:hidden flex flex-col pb-[calc(80px+env(safe-area-inset-bottom,0px))]
               ${isDark 
                 ? "bg-[#1c1917] border-white/10 text-white shadow-[0_-20px_50px_rgba(0,0,0,0.6)] outline outline-1 outline-[#1c1917]" 
                 : "bg-[#fdfbf9] border-stone-200 text-stone-900 shadow-[0_-20px_50px_rgba(0,0,0,0.12)] outline outline-1 outline-[#fdfbf9]"
               }
             `}
+            onWheel={(e) => e.stopPropagation()}
+            onTouchStart={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
           >
             {/* Console Drag & Close Header */}
             <div className="flex-none py-3.5 flex items-center justify-between px-6 border-b border-white/5 bg-[#141210]/50 backdrop-blur-md">
@@ -238,18 +239,15 @@ export default function BottomNavigation() {
               </button>
             </div>
 
-            {/* BOUNDED CONTENT BODY */}
-            <div className="flex-1 relative overflow-hidden flex flex-col min-h-0 bg-[#141210]">
+            {/* BOUNDED CONTENT BODY — uses flex-1 + min-h-0 to create a bounded box for scrollable children */}
+            <div className="flex-1 min-h-0 relative bg-[#141210]">
               
               {/* ── MODE A: CATEGORIES EXPLORER (DESKTOP MEGA MENU LOOK) ────── */}
               {activeConsoleTab === "categories" && (
-                <div className="flex w-full min-h-0 flex-1 pointer-events-auto">
+                <div className="absolute inset-0 flex pointer-events-auto">
                   
-                  {/* Left Sidebar (Fully Scrollable, overscroll isolated) */}
-                  <div 
-                    className="w-[90px] flex-none bg-stone-950/15 border-r border-white/5 overflow-y-scroll overscroll-y-contain scrollbar-none h-full pb-16 touch-pan-y"
-                    style={{ WebkitOverflowScrolling: 'touch' }}
-                  >
+                  {/* Left Sidebar */}
+                  <div className="w-[90px] flex-none bg-stone-950/15 border-r border-white/5 overflow-y-auto overscroll-y-contain scrollbar-none pb-16 h-full">
                     <div className="flex flex-col">
                       {categoriesList?.map((dept) => {
                         const isActive = dept.id === activeCategoryId;
@@ -285,11 +283,8 @@ export default function BottomNavigation() {
                     </div>
                   </div>
 
-                  {/* Right Content Panel (Fully Scrollable, overscroll isolated) */}
-                  <div 
-                    className="flex-1 overflow-y-scroll overscroll-y-contain p-4 h-full scrollbar-none bg-[#171513]/10 pb-16 touch-pan-y"
-                    style={{ WebkitOverflowScrolling: 'touch' }}
-                  >
+                  {/* Right Content Panel */}
+                  <div className="flex-1 overflow-y-auto overscroll-y-contain p-4 scrollbar-none bg-[#171513]/10 pb-16 h-full">
                     <AnimatePresence mode="wait">
                       {selectedCategory && (
                         <motion.div
@@ -352,7 +347,7 @@ export default function BottomNavigation() {
 
               {/* ── MODE B: YOU EXPLORER (MINIMAL CONSOLE SYSTEM) ──────────────── */}
               {activeConsoleTab === "you" && (
-                <div className="flex flex-col w-full flex-1 min-h-0 pointer-events-auto">
+                <div className="absolute inset-0 flex flex-col pointer-events-auto">
                   
                   {/* FIXED HEADER: Premium Profile card */}
                   <div className="p-5 flex-none border-b flex flex-col gap-4 relative shadow-sm bg-stone-950 border-white/5">
@@ -419,10 +414,7 @@ export default function BottomNavigation() {
                   </div>
 
                   {/* SCROLLABLE BODY */}
-                  <div 
-                    className="flex-1 overflow-y-scroll overscroll-y-contain p-6 pb-16 flex flex-col gap-6 scrollbar-none touch-pan-y"
-                    style={{ WebkitOverflowScrolling: 'touch' }}
-                  >
+                  <div className="flex-1 overflow-y-auto overscroll-y-contain p-6 pb-16 flex flex-col gap-6 scrollbar-none min-h-0 h-full">
 
                     {/* FACEBOOK-LIKE GRID SHORTCUTS (Refined low-profile, clean minimal outlines, no flashy colors) */}
                     <div className="flex flex-col gap-3">
@@ -543,12 +535,12 @@ export default function BottomNavigation() {
             initial={{ y: "120%", opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "120%", opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 28 }}
+            transition={{ type: "spring", stiffness: 450, damping: 30 }}
             className={`pointer-events-auto w-full
               transition-all duration-500 rounded-[2rem]
               ${isDark 
-                ? "bg-[#1c1917]/85 backdrop-blur-2xl border border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.5)]" 
-                : "bg-[#fdfbf9]/85 backdrop-blur-2xl border border-stone-200/50 shadow-[0_16px_40px_rgba(0,0,0,0.08)]"
+                ? "bg-[#1c1917]/90 backdrop-blur-md border border-white/10 shadow-[0_16px_40px_rgba(0,0,0,0.5)]" 
+                : "bg-[#fdfbf9]/90 backdrop-blur-md border border-stone-200/50 shadow-[0_16px_40px_rgba(0,0,0,0.08)]"
               }
               pt-2 pb-[calc(8px+env(safe-area-inset-bottom,0px))] px-3
             `}
@@ -574,7 +566,7 @@ export default function BottomNavigation() {
                           : "bg-stone-900/5 border border-stone-900/5"
                         }
                       `}
-                      transition={{ type: "spring", stiffness: 350, damping: 26 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 28 }}
                     />
                   )}
 

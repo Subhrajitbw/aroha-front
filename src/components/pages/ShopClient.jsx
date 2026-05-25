@@ -92,21 +92,30 @@ export default function ShopClient({ initialData }) {
 
   const isInitialMount = useRef(true);
 
-  // Sync category from URL params
+  // Sync state with incoming server data when Next.js soft-navigates (e.g. category changes)
   useEffect(() => {
-    const handle = params.handle || null;
-
-    // Only update if handle actually changed
-    if (handle !== selectedCategoryHandle) {
-      setSelectedCategoryHandle(handle);
+    if (!isInitialMount.current) {
+      setProducts((initialData.products || []).map(mapProduct));
+      setTotalCount(initialData.totalCount || 0);
+      setCategories(initialData.categories || []);
+      setCollections(initialData.collections || []);
+      setSelectedCategoryHandle(initialData.selectedCategoryHandle || null);
+      if (initialData.regionId) setRegionId(initialData.regionId);
+      
+      // Update filters to match the new category route
       setFilters(prev => ({
         ...prev,
-        categories: handle ? [handle] : []
+        categories: initialData.selectedCategoryHandle ? [initialData.selectedCategoryHandle] : []
       }));
       setPage(1);
+      
+      // Data arrived, turn off the loading skeleton
+      setLoading(false);
+      
+      // Reset horizontal scroll slider position
       if (x) x.set(0);
     }
-  }, [params.handle, x, selectedCategoryHandle]);
+  }, [initialData, x]);
 
   // Fetch region
   useEffect(() => {
@@ -181,6 +190,13 @@ export default function ShopClient({ initialData }) {
         // Since we are not restoring from cache, we already have initialData from server SSR.
         // We can safely skip this redundant first client-side fetch!
         return;
+      }
+
+      // Do NOT client-side fetch if we just received new server data for a category change,
+      // as the server already filtered it. We only client-side fetch for pagination, 
+      // price/tag filters, or sorting.
+      if (page === 1 && sort === "relevance" && filters.collections.length === 0 && filters.priceRange[0] === 0 && filters.priceRange[1] === 50000000 && filters.tags.length === 0 && !filters.discountedOnly && !filters.newOnly) {
+        return; 
       }
 
       if (filters.categories?.length > 0 && categories.length === 0) return;
@@ -291,6 +307,9 @@ export default function ShopClient({ initialData }) {
 
   // Make category filtering super practical and accurate by tying it to navigation
   const handleCategoryNavigation = (handle) => {
+    // Show skeletons instantly for immediate user feedback
+    setLoading(true);
+    
     // If clicking the already selected category, clear it (go back to all shop)
     if (selectedCategoryHandle === handle) {
       router.push("/shop");
@@ -323,6 +342,7 @@ export default function ShopClient({ initialData }) {
   const currentProducts = filteredProducts;
 
   const goToCategory = (handle) => {
+    setLoading(true);
     if (!handle) router.push("/shop");
     else router.push(`/product-categories/${handle}`);
   };
@@ -502,13 +522,13 @@ export default function ShopClient({ initialData }) {
           <AnimatePresence mode="wait">
             <motion.div key={selectedCategoryHandle} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}>
               {currentProducts.length === 0 && !loading ? (
-                <div className="flex flex-col items-center justify-center py-24">
+                <div className="flex flex-col items-center justify-center py-24 min-h-[60vh]">
                   <LayoutGrid className="w-10 h-10 text-stone-400 mb-8" />
                   <h3 className="text-2xl font-light">No products found</h3>
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-6 gap-y-12">
+                  <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-6 gap-y-12 min-h-[60vh]">
                     {loading ? Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i} />)
                       : currentProducts.map((p) => <ProductInfoCard key={p.id} product={p} isFluid={true} />)}
                   </div>

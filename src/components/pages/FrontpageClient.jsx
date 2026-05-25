@@ -17,7 +17,7 @@ import AnimatedSection from "../sections/AnimatedSection";
 import LuxuryLoadingOverlay from "../ui/LoadingOverlay";
 import Footer from "../layout/Footer";
 
-const FrontpageClient = ({ initialCollections = [] }) => {
+const FrontpageClient = ({ initialCollections = [], heroData = null }) => {
   // ---------------------------------------------------------
   // 1. STATE
   // ---------------------------------------------------------
@@ -32,7 +32,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
   const lastTouchY = useRef(0);
   const lastTouchX = useRef(0);
   const touchStartTime = useRef(0);
-  const animationDuration = 1.2; // Optimized for snappier luxury feel
+  const animationDuration = 0.7; // Optimized for snappier luxury feel
 
   // ---------------------------------------------------------
   // 2. DATA FETCHING (TANSTACK QUERY)
@@ -168,6 +168,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     };
 
     const wheelHandler = (e) => {
+      if (document.querySelector('.bottom-nav-sheet')) return;
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       if (e.cancelable) e.preventDefault();
 
@@ -181,6 +182,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     let swipeTriggered = false;
 
     const onTouchStart = (e) => {
+      if (document.querySelector('.bottom-nav-sheet')) return;
       lastTouchY.current = e.touches[0].clientY;
       lastTouchX.current = e.touches[0].clientX;
       touchStartTime.current = Date.now();
@@ -188,6 +190,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     };
 
     const onTouchMove = (e) => {
+      if (document.querySelector('.bottom-nav-sheet')) return;
       const currentY = e.touches[0].clientY;
       const currentX = e.touches[0].clientX;
       const deltaY = Math.abs(currentY - lastTouchY.current);
@@ -208,6 +211,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
     };
 
     const onTouchEnd = (e) => {
+      if (document.querySelector('.bottom-nav-sheet')) return;
       if (swipeTriggered || isAnimating.current) return;
       const rawDeltaY = lastTouchY.current - (e.changedTouches[0]?.clientY || lastTouchY.current);
       if (Math.abs(rawDeltaY) > 20) {
@@ -257,7 +261,7 @@ const FrontpageClient = ({ initialCollections = [] }) => {
         >
           {/* 0. Hero */}
           <div className={sectionClass} style={sectionStyle}>
-            {(currentSection === 0 || currentSection === 1) && <HeroSection />}
+            {(currentSection === 0 || currentSection === 1) && <HeroSection heroData={heroData} />}
           </div>
 
           {/* 1. Category Section */}

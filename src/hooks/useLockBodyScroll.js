@@ -16,6 +16,11 @@ function useLockBodyScroll(isLocked) {
       document.body.style.top = `-${savedScrollY}px`;
       document.body.style.left = '0';
       document.body.style.right = '0';
+      document.body.style.width = '100%';
+      document.body.style.height = '100dvh';
+      document.documentElement.style.overflow = 'hidden';
+      document.body.classList.add("scroll-locked");
+      document.documentElement.classList.add("scroll-locked");
     }
 
     return () => {
@@ -26,6 +31,11 @@ function useLockBodyScroll(isLocked) {
         document.body.style.top = '';
         document.body.style.left = '';
         document.body.style.right = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
+        document.documentElement.style.overflow = '';
+        document.body.classList.remove("scroll-locked");
+        document.documentElement.classList.remove("scroll-locked");
         window.scrollTo(0, savedScrollY);
       }
     };
