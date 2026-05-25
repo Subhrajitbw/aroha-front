@@ -30,7 +30,7 @@ if (typeof window === "undefined") {
         options = {
           ...options,
           next: {
-            revalidate: 60, // Cache store requests for 60 seconds
+            revalidate: process.env.NODE_ENV === "development" ? 0 : 30, // Instant updates in dev, 30s cache in prod
             ...options.next,
           },
         };
