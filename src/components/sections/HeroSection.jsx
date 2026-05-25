@@ -75,26 +75,6 @@ const HeroSection = ({ heroData }) => {
   const nextSlide = useCallback(() => setCurrent(c => (c + 1) % slides.length), [slides.length])
   const prevSlide = useCallback(() => setCurrent(c => c === 0 ? slides.length - 1 : c - 1), [slides.length])
 
-  // Helper to convert Google Drive share links to direct video stream URLs
-  const getDirectVideoUrl = (url) => {
-    if (!url) return url;
-
-    // Match /file/d/ID/view or /d/ID
-    let match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-
-    // Match ?id=ID
-    if (!match) {
-      match = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-    }
-
-    if (match && match[1]) {
-      // confirm=t attempts to bypass the large file virus scan warning
-      return `https://drive.google.com/uc?export=download&confirm=t&id=${match[1]}`;
-    }
-
-    return url;
-  }
-
 
   if (!slides.length) return null
 
@@ -107,7 +87,13 @@ const HeroSection = ({ heroData }) => {
       <div className="absolute inset-0">
         {globalVideoUrl ? (
           <video
-            src={getDirectVideoUrl(globalVideoUrl)}
+            ref={(el) => {
+              if (el) {
+                el.muted = true;
+                el.play().catch(e => console.warn("Global video play blocked:", e));
+              }
+            }}
+            src={globalVideoUrl}
             autoPlay muted loop playsInline disablePictureInPicture
             className="w-full h-full object-cover"
             style={{ willChange: "transform" }}
@@ -122,7 +108,7 @@ const HeroSection = ({ heroData }) => {
               {s.backgroundType === "video" ? (
                 <video
                   ref={el => (videoRefs.current[idx] = el)}
-                  src={getDirectVideoUrl(s.videoUrl)}
+                  src={s.videoUrl}
                   autoPlay muted loop playsInline preload="metadata" disablePictureInPicture
                   className="w-full h-full object-cover"
                   style={{ willChange: "transform" }}
