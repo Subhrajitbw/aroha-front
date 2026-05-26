@@ -35,7 +35,10 @@ async function getCollections() {
 
 async function getHeroData() {
   try {
-    const query = `*[_type == "heroSlider"][0]{
+    // A dynamic cache-buster comment ensures the query string is completely unique on every single local refresh.
+    // This physically prevents Next.js's native fetch cache and Sanity's API from returning stale data.
+    const devCacheBuster = process.env.NODE_ENV === 'development' ? `// CacheBuster: ${Date.now()}\n` : '';
+    const query = `${devCacheBuster}*[_type == "heroSlider"][0]{
       globalVideoUrl,
       slides[]{
         backgroundType, heading, subheading, badge, alignment,
@@ -43,7 +46,22 @@ async function getHeroData() {
         ctaPrimary, ctaSecondary
       }
     }`;
-    const data = await sanityClient.fetch(query);
+    
+    console.log("================ SANITY REQUEST ================");
+    console.log("Querying Hero Data...");
+
+    // Force Next.js to bypass its aggressive internal Data Cache during development
+    const fetchOptions = process.env.NODE_ENV === 'development' 
+      ? { cache: 'no-store' } 
+      : { next: { revalidate: 60 } };
+
+    const data = await sanityClient.fetch(query, {}, fetchOptions);
+    
+    console.log("================ SANITY RESPONSE ================");
+    console.log("Data received from Sanity:");
+    console.log(JSON.stringify(data, null, 2));
+    console.log("=================================================");
+
     if (data) {
       const validSlides = data.globalVideoUrl 
         ? data.slides 

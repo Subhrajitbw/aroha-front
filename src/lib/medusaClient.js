@@ -3,38 +3,51 @@ import Medusa from "@medusajs/js-sdk";
 const baseUrl = process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL || "http://localhost:9000";
 const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY;
 
-// Server-side global fetch caching interceptor for Medusa SDK requests
+// Server-side global fetch caching interceptor for all requests (Medusa, Sanity, etc.)
 if (typeof window === "undefined") {
   const originalFetch = global.fetch;
-  if (originalFetch && !global.__medusa_fetch_intercepted__) {
-    global.__medusa_fetch_intercepted__ = true;
+  if (originalFetch && !global.__global_fetch_intercepted__) {
+    global.__global_fetch_intercepted__ = true;
     global.fetch = function (url, options = {}) {
       const urlStr = typeof url === 'string' ? url : url?.toString() || '';
       
-      // Protect server-side Medusa fetches from timeouts due to remote AWS RDS WAN latency
-      if (urlStr.includes('/store/') || urlStr.includes('localhost:9000')) {
+      // 1. DEVELOPMENT: Globally disable ALL caching for instant updates everywhere
+      if (process.env.NODE_ENV === "development") {
         options = {
           ...options,
-          signal: AbortSignal.timeout(60000), // Extend body/header timeout tolerance to 60s
+          cache: "no-store", // Bypass standard HTTP cache
+          next: {
+            ...options.next,
+            revalidate: 0, // Bypass Next.js Data Cache
+          }
         };
       }
 
-      // Target store GET requests, excluding cart/auth/customer operations
-      if (
-        urlStr.includes('/store/') && 
-        (!options.method || options.method.toUpperCase() === 'GET') &&
-        !urlStr.includes('/carts/') && 
-        !urlStr.includes('/auth/') && 
-        !urlStr.includes('/customers/')
-      ) {
+      // 2. PRODUCTION: Medusa-specific protections and caching
+      if (urlStr.includes('/store/') || urlStr.includes('localhost:9000')) {
         options = {
           ...options,
-          next: {
-            revalidate: process.env.NODE_ENV === "development" ? 0 : 30, // Instant updates in dev, 30s cache in prod
-            ...options.next,
-          },
+          signal: options.signal || AbortSignal.timeout(60000), // Extend body/header timeout
         };
+        
+        // Target store GET requests for production ISR caching
+        if (
+          process.env.NODE_ENV !== "development" &&
+          (!options.method || options.method.toUpperCase() === 'GET') &&
+          !urlStr.includes('/carts/') && 
+          !urlStr.includes('/auth/') && 
+          !urlStr.includes('/customers/')
+        ) {
+          options = {
+            ...options,
+            next: {
+              revalidate: 30, // Cache store requests for 30 seconds in prod
+              ...options.next,
+            },
+          };
+        }
       }
+      
       return originalFetch(url, options);
     };
   }
