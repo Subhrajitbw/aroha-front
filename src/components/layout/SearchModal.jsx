@@ -319,7 +319,7 @@ const SearchModal = () => {
                           >
                             <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-stone-100 mb-4">
                               <img
-                                src={product.thumbnail}
+                                src={product.thumbnail || null}
                                 alt={product.title}
                                 className="w-full h-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-105"
                               />
@@ -343,9 +343,7 @@ const SearchModal = () => {
                                 <span className="text-[9px] uppercase tracking-[0.2em] text-stone-400 font-medium truncate">
                                   {product.collection || "Aroha"}
                                 </span>
-                                {product.price && (
-                                  <span className="text-xs text-stone-600 font-medium shrink-0">{product.price}</span>
-                                )}
+                                <span className="text-[9px] uppercase tracking-[0.2em] text-emerald-600 font-semibold shrink-0">Enquire</span>
                               </div>
                             </div>
                           </motion.div>

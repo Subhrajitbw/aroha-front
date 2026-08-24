@@ -12,17 +12,17 @@ const HeroSlide = forwardRef(({ slide, slideIndex, isActive }, ref) => {
     >
       {slide.media?.type === "video" ? (
         <video
-          src={slide.media.url}
+          src={slide.media?.url || null}
           className="w-full h-full object-cover"
           autoPlay
           muted
           loop
           playsInline
-          aria-label={slide.media.alt || slide.title}
+          aria-label={slide.media?.alt || slide.title}
         />
       ) : (
         <img
-          src={slide.media?.url}
+          src={slide.media?.url || null}
           alt={slide.media?.alt || slide.title}
           className="w-full h-full object-cover"
           loading={slideIndex === 0 ? "eager" : "lazy"}

@@ -20,7 +20,7 @@ export const useNavData = () => {
   useEffect(() => {
     const fetchNavigationData = async () => {
       const isMissingShop = isLoaded && navItems.length > 0 && !megaMenuContent.shop;
-      if ((isLoaded && navItems.length > 0 && !isMissingShop) || isLoading) return;
+      if ((isLoaded && !isMissingShop) || isLoading) return;
 
       try {
         setLoading(true);
@@ -236,14 +236,23 @@ export const useNavData = () => {
 
       } catch (err) {
         console.error("Nav fetch failure:", err);
-        setNavData([], {});
+        // Retain existing cached state to avoid layout breaking, but set isLoaded to true to stop loop
+        setNavData(navItems, megaMenuContent, categoryThumbnails);
       } finally {
         setLoading(false);
       }
     };
 
     fetchNavigationData();
-  }, [isLoaded, isLoading, navItems.length, megaMenuContent.shop, setNavData, setLoading]);
+  }, [
+    isLoaded,
+    isLoading,
+    navItems,
+    megaMenuContent,
+    categoryThumbnails,
+    setNavData,
+    setLoading,
+  ]);
 
   useEffect(() => {
     const fetchRooms = async () => {

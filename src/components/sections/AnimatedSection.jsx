@@ -105,7 +105,7 @@ const AnimatedSection = ({
           id: product.id,
           title: product.title,
           handle: product.handle,
-          image: product.thumbnail || "https://placehold.co/600x800",
+          image: product.thumbnail || "/placeholder.jpg",
           price: formatPrice(amount),
           originalPrice: isSale ? formatPrice(originalAmount) : null,
           discount,

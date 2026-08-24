@@ -181,19 +181,18 @@ export default function BottomNavigation() {
     <AnimatePresence>
       {/* ── 1. THE POPUP SHEET (FACEBOOK DUAL CONSOLE) ────────────────────── */}
       {activeConsoleTab !== null && (
-        <>
-          {/* Backdrop Blur Overlay */}
-          <motion.div
-            key="console-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setActiveConsoleTab(null)}
-            className="fixed inset-0 z-[100] bg-stone-950/60 backdrop-blur-md lg:hidden touch-none"
-          />
+        <motion.div
+          key="console-backdrop"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setActiveConsoleTab(null)}
+          className="fixed inset-0 z-[100] bg-stone-950/60 backdrop-blur-md lg:hidden touch-none"
+        />
+      )}
 
-          {/* Sliding Bottom Sheet Console */}
-          <motion.div
+      {activeConsoleTab !== null && (
+        <motion.div
             key="console-sheet"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
@@ -524,7 +523,6 @@ export default function BottomNavigation() {
 
             </div>
           </motion.div>
-        </>
       )}
 
       {/* ── 2. THE PERSISTENT FLOATING CURVED BAR ───────────────────────── */}

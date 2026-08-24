@@ -109,8 +109,8 @@ function AboutSection({ onVideoClick }) {
                 className="relative w-full aspect-[16/10] md:aspect-[3/4] max-h-[25vh] md:max-h-[60vh] rounded-2xl md:rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] cursor-pointer group/video border border-stone-200/20"
               >
                 <video
-                  src={videoUrl}
-                  poster={posterUrl}
+                  src={videoUrl || null}
+                  poster={posterUrl || null}
                   className="w-full h-full object-cover transition-transform duration-[1200ms] group-hover/video:scale-105"
                   autoPlay
                   muted
@@ -136,8 +136,8 @@ function AboutSection({ onVideoClick }) {
               className="relative w-full h-full"
             >
               <video
-                src={videoUrl}
-                poster={posterUrl}
+                src={videoUrl || null}
+                poster={posterUrl || null}
                 className="w-full h-full object-contain"
                 autoPlay
                 controls

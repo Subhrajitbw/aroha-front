@@ -93,7 +93,7 @@ const HeroSection = ({ heroData }) => {
                 el.play().catch(e => console.warn("Global video play blocked:", e));
               }
             }}
-            src={globalVideoUrl}
+            src={globalVideoUrl || null}
             autoPlay muted loop playsInline disablePictureInPicture
             className="w-full h-full object-cover"
             style={{ willChange: "transform" }}
@@ -108,13 +108,13 @@ const HeroSection = ({ heroData }) => {
               {s.backgroundType === "video" ? (
                 <video
                   ref={el => (videoRefs.current[idx] = el)}
-                  src={s.videoUrl}
+                  src={s.videoUrl || null}
                   autoPlay muted loop playsInline preload="metadata" disablePictureInPicture
                   className="w-full h-full object-cover"
                   style={{ willChange: "transform" }}
                 />
               ) : (
-                <img src={s.image?.url} alt={s.heading} className="w-full h-full object-cover" style={{ willChange: "transform" }} />
+                <img src={s.image?.url || null} alt={s.heading} className="w-full h-full object-cover" style={{ willChange: "transform" }} />
               )}
             </div>
           ))

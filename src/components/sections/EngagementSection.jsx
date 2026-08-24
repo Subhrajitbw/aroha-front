@@ -53,7 +53,7 @@ const EngagementSection = () => {
           id: post._id,
           title: post.title,
           description: post.excerpt || 'Read more...',
-          image: post.mainImage?.asset?.url || 'https://via.placeholder.com/800',
+          image: post.mainImage?.asset?.url || '/placeholder.jpg',
           slug: post.slug?.current || '',
         }));
 

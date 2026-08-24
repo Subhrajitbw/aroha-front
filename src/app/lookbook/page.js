@@ -28,7 +28,7 @@ async function getLookbookData() {
       return {
         _id: p.id,
         name: p.title,
-        image: p.thumbnail || "https://placehold.co/600x800",
+        image: p.thumbnail || "/placeholder.jpg",
         handle: p.handle,
         price: priceStr || "Price Available on Request"
       };

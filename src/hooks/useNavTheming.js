@@ -171,8 +171,16 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
           backgroundColor: colorAnalysis?.hasHighContrast ? "rgba(0, 0, 0, 0.15)" : "rgba(0, 0, 0, 0.2)",
           backdropFilter: "blur(20px) saturate(150%)",
           WebkitBackdropFilter: "blur(20px) saturate(150%)",
-          border: isMobile ? "none" : "1px solid rgba(255, 255, 255, 0.1)",
-          borderBottom: isMobile ? "1px solid rgba(255, 255, 255, 0.08)" : undefined,
+          ...(isMobile
+            ? {
+                borderTop: "none",
+                borderLeft: "none",
+                borderRight: "none",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+              }
+            : {
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+              }),
           boxShadow: isMobile
             ? "0 4px 20px rgba(0, 0, 0, 0.05)"
             : (colorAnalysis?.hasHighContrast
@@ -184,8 +192,16 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
         backgroundColor: colorAnalysis?.hasHighContrast ? "rgba(255, 255, 255, 0.15)" : "rgba(255, 255, 255, 0.2)",
         backdropFilter: "blur(20px) saturate(150%)",
         WebkitBackdropFilter: "blur(20px) saturate(150%)",
-        border: isMobile ? "none" : "1px solid rgba(0, 0, 0, 0.1)",
-        borderBottom: isMobile ? "1px solid rgba(0, 0, 0, 0.05)" : undefined,
+        ...(isMobile
+          ? {
+              borderTop: "none",
+              borderLeft: "none",
+              borderRight: "none",
+              borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+            }
+          : {
+              border: "1px solid rgba(0, 0, 0, 0.1)",
+            }),
         boxShadow: isMobile
           ? "0 4px 20px rgba(0, 0, 0, 0.02)"
           : (colorAnalysis?.hasHighContrast

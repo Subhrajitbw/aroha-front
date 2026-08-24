@@ -142,7 +142,8 @@ export const ProductInfoCard = ({
   };
 
   const productName = product?.title || "Product Name";
-  const productPrice = product?.price || "₹0";
+  // Price is never shown — always direct customers to enquire
+  const hasNoPrice = true;
   const productDescription = product?.shortIntro || product?.description || product?.subtitle || "";
   const productImage =
     product?.image ||
@@ -254,23 +255,14 @@ export const ProductInfoCard = ({
           </p>
         )}
 
-        {/* Price Row */}
+        {/* Price / Enquire Row */}
         <div className="flex items-baseline justify-center gap-1.5 xs:gap-2 sm:gap-3 mt-0.5 xs:mt-1">
           <span
             className="text-xs xs:text-sm sm:text-base md:text-lg font-medium tracking-[0.18em] xs:tracking-[0.22em] sm:tracking-[0.28em] opacity-90 uppercase"
             style={{ color: finalTextColor }}
           >
-            {productPrice}
+            Enquire Now
           </span>
-
-          {product?.originalPrice && product.discount > 0 && (
-            <span
-              className="text-[10px] xs:text-xs sm:text-sm md:text-base line-through font-light tracking-wide opacity-50"
-              style={{ color: finalTextColor }}
-            >
-              {product.originalPrice}
-            </span>
-          )}
         </div>
 
         {/* Optional: Discount badge for mobile */}

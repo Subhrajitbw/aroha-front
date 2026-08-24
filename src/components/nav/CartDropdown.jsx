@@ -118,7 +118,7 @@ const CartDropdown = ({ isOpen, onClose, navigate }) => {
                     <div key={item.id} className="px-5 py-4 flex gap-3.5 hover:bg-stone-50/50 transition-colors group">
                       <div className="w-16 h-20 bg-stone-100 rounded-xl overflow-hidden shrink-0 border border-stone-200/50">
                         <img 
-                          src={item.thumbnail || item.variant?.product?.thumbnail || "https://placehold.co/80x100/f5f5f4/a8a29e?text=•"} 
+                          src={item.thumbnail || item.variant?.product?.thumbnail || "/placeholder.jpg"} 
                           alt={item.title}
                           className="w-full h-full object-cover"
                         />

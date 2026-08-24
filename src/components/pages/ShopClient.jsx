@@ -41,7 +41,7 @@ export default function ShopClient({ initialData }) {
       id: product.id,
       title: product.title,
       handle: product.handle,
-      image: product.thumbnail || "https://placehold.co/600x800/f5f5f5/e0e0e0",
+      image: product.thumbnail || "/placeholder.jpg",
       price: formatPrice(amount),
       originalPrice: discount > 0 ? formatPrice(originalAmount) : null,
       discount,

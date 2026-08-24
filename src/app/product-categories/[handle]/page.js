@@ -6,9 +6,13 @@ export async function generateMetadata({ params }) {
   const { handle: rawHandle } = await params;
   const handle = decodeURIComponent(rawHandle);
   try {
-    const { product_categories } = await sdk.store.category.list({ handle, limit: 1 });
+    const { product_categories } = await sdk.store.category.list({
+      handle,
+      limit: 1,
+      fields: "id,name,handle,description,metadata"
+    });
     const category = product_categories?.[0];
-    const title = `${category?.name || 'Category'} | Aroha Shop`;
+    const title = category?.metadata?.seo_title || `${category?.name || 'Category'} | Aroha Shop`;
     const description = category?.description || `Browse our exclusive ${category?.name} collection at Aroha.`;
 
     return {

@@ -7,6 +7,7 @@ import { PortableText } from '@portabletext/react';
 import { ProductInfoCard } from "../shop/ProductInfoCard";
 import CustomDropdown from "../ui/CustomDropdown";
 import Breadcrumbs from "../ui/Breadcrumbs";
+import { FauxARViewer } from "../ui/FauxARViewer";
 import { motion } from 'framer-motion'
 import { AnimatePresence } from "framer-motion";
 const ProductClient = ({ initialData }) => {
@@ -62,6 +63,7 @@ const ProductClient = ({ initialData }) => {
   const getPrice = () => {
     if (!activeVariant?.calculated_price) return { price: "—" };
     const calc = activeVariant.calculated_price;
+    if (!calc.calculated_amount || Number(calc.calculated_amount) === 0) return { price: "—" };
     return {
       price: formatPrice(calc.calculated_amount, calc.currency_code),
       original: calc.original_amount > calc.calculated_amount ? formatPrice(calc.original_amount, calc.currency_code) : null
@@ -234,7 +236,7 @@ const ProductClient = ({ initialData }) => {
                     {/* Skeleton for main image */}
                     <div className="absolute inset-0 bg-stone-100 animate-pulse" />
                     <img
-                      src={images[currentImageIndex]?.url}
+                      src={images[currentImageIndex]?.url || null}
                       className="relative w-full h-full object-cover z-10 pointer-events-none"
                       alt={product.title}
                     />
@@ -242,6 +244,15 @@ const ProductClient = ({ initialData }) => {
                 </AnimatePresence>
               ) : (
                 <div className="w-full h-full bg-stone-100 flex items-center justify-center text-stone-400 text-sm italic">Selection visualization unavailable</div>
+              )}
+
+              {/* AR Viewer */}
+              {images[currentImageIndex]?.url && (
+                <FauxARViewer 
+                  imageUrl={images[currentImageIndex].url}
+                  dimensions={sanityContent?.dimensions}
+                  title={sanityContent?.title || product?.title}
+                />
               )}
             </div>
 
@@ -255,7 +266,7 @@ const ProductClient = ({ initialData }) => {
                     onClick={() => handleImageChange(idx)}
                     className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all shrink-0 ${currentImageIndex === idx ? "border-stone-900 shadow-md scale-105" : "border-transparent bg-stone-50 opacity-60 hover:opacity-100"}`}
                   >
-                    <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
+                    <img src={img.url || null} className="w-full h-full object-cover" alt="thumb" />
                   </button>
                 ))}
                 {/* Spacer to prevent last item cutoff */}
@@ -273,7 +284,7 @@ const ProductClient = ({ initialData }) => {
                     onClick={() => handleImageChange(idx)}
                     className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${currentImageIndex === idx ? "border-stone-900 scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100 hover:scale-105"}`}
                   >
-                    <img src={img.url} className="w-full h-full object-cover" alt="thumb" />
+                    <img src={img.url || null} className="w-full h-full object-cover" alt="thumb" />
                   </button>
                 ))}
                 {/* Spacer to prevent last item cutoff vertically */}
@@ -301,10 +312,7 @@ const ProductClient = ({ initialData }) => {
               <p className="text-stone-500 italic text-lg leading-relaxed font-light">
                 {(sanityContent.shortIntro || "").replace(/\[cite:\s*\d+\]/g, '')}
               </p>
-              <div className="flex items-baseline gap-6 pt-2">
-                <span className="text-3xl lg:text-4xl font-light tracking-tighter">{getPrice().price}</span>
-                {getPrice().original && <span className="text-stone-300 line-through text-xl font-light">{getPrice().original}</span>}
-              </div>
+
             </header>
 
             {/* CUSTOMIZATION */}
@@ -370,7 +378,7 @@ const ProductClient = ({ initialData }) => {
                 </div>
                 <div className="grid grid-cols-1 gap-12">
                   {sanityContent.relatedProducts.map(item => (
-                    <ProductInfoCard key={item.handle} product={{ ...item, image: item.thumbnailUrl, price: "View Piece" }} />
+                    <ProductInfoCard key={item.handle} product={{ ...item, image: item.thumbnailUrl, price: "Enquire" }} />
                   ))}
                 </div>
               </div>

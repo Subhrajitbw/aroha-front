@@ -1,7 +1,7 @@
 // components/ProductListView.jsx
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Heart, Eye, Star, Sparkles, Plus, ShoppingCart } from "lucide-react";
+import { Heart, Eye, MessageCircle } from "lucide-react";
 import { useWishlistStore } from "@/stores/useWishlistStore";
 
 const getStableValue = (id, min, max) => {
@@ -37,11 +37,11 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
             <motion.img
               animate={{ scale: isHovered ? 1.05 : 1 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
-              src={product.image || product.images?.[0] || "/api/placeholder/400/400"}
+              src={product.image || product.images?.[0] || "/placeholder.jpg"}
               alt={product.name}
               className="w-full h-full object-cover"
               onError={(e) => {
-                e.target.src = "/api/placeholder/400/400";
+                e.target.src = "/placeholder.jpg";
               }}
             />
           </div>
@@ -87,29 +87,9 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
 
             {/* Mobile Price & Actions */}
             <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-lg font-bold text-stone-900">
-                    ₹{(product.price?.amount || product.price || getStableValue(product.id || product._id, 35000, 160000)).toLocaleString()}
-                  </span>
-                  {product.originalPrice && (
-                    <span className="text-sm text-stone-400 line-through">
-                      ₹{product.originalPrice.toLocaleString()}
-                    </span>
-                  )}
-                </div>
-                {product.originalPrice && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <Sparkles className="w-3 h-3 text-emerald-600" />
-                    <span className="text-xs text-emerald-600 font-semibold">
-                      Save ₹{(product.originalPrice - (product.price?.amount || product.price)).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-              
+              <span className="text-sm font-semibold tracking-widest text-stone-600 uppercase">Enquire Now</span>
               <div className="flex items-center gap-2">
-                <motion.button 
+                <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={(e) => {
@@ -122,13 +102,17 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
                 >
                   <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-red-500' : ''}`} />
                 </motion.button>
-                <motion.button 
+                <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => onAddToCart && onAddToCart(product)}
-                  className="p-2.5 bg-stone-900 text-white rounded-lg hover:bg-stone-800 transition-all duration-300"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const msg = `Hi! I'm interested in the ${product.name || product.title || 'product'}.`;
+                    window.open(`https://wa.me/919830483628?text=${encodeURIComponent(msg)}`, '_blank');
+                  }}
+                  className="p-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-all duration-300"
                 >
-                  <ShoppingCart className="w-4 h-4" />
+                  <MessageCircle className="w-4 h-4" />
                 </motion.button>
               </div>
             </div>
@@ -143,11 +127,11 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
           <motion.img
             animate={{ scale: isHovered ? 1.05 : 1 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            src={product.image || product.images?.[0] || "/api/placeholder/400/400"}
+            src={product.image || product.images?.[0] || "/placeholder.jpg"}
             alt={product.name}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.target.src = "/api/placeholder/400/400";
+              e.target.src = "/placeholder.jpg";
             }}
           />
           
@@ -221,43 +205,34 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
 
         {/* Desktop/Tablet Price & Actions */}
         <div className="text-right space-y-4">
-          <div>
-            <div className="flex items-baseline gap-3 justify-end">
-              <span className="text-xl lg:text-2xl xl:text-3xl font-bold text-stone-900">
-                ₹{(product.price?.amount || product.price || getStableValue(product.id || product._id, 35000, 160000)).toLocaleString()}
-              </span>
-              {product.originalPrice && (
-                <span className="text-sm lg:text-base text-stone-400 line-through">
-                  ₹{product.originalPrice.toLocaleString()}
-                </span>
-              )}
-            </div>
-            {product.originalPrice && (
-              <div className="flex items-center gap-1.5 justify-end mt-2">
-                <Sparkles className="w-4 h-4 text-emerald-600" />
-                <span className="text-sm text-emerald-600 font-semibold">
-                  Save ₹{(product.originalPrice - (product.price?.amount || product.price)).toLocaleString()}
-                </span>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <motion.button 
+          <span className="text-sm font-semibold tracking-widest text-stone-600 uppercase">Enquire Now</span>
+          <div className="flex items-center gap-3 justify-end mt-4">
+            <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="px-4 lg:px-5 py-2.5 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition-all duration-300 text-sm font-semibold"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleWishlist(product);
+              }}
+              className={`px-4 py-2.5 rounded-lg transition-all duration-300 text-sm font-semibold flex items-center gap-2 ${
+                isWishlisted ? 'bg-red-50 text-red-500' : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+              }`}
             >
-              Add to Collection
+              <Heart className={`w-4 h-4 ${isWishlisted ? 'fill-red-500' : ''}`} />
+              Wishlist
             </motion.button>
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => onAddToCart && onAddToCart(product)}
-              className="px-5 lg:px-6 py-2.5 bg-stone-900 text-white hover:bg-stone-800 rounded-lg transition-all duration-300 text-sm font-semibold flex items-center gap-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                const msg = `Hi! I'm interested in the ${product.name || product.title || 'product'}.`;
+                window.open(`https://wa.me/919830483628?text=${encodeURIComponent(msg)}`, '_blank');
+              }}
+              className="px-5 lg:px-6 py-2.5 bg-emerald-600 text-white hover:bg-emerald-500 rounded-lg transition-all duration-300 text-sm font-semibold flex items-center gap-2"
             >
-              <Plus className="w-4 h-4" />
-              Acquire
+              <MessageCircle className="w-4 h-4" />
+              Enquire Now
             </motion.button>
           </div>
         </div>
