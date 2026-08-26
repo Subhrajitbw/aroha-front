@@ -184,6 +184,7 @@ export const ProductInfoCard = ({
             src={productImage}
             alt={productName}
             loading="lazy"
+            decoding="async"
             onLoad={() => setImageLoaded(true)}
             className={`w-full h-full object-cover absolute inset-0 transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.08] ${imageLoaded ? "opacity-100 blur-0" : "opacity-0 blur-md"
               }`}

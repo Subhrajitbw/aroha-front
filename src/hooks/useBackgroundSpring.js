@@ -11,13 +11,24 @@ export const useBackgroundSpring = (ref) => {
   });
 
   useEffect(() => {
+    let ticking = false;
+
     const onScroll = () => {
-      const rect = ref.current?.getBoundingClientRect();
-      if (!rect) return;
-      const progress = 1 - rect.top / window.innerHeight;
-      setScrollY(Math.max(0, Math.min(progress, 1)));
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const rect = ref.current?.getBoundingClientRect();
+          if (rect) {
+            const progress = 1 - rect.top / window.innerHeight;
+            const clamped = Math.max(0, Math.min(progress, 1));
+            setScrollY(prev => (Math.abs(prev - clamped) > 0.02 ? clamped : prev));
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener("scroll", onScroll);
+
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [ref]);
 

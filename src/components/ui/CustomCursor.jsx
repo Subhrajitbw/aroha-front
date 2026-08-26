@@ -19,42 +19,34 @@ const CustomCursor = () => {
     `;
     document.head.appendChild(style);
 
+    let mouseX = -100;
+    let mouseY = -100;
+    let ringX = -100;
+    let ringY = -100;
+    let animationFrameId;
+
     const onMouseMove = (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
       if (cursorRef.current) {
-        gsap.to(cursorRef.current, {
-          x: e.clientX,
-          y: e.clientY,
-          duration: 0.1,
-          ease: "power2.out",
-        });
+        cursorRef.current.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
       }
+    };
+
+    const render = () => {
+      ringX += (mouseX - ringX) * 0.15;
+      ringY += (mouseY - ringY) * 0.15;
       if (ringRef.current) {
-        gsap.to(ringRef.current, {
-          x: e.clientX,
-          y: e.clientY,
-          duration: 0.6,
-          ease: "power3.out",
-        });
+        ringRef.current.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
       }
+      animationFrameId = requestAnimationFrame(render);
     };
+    animationFrameId = requestAnimationFrame(render);
 
-    const handleMouseOver = (e) => {
-      if (e.target.closest('a, button, [role="button"], input, select, textarea, .cursor-pointer')) {
-        setIsHovering(true);
-        if (ringRef.current) gsap.to(ringRef.current, { scale: 1.5, borderWidth: "1.5px", duration: 0.3 });
-        if (cursorRef.current) gsap.to(cursorRef.current, { scale: 0, duration: 0.2 });
-      } else {
-        setIsHovering(false);
-        if (ringRef.current) gsap.to(ringRef.current, { scale: 1, borderWidth: "1px", duration: 0.3 });
-        if (cursorRef.current) gsap.to(cursorRef.current, { scale: 1, duration: 0.2 });
-      }
-    };
-
-    document.addEventListener("mouseover", handleMouseOver);
-    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mousemove", onMouseMove, { passive: true });
 
     return () => {
-      document.removeEventListener("mouseover", handleMouseOver);
+      cancelAnimationFrame(animationFrameId);
       document.removeEventListener("mousemove", onMouseMove);
       const injectedStyle = document.getElementById("hide-default-cursor");
       if (injectedStyle) injectedStyle.remove();

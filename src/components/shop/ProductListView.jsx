@@ -39,6 +39,8 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
               transition={{ duration: 0.6, ease: "easeOut" }}
               src={product.image || product.images?.[0] || "/placeholder.jpg"}
               alt={product.name}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover"
               onError={(e) => {
                 e.target.src = "/placeholder.jpg";
@@ -129,6 +131,8 @@ const FlatProductItem = ({ product, index, onAddToCart }) => {
             transition={{ duration: 0.6, ease: "easeOut" }}
             src={product.image || product.images?.[0] || "/placeholder.jpg"}
             alt={product.name}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover"
             onError={(e) => {
               e.target.src = "/placeholder.jpg";
