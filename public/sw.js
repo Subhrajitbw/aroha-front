@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aroha-cache-v3';
+const CACHE_NAME = 'aroha-cache-v4';
 const STATIC_ASSETS = [
   '/',
   '/offline.html',
@@ -28,7 +28,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // API calls (Medusa/Sanity): Network-first with cache fallback
-  if (url.pathname.startsWith('/store/') || url.hostname.includes('medusa') || url.hostname.includes('sanity')) {
+  if (url.pathname.startsWith('/store/') || url.hostname.includes('medusa') || url.hostname.includes('sanity') || url.hostname.includes('onrender.com') || url.hostname.includes('api.arohahouse.com')) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {

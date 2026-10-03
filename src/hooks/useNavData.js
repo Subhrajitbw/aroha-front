@@ -19,11 +19,20 @@ export const useNavData = () => {
   const hasFetchedRef = useRef(false);
 
   useEffect(() => {
+    // Clean up legacy localStorage cache keys if present
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("aroha-nav-cache");
+        localStorage.removeItem("aroha-nav-cache-v2");
+        localStorage.removeItem("aroha-nav-cache-v3");
+      } catch (e) {}
+    }
+
     const fetchNavigationData = async () => {
       // If already loading or already fetched in this session, skip
       if (hasFetchedRef.current || isLoading) return;
-      // If already loaded and has both navItems and shop menu, skip
-      if (isLoaded && navItems.length > 0 && megaMenuContent?.shop?.columns?.length > 0) return;
+      // If already loaded and has all departments (>= 10) and shop menu, skip
+      if (isLoaded && navItems.length >= 10 && megaMenuContent?.shop?.columns?.length >= 10) return;
 
       hasFetchedRef.current = true;
       try {

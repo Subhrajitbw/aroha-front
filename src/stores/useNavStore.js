@@ -28,7 +28,7 @@ export const useNavStore = create(
       setError: (error) => set({ error, isLoading: false }),
     }),
     {
-      name: 'aroha-nav-cache',
+      name: 'aroha-nav-cache-v4',
       storage: createJSONStorage(() => localStorage),
       // Only persist the data, not the loading states
       partialize: (state) => ({ 
