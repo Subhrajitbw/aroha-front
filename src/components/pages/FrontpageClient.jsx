@@ -29,10 +29,19 @@ const FrontpageClient = ({ initialCollections = [], heroData = null }) => {
   const wrapperRef = useRef(null);
   const isAnimating = useRef(false);
   const readyRef = useRef(false);
-  const lastTouchY = useRef(0);
-  const lastTouchX = useRef(0);
+  const animationTimerRef = useRef(null);
+  const lastScrollTime = useRef(0);
+  const lastWheelDelta = useRef(0);
+  const isQuietPeriod = useRef(true);
+  const quietTimerRef = useRef(null);
+
+  const touchStartY = useRef(0);
+  const touchStartX = useRef(0);
   const touchStartTime = useRef(0);
-  const animationDuration = 0.7; // Optimized for snappier luxury feel
+  const touchSwiped = useRef(false);
+
+  const animationDuration = 0.75; // Smooth luxury pacing
+  const SCROLL_COOLDOWN = 850; // ms: absorb trackpad momentum to prevent skipping sections
 
   // ---------------------------------------------------------
   // 2. DATA FETCHING (TANSTACK QUERY)
@@ -127,13 +136,19 @@ const FrontpageClient = ({ initialCollections = [], heroData = null }) => {
 
   // Cinematic GPU-accelerated section transition
   const animatedScrollToSection = useCallback((index) => {
-    if (!readyRef.current || isAnimating.current) return;
+    if (!readyRef.current) return;
 
     const total = getTotalSections();
     if (index < 0 || index >= total) return;
+    if (index === sectionRef.current && isAnimating.current) return;
     if (!wrapperRef.current) return;
 
+    if (animationTimerRef.current) {
+      clearTimeout(animationTimerRef.current);
+    }
+
     isAnimating.current = true;
+    lastScrollTime.current = Date.now();
     sectionRef.current = index;
     setCurrentSection(index);
     setGlobalSection(index);
@@ -143,28 +158,35 @@ const FrontpageClient = ({ initialCollections = [], heroData = null }) => {
 
     gsap.to(wrapperRef.current, {
       duration: animationDuration,
-      ease: "power2.inOut",
+      ease: "power2.out",
       y: `${-index * 100}dvh`,
       force3D: true,
+      overwrite: "auto",
       onComplete: () => {
-        isAnimating.current = false;
+        animationTimerRef.current = setTimeout(() => {
+          isAnimating.current = false;
+        }, 100);
       },
     });
 
     // Fail-safe: ensure isAnimating is reset even if onComplete doesn't fire
-    setTimeout(() => {
+    animationTimerRef.current = setTimeout(() => {
       isAnimating.current = false;
-    }, animationDuration * 1500);
+    }, (animationDuration + 0.3) * 1000);
   }, [collections?.length, getThemeForSection, setGlobalSection, setNavThemeOverride]);
 
-  // Scroll Handlers
+  // Scroll & Gesture Handlers
   useEffect(() => {
     if (isLoading || isMenuOpen) return;
 
     const changeSection = (dir) => {
-      if (isAnimating.current) return;
+      const now = Date.now();
+      if (isAnimating.current || now - lastScrollTime.current < SCROLL_COOLDOWN) return;
       const next = sectionRef.current + dir;
-      animatedScrollToSection(next);
+      const total = getTotalSections();
+      if (next >= 0 && next < total) {
+        animatedScrollToSection(next);
+      }
     };
 
     const wheelHandler = (e) => {
@@ -172,50 +194,109 @@ const FrontpageClient = ({ initialCollections = [], heroData = null }) => {
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       if (e.cancelable) e.preventDefault();
 
-      if (isAnimating.current) return;
+      const now = Date.now();
+      const deltaY = e.deltaY;
+      const absDeltaY = Math.abs(deltaY);
 
-      if (Math.abs(e.deltaY) > 10) {
-        changeSection(e.deltaY > 0 ? 1 : -1);
+      // Track quiet periods between scroll gestures (inertia ends when no wheel event for 150ms)
+      clearTimeout(quietTimerRef.current);
+      quietTimerRef.current = setTimeout(() => {
+        isQuietPeriod.current = true;
+        lastWheelDelta.current = 0;
+      }, 150);
+
+      // Ignore during animation or within cooldown
+      if (isAnimating.current || now - lastScrollTime.current < SCROLL_COOLDOWN) {
+        lastWheelDelta.current = absDeltaY;
+        isQuietPeriod.current = false;
+        return;
       }
-    };
 
-    let swipeTriggered = false;
+      // Wheel must be intentional (threshold >= 25)
+      if (absDeltaY < 25) {
+        lastWheelDelta.current = absDeltaY;
+        return;
+      }
+
+      // Check if this is new intent vs lingering inertia:
+      // 1. If it was quiet (>150ms since last wheel event), it's a fresh gesture
+      // 2. If it's a strong accelerating spike (|delta| > 1.4 * previous delta and > 50), it's a fresh swipe
+      const isFreshGesture = isQuietPeriod.current || (absDeltaY > lastWheelDelta.current * 1.4 && absDeltaY > 50);
+
+      if (isFreshGesture) {
+        isQuietPeriod.current = false;
+        changeSection(deltaY > 0 ? 1 : -1);
+      }
+
+      lastWheelDelta.current = absDeltaY;
+    };
 
     const onTouchStart = (e) => {
       if (document.querySelector('.bottom-nav-sheet')) return;
-      lastTouchY.current = e.touches[0].clientY;
-      lastTouchX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+      touchStartX.current = e.touches[0].clientX;
       touchStartTime.current = Date.now();
-      swipeTriggered = false;
+      touchSwiped.current = false;
     };
 
     const onTouchMove = (e) => {
       if (document.querySelector('.bottom-nav-sheet')) return;
       const currentY = e.touches[0].clientY;
       const currentX = e.touches[0].clientX;
-      const deltaY = Math.abs(currentY - lastTouchY.current);
-      const deltaX = Math.abs(currentX - lastTouchX.current);
+      const deltaY = Math.abs(currentY - touchStartY.current);
+      const deltaX = Math.abs(currentX - touchStartX.current);
 
       if (deltaY > deltaX && e.cancelable) {
         e.preventDefault();
       }
 
-      if (swipeTriggered || isAnimating.current) return;
+      if (touchSwiped.current || isAnimating.current) return;
 
-      const rawDeltaY = lastTouchY.current - currentY;
+      const rawDeltaY = touchStartY.current - currentY;
+      const now = Date.now();
 
-      if (Math.abs(rawDeltaY) > 40) {
-        swipeTriggered = true;
+      // Trigger swipe if dragged > 45px and not horizontal
+      if (Math.abs(rawDeltaY) > 45 && deltaY > deltaX && now - lastScrollTime.current > SCROLL_COOLDOWN) {
+        touchSwiped.current = true;
         changeSection(rawDeltaY > 0 ? 1 : -1);
       }
     };
 
     const onTouchEnd = (e) => {
       if (document.querySelector('.bottom-nav-sheet')) return;
-      if (swipeTriggered || isAnimating.current) return;
-      const rawDeltaY = lastTouchY.current - (e.changedTouches[0]?.clientY || lastTouchY.current);
-      if (Math.abs(rawDeltaY) > 20) {
+      if (touchSwiped.current || isAnimating.current) return;
+
+      const now = Date.now();
+      if (now - lastScrollTime.current < SCROLL_COOLDOWN) return;
+
+      const endY = e.changedTouches[0]?.clientY || touchStartY.current;
+      const endX = e.changedTouches[0]?.clientX || touchStartX.current;
+      const rawDeltaY = touchStartY.current - endY;
+      const rawDeltaX = touchStartX.current - endX;
+
+      if (Math.abs(rawDeltaY) > 30 && Math.abs(rawDeltaY) > Math.abs(rawDeltaX)) {
+        touchSwiped.current = true;
         changeSection(rawDeltaY > 0 ? 1 : -1);
+      }
+    };
+
+    const keydownHandler = (e) => {
+      const tag = document.activeElement?.tagName?.toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || document.activeElement?.isContentEditable) {
+        return;
+      }
+      if (e.key === 'ArrowDown' || e.key === 'PageDown' || (e.key === ' ' && !e.shiftKey)) {
+        e.preventDefault();
+        changeSection(1);
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp' || (e.key === ' ' && e.shiftKey)) {
+        e.preventDefault();
+        changeSection(-1);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        animatedScrollToSection(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        animatedScrollToSection(getTotalSections() - 1);
       }
     };
 
@@ -223,12 +304,16 @@ const FrontpageClient = ({ initialCollections = [], heroData = null }) => {
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("keydown", keydownHandler);
 
     return () => {
+      clearTimeout(quietTimerRef.current);
+      if (animationTimerRef.current) clearTimeout(animationTimerRef.current);
       window.removeEventListener("wheel", wheelHandler);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
+      window.removeEventListener("keydown", keydownHandler);
     };
   }, [isLoading, isMenuOpen, animatedScrollToSection]);
 
