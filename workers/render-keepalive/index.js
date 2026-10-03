@@ -1,9 +1,6 @@
-/**
- * Cloudflare Worker: Render Backend & Database Keep-Alive
- * 
- * Schedule: Runs every 10 minutes (cron: */10 * * * *)
- * Prevents Render free/starter tiers from sleeping after 15 minutes of inactivity.
- */
+// Cloudflare Worker: Render Backend & Database Keep-Alive
+// Schedule: Runs every 10 minutes
+// Prevents Render free/starter tiers from sleeping after 15 minutes of inactivity.
 
 export default {
   // 1. Cron Trigger Handler
