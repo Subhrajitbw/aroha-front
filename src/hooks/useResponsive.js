@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export const useResponsive = () => {
   // Enhanced initial state with comprehensive screen size detection
@@ -154,8 +154,8 @@ export const useResponsive = () => {
   // Helper function to determine breakpoint
 
 
-  // Utility methods for enhanced functionality
-  const utilities = {
+  // Utility methods for enhanced functionality (memoized to prevent new references every render)
+  const utilities = useMemo(() => ({
     // Check if current breakpoint matches any of the provided breakpoints
     isBreakpoint: (...breakpoints) => breakpoints.includes(viewport.breakpoint),
     
@@ -218,7 +218,7 @@ export const useResponsive = () => {
     // Aspect ratio checks
     isWideScreen: () => viewport.aspectRatio > 1.6,
     isSquareScreen: () => viewport.aspectRatio >= 0.9 && viewport.aspectRatio <= 1.1,
-  };
+  }), [viewport]);
 
   return {
     ...viewport,

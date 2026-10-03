@@ -47,7 +47,7 @@ export const useNavData = () => {
 
         // ── 2. Fetch products to build inventory counts & thumbnails ────────
         const prodRes = await safeFetch(
-          sdk.store.product.list({ limit: 1000, fields: "id,thumbnail,categories.id" }),
+          sdk.store.product.list({ limit: 200, fields: "id,thumbnail,categories.id" }),
           { products: [] }
         );
         const medusaProducts = prodRes.products || [];
@@ -236,23 +236,16 @@ export const useNavData = () => {
 
       } catch (err) {
         console.error("Nav fetch failure:", err);
-        // Retain existing cached state to avoid layout breaking, but set isLoaded to true to stop loop
-        setNavData(navItems, megaMenuContent, categoryThumbnails);
+        // Retain existing cached state to avoid layout breaking
+        const currentState = useNavStore.getState();
+        setNavData(currentState.navItems, currentState.megaMenuContent, currentState.categoryThumbnails);
       } finally {
         setLoading(false);
       }
     };
 
     fetchNavigationData();
-  }, [
-    isLoaded,
-    isLoading,
-    navItems,
-    megaMenuContent,
-    categoryThumbnails,
-    setNavData,
-    setLoading,
-  ]);
+  }, [isLoaded, isLoading, setNavData, setLoading]);
 
   useEffect(() => {
     const fetchRooms = async () => {

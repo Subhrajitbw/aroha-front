@@ -4,14 +4,10 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { MoveRight, ArrowUpRight, ChevronUp, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useQuery } from "@tanstack/react-query";
 import { medusaApi, prefetchImage } from "@/lib/react-query";
 import { sdk } from "@/lib/medusaClient";
 import { useResponsive } from "@/hooks/useResponsive";
-
-gsap.registerPlugin(ScrollTrigger);
 
 export default function ProductCarousel() {
   const [selectedTab, setSelectedTab] = useState("New Designs");

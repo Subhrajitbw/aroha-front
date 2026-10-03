@@ -35,7 +35,7 @@ export default function BottomNavigation() {
   const pathname = usePathname();
   const router = useRouter();
   const { items: wishlistItems, isHydrated: wishlistHydrated } = useWishlistStore();
-  const { isAuthenticated, initializeAuth, logout, user } = useAuthStore();
+  const { isAuthenticated, logout, user } = useAuthStore();
   const openAuth = useAuthModalStore((state) => state.open);
   const { navItems: categoriesList, megaMenuContent, categoryThumbnails } = useNavData();
   
@@ -46,7 +46,6 @@ export default function BottomNavigation() {
 
   // Sync cart item count on mount and route changes
   useEffect(() => {
-    initializeAuth();
     const fetchCartStatus = async () => {
       const cartId = localStorage.getItem("cart_id");
       if (cartId) {
@@ -59,7 +58,7 @@ export default function BottomNavigation() {
       }
     };
     fetchCartStatus();
-  }, [pathname, initializeAuth]);
+  }, [pathname]);
 
   // Set initial category tab selections
   useEffect(() => {

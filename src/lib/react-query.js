@@ -10,12 +10,12 @@ import { sanityClient, urlFor } from "./sanityClient";
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Data is fresh for 5 seconds (more reactive)
-      staleTime: 1000 * 5,
+      // Data is fresh for 5 minutes — product catalogs don't change that often
+      staleTime: 1000 * 60 * 5,
       // Keep data in cache for 15 minutes
       gcTime: 1000 * 60 * 15,
       retry: 1,
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: false,
       refetchOnReconnect: true,
     },
   },

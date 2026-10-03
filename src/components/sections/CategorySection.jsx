@@ -1,11 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { MoveRight, ChevronLeft, ChevronRight } from "lucide-react";
-
-gsap.registerPlugin(ScrollTrigger);
 
 import { useQuery } from '@tanstack/react-query';
 import { medusaApi, prefetchImage } from "@/lib/react-query";

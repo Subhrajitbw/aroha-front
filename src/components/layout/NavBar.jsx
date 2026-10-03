@@ -41,12 +41,19 @@ const NavBar = ({ variant = "light" }) => {
   const [isMobileDevice, setIsMobileDevice] = useState(false);
 
   useEffect(() => {
+    let timeoutId;
     const handleResize = () => {
-      setIsMobileDevice(window.innerWidth < 1024);
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsMobileDevice(window.innerWidth < 1024);
+      }, 150);
     };
-    handleResize();
+    setIsMobileDevice(window.innerWidth < 1024);
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener("resize", handleResize);
+    };
   }, []);
 
   // Expose --nav-height CSS variable
