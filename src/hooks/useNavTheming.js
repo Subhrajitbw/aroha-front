@@ -8,86 +8,93 @@ export const useNavTheming = (navRef, variant, pathname, isMobile) => {
   // Kept for API compatibility — NavBar calls setThemeFrozen when mega menu opens
   const [themeFrozen, setThemeFrozen] = useState(false);
 
-  const scrolled = localScrolled || currentSection > 0;
+  const isFrontpage = pathname === "/" || pathname === "/home";
+  const scrolled = localScrolled || (isFrontpage && currentSection > 0);
 
   useEffect(() => {
-    const handleScroll = () => setLocalScrolled(window.scrollY > 50);
+    const handleScroll = () => setLocalScrolled(window.scrollY > 25);
+    handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [pathname]);
 
-  // Theme priority: explicit override (set per-section by FrontpageClient) > variant prop
-  const effectiveTheme = navThemeOverride || (variant === "dark" ? "dark" : "light");
+  // Theme priority: explicit override (set per-section by FrontpageClient only on frontpage) > variant prop
+  const effectiveTheme = (isFrontpage && navThemeOverride) 
+    ? navThemeOverride 
+    : (variant === "dark" ? "dark" : "light");
 
   const colors = useMemo(() => {
-    if (scrolled) {
-      if (effectiveTheme === "dark") {
-        return {
-          navTextColor: "text-neutral-100",
-          navHoverColor: "hover:text-neutral-300",
-          logoColor: "text-white",
-        };
-      }
+    if (effectiveTheme === "dark") {
       return {
-        navTextColor: "text-neutral-900",
-        navHoverColor: "hover:text-neutral-700",
-        logoColor: "text-neutral-900",
+        navTextColor: "text-neutral-100",
+        navHoverColor: "hover:text-neutral-300",
+        logoColor: "text-white",
       };
     }
     return {
-      navTextColor: effectiveTheme === "light" ? "text-neutral-900" : "text-white",
-      navHoverColor: effectiveTheme === "light" ? "hover:text-neutral-700" : "hover:text-neutral-300",
-      logoColor: effectiveTheme === "light" ? "text-neutral-900" : "text-white",
+      navTextColor: "text-neutral-900",
+      navHoverColor: "hover:text-neutral-700",
+      logoColor: "text-neutral-900",
     };
-  }, [scrolled, effectiveTheme]);
+  }, [effectiveTheme]);
 
   const floatingStyles = useMemo(() => {
     if (scrolled) {
       if (effectiveTheme === "dark") {
         return {
-          backgroundColor: "rgba(0, 0, 0, 0.2)",
-          backdropFilter: "blur(20px) saturate(150%)",
-          WebkitBackdropFilter: "blur(20px) saturate(150%)",
+          backgroundColor: "rgba(10, 10, 10, 0.75)",
+          backdropFilter: "blur(20px) saturate(160%)",
+          WebkitBackdropFilter: "blur(20px) saturate(160%)",
           ...(isMobile
             ? {
                 borderTop: "none",
                 borderLeft: "none",
                 borderRight: "none",
-                borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
               }
             : {
-                border: "1px solid rgba(255, 255, 255, 0.1)",
+                border: "1px solid rgba(255, 255, 255, 0.12)",
               }),
           boxShadow: isMobile
-            ? "0 4px 20px rgba(0, 0, 0, 0.05)"
-            : "0 8px 32px rgba(0, 0, 0, 0.15), 0 2px 16px rgba(0, 0, 0, 0.1)",
+            ? "0 4px 20px rgba(0, 0, 0, 0.2)"
+            : "0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 16px rgba(0, 0, 0, 0.15)",
         };
       }
       return {
-        backgroundColor: "rgba(255, 255, 255, 0.2)",
-        backdropFilter: "blur(20px) saturate(150%)",
-        WebkitBackdropFilter: "blur(20px) saturate(150%)",
+        backgroundColor: "rgba(255, 255, 255, 0.85)",
+        backdropFilter: "blur(20px) saturate(160%)",
+        WebkitBackdropFilter: "blur(20px) saturate(160%)",
         ...(isMobile
           ? {
               borderTop: "none",
               borderLeft: "none",
               borderRight: "none",
-              borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+              borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
             }
           : {
-              border: "1px solid rgba(0, 0, 0, 0.1)",
+              border: "1px solid rgba(0, 0, 0, 0.08)",
             }),
         boxShadow: isMobile
-          ? "0 4px 20px rgba(0, 0, 0, 0.02)"
-          : "0 8px 32px rgba(255, 255, 255, 0.15), 0 2px 16px rgba(255, 255, 255, 0.1)",
+          ? "0 4px 20px rgba(0, 0, 0, 0.04)"
+          : "0 8px 32px rgba(0, 0, 0, 0.06), 0 2px 16px rgba(0, 0, 0, 0.03)",
       };
     }
+    
+    // When not scrolled on frontpage with dark hero, keep transparent
+    if (isFrontpage && effectiveTheme === "dark") {
+      return {
+        backgroundColor: "transparent",
+      };
+    }
+
+    // On static pages or light sections before scrolling
     return {
-      backgroundColor: "transparent",
-      backdropFilter: "blur(20px)",
-      WebkitBackdropFilter: "blur(20px)",
+      backgroundColor: "rgba(255, 255, 255, 0.8)",
+      backdropFilter: "blur(16px)",
+      WebkitBackdropFilter: "blur(16px)",
+      borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
     };
-  }, [scrolled, effectiveTheme, isMobile]);
+  }, [scrolled, effectiveTheme, isMobile, isFrontpage]);
 
   const floatingPosition = useMemo(() => {
     if (scrolled) {

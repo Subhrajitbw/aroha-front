@@ -16,19 +16,12 @@ export default function ClientLayout({ children }) {
   const { isOpen: isAuthOpen, close: closeAuth } = useAuthModalStore();
 
   const getNavBarVariant = () => {
-    // Frontpage & lookbook have dark hero backgrounds — start with white text
+    // Only Frontpage & lookbook have dark hero backgrounds — start with white text
     if (["/", "/home", "/lookbook"].includes(pathname)) {
       return "dark";
     }
-    // Shop & account have light backgrounds — start with dark text
-    if (
-      pathname.startsWith("/shop") ||
-      pathname.startsWith("/account") ||
-      pathname === "/wishlist"
-    ) {
-      return "light";
-    }
-    return "dark";
+    // All other pages (product, categories, shop, rooms, journal, account, wishlist, etc.) have light backgrounds
+    return "light";
   };
 
   const shouldShowFooter = !["/", "/home", "/lookbook"].includes(pathname);
