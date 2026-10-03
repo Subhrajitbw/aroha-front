@@ -1,0 +1,11 @@
+name = "aroha-render-keepalive"
+main = "index.js"
+compatibility_date = "2024-04-01"
+
+[triggers]
+# Cron schedule: Every 10 minutes (Render spins down after 15 min of inactivity)
+crons = ["*/10 * * * *"]
+
+[vars]
+BACKEND_URL = "https://api.arohahouse.com"
+PUBLISHABLE_KEY = "pk_39c83e18a431169126bea89886a5ef95217d5c95acc09e61b8387d0932b54155"

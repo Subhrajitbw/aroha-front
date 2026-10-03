@@ -1,0 +1,13 @@
+{
+  "name": "aroha-render-keepalive",
+  "version": "1.0.0",
+  "description": "Cloudflare Worker Cron Trigger to keep Render backend warm",
+  "main": "index.js",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "devDependencies": {
+    "wrangler": "^3.50.0"
+  }
+}
