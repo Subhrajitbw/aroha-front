@@ -11,12 +11,18 @@ export async function generateMetadata({ params }) {
 }
 
 async function getRoomsData() {
-  // Reuse the same data fetching logic (ideally this would be cached)
-  // For now I'll repeat it or ideally I'd have a shared helper
-  // ... (Keeping it simple for now)
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
     const sanityProducts = await sanityClient.fetch(`*[_type == "product" && defined(perfectFor)]{ handle, perfectFor }`);
-    if (!sanityProducts?.length) return [];
+    if (!sanityProducts?.length) {
+      clearTimeout(timeout);
+      return [];
+    }
+
+    if (controller.signal.aborted) throw new Error('Timeout');
+
     const roomHandleMap = {};
     sanityProducts.forEach((item) => {
       const tags = Array.isArray(item.perfectFor) ? item.perfectFor : [item.perfectFor];
@@ -33,6 +39,7 @@ async function getRoomsData() {
     const allHandles = [...new Set(sanityProducts.map((p) => p.handle))];
     const medusaProducts = [];
     for (let i = 0; i < allHandles.length; i += 20) {
+      if (controller.signal.aborted) throw new Error('Timeout');
       const { products } = await sdk.store.product.list({
         handle: allHandles.slice(i, i + 20),
         fields: "id,title,handle,thumbnail,images,*variants,*variants.calculated_price",
@@ -40,6 +47,7 @@ async function getRoomsData() {
       });
       if (products) medusaProducts.push(...products);
     }
+    clearTimeout(timeout);
     const medusaMap = {};
     medusaProducts.forEach((p) => {
       let price = null;

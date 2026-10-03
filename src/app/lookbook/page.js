@@ -14,10 +14,18 @@ export const metadata = {
 
 async function getLookbookData() {
   try {
-    const { products } = await sdk.store.product.list({
-      limit: 50,
-      fields: "id,title,handle,thumbnail,variants.prices"
-    });
+    // 5-second timeout to prevent hanging Vercel static builds.
+    // If Medusa is slow, render with empty data — client-side will hydrate.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const { products } = await sdk.store.product.list(
+      {
+        limit: 50,
+        fields: "id,title,handle,thumbnail,variants.prices"
+      },
+      { signal: controller.signal }
+    ).finally(() => clearTimeout(timeout));
     
     return products.map((p) => {
       let priceStr = "";
@@ -34,7 +42,7 @@ async function getLookbookData() {
       };
     }).filter(p => p.image);
   } catch (error) {
-    console.error("Failed to fetch lookbook data:", error);
+    console.warn("Lookbook SSR fetch timed out or failed, rendering without data:", error.name);
     return [];
   }
 }

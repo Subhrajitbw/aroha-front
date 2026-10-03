@@ -21,11 +21,22 @@ const ROOM_KEYWORDS = [
 
 async function getRoomsData() {
   try {
+    // 8-second overall timeout to prevent hanging Vercel static builds.
+    // Rooms does batched sequential fetches that can easily exceed 60s on slow backends.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+
     const sanityProducts = await sanityClient.fetch(
       `*[_type == "product" && defined(perfectFor)]{ handle, perfectFor }`
     );
     
-    if (!sanityProducts?.length) return [];
+    if (!sanityProducts?.length) {
+      clearTimeout(timeout);
+      return [];
+    }
+
+    // Check if we've already timed out
+    if (controller.signal.aborted) throw new Error('Timeout');
 
     const roomHandleMap = {};
     sanityProducts.forEach((item) => {
@@ -46,6 +57,7 @@ async function getRoomsData() {
     // Fetch Medusa products in batches
     const medusaProducts = [];
     for (let i = 0; i < allHandles.length; i += 20) {
+      if (controller.signal.aborted) throw new Error('Timeout');
       const { products } = await sdk.store.product.list({
         handle: allHandles.slice(i, i + 20),
         fields: "id,title,handle,thumbnail,images,*variants,*variants.calculated_price",
@@ -53,6 +65,8 @@ async function getRoomsData() {
       });
       if (products) medusaProducts.push(...products);
     }
+
+    clearTimeout(timeout);
 
     const medusaMap = {};
     medusaProducts.forEach((p) => {
@@ -74,7 +88,7 @@ async function getRoomsData() {
 
     return roomArray;
   } catch (error) {
-    console.error("Failed to fetch rooms data:", error);
+    console.warn("Rooms SSR fetch timed out or failed, rendering without data:", error.name);
     return [];
   }
 }
