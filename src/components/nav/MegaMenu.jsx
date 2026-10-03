@@ -94,9 +94,9 @@ const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseL
         <div className="absolute -top-4 left-0 right-0 h-4 pointer-events-auto" aria-hidden="true" />
 
         {/* Panel */}
-        <div className="bg-white rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1)] border border-neutral-100/80 overflow-hidden mx-2">
-          <div ref={contentRef} className="px-8 py-6">
-            <div className={`grid ${gridCols} gap-x-8`}>
+        <div className="bg-white rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.1)] border border-neutral-100/80 overflow-hidden mx-2 max-h-[82vh] flex flex-col">
+          <div ref={contentRef} className="px-8 py-6 overflow-y-auto scrollbar-none">
+            <div className={`grid ${gridCols} gap-x-8 gap-y-6`}>
               {content.columns.map((column, idx) => (
                 <div key={idx} className="mega-column min-w-0">
                   {/* Column title */}

@@ -32,26 +32,31 @@ const CATEGORY_IMAGES = {
   "default": "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=400"
 };
 
-const getCategoryImage = (name, handle) => {
-  const normName = (name || "").toLowerCase();
-  const normHandle = (handle || "").toLowerCase();
-  
-  if (CATEGORY_IMAGES[normHandle]) return CATEGORY_IMAGES[normHandle];
-  
-  for (const key of Object.keys(CATEGORY_IMAGES)) {
-    if (normName.includes(key) || normHandle.includes(key)) {
-      return CATEGORY_IMAGES[key];
-    }
-  }
-  
-  return CATEGORY_IMAGES.default;
-};
-
 export default function CategoriesPage() {
   const router = useRouter();
-  const { navItems, megaMenuContent } = useNavData();
+  const { navItems, megaMenuContent, categoryThumbnails } = useNavData();
   const [activeCategoryId, setActiveCategoryId] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const getCategoryImage = (item, name, handle) => {
+    if (item?.id && categoryThumbnails?.[item.id]) {
+      return categoryThumbnails[item.id];
+    }
+    if (item?.image) return item.image;
+
+    const normName = (name || item?.name || item?.title || "").toLowerCase();
+    const normHandle = (handle || item?.handle || (item?.href ? item.href.split('/').pop() : "") || "").toLowerCase();
+    
+    if (CATEGORY_IMAGES[normHandle]) return CATEGORY_IMAGES[normHandle];
+    
+    for (const key of Object.keys(CATEGORY_IMAGES)) {
+      if (normName.includes(key) || normHandle.includes(key)) {
+        return CATEGORY_IMAGES[key];
+      }
+    }
+    
+    return CATEGORY_IMAGES.default;
+  };
 
   // Auto-select first department when data loads
   useEffect(() => {
@@ -140,7 +145,7 @@ export default function CategoriesPage() {
                     }
                   `}>
                     <img 
-                      src={getCategoryImage(dept.name, dept.handle)} 
+                      src={getCategoryImage(dept, dept.name, dept.handle)} 
                       alt={dept.name}
                       className="w-full h-full object-cover" 
                     />
@@ -170,7 +175,7 @@ export default function CategoriesPage() {
                 {/* Visual Department Hero Banner */}
                 <div className="relative rounded-2xl overflow-hidden aspect-[21/9] w-full shadow-sm bg-stone-100">
                   <img 
-                    src={getCategoryImage(activeCategory.name, activeCategory.handle)} 
+                    src={getCategoryImage(activeCategory, activeCategory.name, activeCategory.handle)} 
                     alt={activeCategory.name}
                     className="w-full h-full object-cover scale-[1.03]"
                   />
@@ -198,7 +203,7 @@ export default function CategoriesPage() {
                           {/* Circular Subcategory Photo */}
                           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden border border-stone-200 group-hover:scale-105 transition-transform duration-300 shadow-sm relative">
                             <img 
-                              src={getCategoryImage(col.title, col.href.split('/').pop())} 
+                              src={getCategoryImage(col, col.title, col.href.split('/').pop())} 
                               alt={col.title}
                               className="w-full h-full object-cover"
                             />

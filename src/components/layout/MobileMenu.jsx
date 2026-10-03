@@ -425,28 +425,47 @@ const MobileMenu = ({
                   </h2>
                 </div>
 
-                <div className="space-y-8">
+                <div className="space-y-6">
                   {activeCategory.subMenu.columns.map((col, i) => (
-                    <div key={i}>
-                      <p className="text-[9px] uppercase tracking-[0.25em] text-stone-400 font-semibold mb-3 border-b border-stone-100 pb-2">
-                        {col.title}
-                      </p>
-                      <div className="space-y-1">
-                        {col.items?.map((item, j) => (
-                          <Link
-                            key={j}
-                            href={item.href}
-                            onClick={handleClose}
-                            className="flex items-center justify-between py-2.5 group"
-                          >
-                            <span className="text-base text-stone-700 font-light tracking-wide group-hover:text-stone-900 transition-colors group-hover:translate-x-1 transform duration-200">
-                              {item.name}
-                            </span>
-                            <ArrowRight size={13} strokeWidth={1} className="text-stone-300 group-hover:text-stone-700 group-hover:translate-x-1 transition-all duration-300" />
-                          </Link>
-                        ))}
+                    col.items?.length > 0 ? (
+                      <div key={i} className="space-y-2">
+                        <Link
+                          href={col.href}
+                          onClick={handleClose}
+                          className="flex items-center justify-between text-[11px] uppercase tracking-[0.25em] text-stone-900 font-semibold border-b border-stone-200 pb-2 group"
+                        >
+                          <span className="group-hover:translate-x-1 transition-transform duration-200">{col.title}</span>
+                          <ArrowRight size={12} className="text-stone-400 group-hover:text-stone-900 transition-colors" />
+                        </Link>
+                        <div className="space-y-1 pl-2">
+                          {col.items.map((item, j) => (
+                            <Link
+                              key={j}
+                              href={item.href}
+                              onClick={handleClose}
+                              className="flex items-center justify-between py-2 group"
+                            >
+                              <span className="text-sm text-stone-600 font-light tracking-wide group-hover:text-stone-900 transition-colors group-hover:translate-x-1 transform duration-200">
+                                {item.name}
+                              </span>
+                              <ArrowRight size={12} strokeWidth={1} className="text-stone-300 group-hover:text-stone-700 group-hover:translate-x-1 transition-all duration-300" />
+                            </Link>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <Link
+                        key={i}
+                        href={col.href}
+                        onClick={handleClose}
+                        className="flex items-center justify-between py-3 border-b border-stone-100 group"
+                      >
+                        <span className="text-base text-stone-800 font-light tracking-wide group-hover:text-stone-900 transition-colors group-hover:translate-x-1 transform duration-200">
+                          {col.title}
+                        </span>
+                        <ArrowRight size={14} strokeWidth={1.5} className="text-stone-400 group-hover:text-stone-900 group-hover:translate-x-1 transition-all duration-300" />
+                      </Link>
+                    )
                   ))}
                 </div>
 

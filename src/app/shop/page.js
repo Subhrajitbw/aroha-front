@@ -26,8 +26,16 @@ async function getInitialData() {
       categories = categoriesRes.categories || [];
     } catch (e) {
       console.warn("Sidebar categories custom fetch failed, falling back to standard list", e);
-      const standardCats = await sdk.store.category.list({ limit: 100, fields: "id,name,handle,parent_category_id,*products" });
-      categories = standardCats.product_categories || [];
+      let catOffset = 0;
+      let catTotal = 1;
+      while (categories.length < catTotal) {
+        const res = await sdk.store.category.list({ limit: 100, offset: catOffset, fields: "id,name,handle,parent_category_id,*products" });
+        const batch = res.product_categories || [];
+        categories = [...categories, ...batch];
+        catTotal = res.count || 0;
+        catOffset += 100;
+        if (batch.length === 0) break;
+      }
     }
 
     return {

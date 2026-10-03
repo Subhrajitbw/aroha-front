@@ -1,6 +1,6 @@
 // src/hooks/useNavData.js
 "use client";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavStore } from "../stores/useNavStore";
 import { sdk } from "../lib/medusaClient";
 import { sanityClient } from "../lib/sanityClient";
@@ -16,12 +16,16 @@ export const useNavData = () => {
     setLoading,
   } = useNavStore();
   const [roomCategories, setRoomCategories] = useState([]);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     const fetchNavigationData = async () => {
-      const isMissingShop = isLoaded && navItems.length > 0 && !megaMenuContent.shop;
-      if ((isLoaded && !isMissingShop) || isLoading) return;
+      // If already loading or already fetched in this session, skip
+      if (hasFetchedRef.current || isLoading) return;
+      // If already loaded and has both navItems and shop menu, skip
+      if (isLoaded && navItems.length > 0 && megaMenuContent?.shop?.columns?.length > 0) return;
 
+      hasFetchedRef.current = true;
       try {
         setLoading(true);
 
@@ -30,41 +34,39 @@ export const useNavData = () => {
           catch (e) { console.error("Nav fetch error:", e); return fallback; }
         };
 
-        // ── 1. Fetch all Medusa categories (paginated) ──────────────────────
+        // ── 1. Fetch ALL Medusa categories (paginated) ──────────────────────
         let medusaCategories = [];
-        let offset = 0;
-        let totalCount = 1;
-        while (medusaCategories.length < totalCount) {
+        let catOffset = 0;
+        let catTotal = 1;
+        while (medusaCategories.length < catTotal) {
           const res = await safeFetch(
-            sdk.store.category.list({ limit: 100, offset, fields: "id,name,handle,parent_category_id,metadata" }),
+            sdk.store.category.list({ limit: 100, offset: catOffset, fields: "id,name,handle,parent_category_id,rank,metadata" }),
             { product_categories: [], count: 0 }
           );
-          medusaCategories = [...medusaCategories, ...(res.product_categories || [])];
-          totalCount = res.count || 0;
-          offset += 100;
-          if ((res.product_categories || []).length === 0) break;
+          const batch = res.product_categories || [];
+          medusaCategories = [...medusaCategories, ...batch];
+          catTotal = res.count || 0;
+          catOffset += 100;
+          if (batch.length === 0) break;
         }
 
-        // ── 2. Fetch products to build inventory counts & thumbnails ────────
-        const prodRes = await safeFetch(
-          sdk.store.product.list({ limit: 200, fields: "id,thumbnail,categories.id" }),
-          { products: [] }
-        );
-        const medusaProducts = prodRes.products || [];
+        // ── 2. Fetch ALL products to build inventory counts & thumbnails ────
+        let medusaProducts = [];
+        let prodOffset = 0;
+        let prodTotal = 1;
+        while (medusaProducts.length < prodTotal) {
+          const prodRes = await safeFetch(
+            sdk.store.product.list({ limit: 100, offset: prodOffset, fields: "id,title,thumbnail,categories.id,categories.handle,categories.name" }),
+            { products: [], count: 0 }
+          );
+          const batch = prodRes.products || [];
+          medusaProducts = [...medusaProducts, ...batch];
+          prodTotal = prodRes.count || 0;
+          prodOffset += 100;
+          if (batch.length === 0) break;
+        }
 
-        // Build category thumbnail mapping using first available product image
-        const categoryThumbnails = {};
-        medusaProducts.forEach(p => {
-          if (p.thumbnail) {
-            (p.categories || []).forEach(cat => {
-              if (!categoryThumbnails[cat.id]) {
-                categoryThumbnails[cat.id] = p.thumbnail;
-              }
-            });
-          }
-        });
-
-        // ── 3. Fetch curated categories from Sanity ─────────────────────────
+        // ── 3. Fetch curated categories from Sanity (if any) ─────────────────
         let curatedCategories = [];
         try {
           const sanityRes = await sanityClient.fetch(
@@ -72,11 +74,10 @@ export const useNavData = () => {
           );
           curatedCategories = sanityRes?.curated_categories || [];
         } catch (err) {
-          console.warn("Sanity curated fetch failed, falling back to Medusa only:", err);
+          console.warn("Sanity curated fetch fallback:", err);
         }
 
         // ── 4. Build unified category map ───────────────────────────────────
-        // Start with Medusa as base; merge curated enrichment (images, featured products)
         const catMap = new Map(medusaCategories.map(c => [c.id, { ...c }]));
 
         curatedCategories.forEach(cur => {
@@ -85,7 +86,6 @@ export const useNavData = () => {
             existing.curatedImage = cur.image;
             existing.featuredProducts = cur.featuredProducts || [];
           } else {
-            // Curated item not in Medusa yet — add it
             catMap.set(cur.id, {
               id: cur.id,
               name: cur.name,
@@ -101,7 +101,7 @@ export const useNavData = () => {
         const allCategories = Array.from(catMap.values());
 
         // ── 5. Build parent → children index ───────────────────────────────
-        const childrenOf = new Map(); // parentId → [child, ...]
+        const childrenOf = new Map();
         allCategories.forEach(c => {
           if (!c.parent_category_id) return;
           if (!childrenOf.has(c.parent_category_id)) childrenOf.set(c.parent_category_id, []);
@@ -121,66 +121,82 @@ export const useNavData = () => {
           });
         });
 
-        // Strictly require at least 1 real product (no curated-only ghost categories)
+        // Build category thumbnail mapping with child bubbling
+        const categoryThumbnails = {};
+        medusaProducts.forEach(p => {
+          if (p.thumbnail) {
+            (p.categories || []).forEach(cat => {
+              if (!categoryThumbnails[cat.id]) {
+                categoryThumbnails[cat.id] = p.thumbnail;
+              }
+            });
+          }
+        });
+
+        const getCategoryThumbnail = (catId) => {
+          if (categoryThumbnails[catId]) return categoryThumbnails[catId];
+          const children = childrenOf.get(catId) || [];
+          for (const ch of children) {
+            const thumb = getCategoryThumbnail(ch.id);
+            if (thumb) {
+              categoryThumbnails[catId] = thumb;
+              return thumb;
+            }
+          }
+          return null;
+        };
+        allCategories.forEach(c => getCategoryThumbnail(c.id));
+
         const hasContent = (id) => (productCount.get(id) || 0) > 0;
+        const trueRoots = new Set(allCategories.filter(c => !c.parent_category_id).map(c => c.id));
 
-        // Department must ALSO have at least 1 child with real products
-        // (prevents empty top-level items like "Kids" or "Storage" with no live inventory)
-        const hasProductChildren = (id) =>
-          (childrenOf.get(id) || []).some(child => hasContent(child.id));
-
-        // A department is valid if IT has products AND at least one child has products
-        const isValidDepartment = (c) => hasContent(c.id) && hasProductChildren(c.id);
-
-        // ── 7. Determine departments using the CURATED list as authority ──────
-        const curatedIds = new Set(curatedCategories.map(c => c.id));
-
-        let departments;
-        if (curatedCategories.length > 0) {
-          departments = curatedCategories
-            .filter(c => !curatedIds.has(c.parent_parent_category_id)) // parent check
-            .filter(c => !curatedIds.has(c.parent_category_id))
-            .filter(c => isValidDepartment(c))
-            .sort((a, b) => (Number(a.metadata?.priority) || 100) - (Number(b.metadata?.priority) || 100));
-        } else {
-          // Fallback: use Medusa true-root children
-          const trueRoots = new Set(allCategories.filter(c => !c.parent_category_id).map(c => c.id));
-          departments = allCategories
-            .filter(c => c.parent_category_id && trueRoots.has(c.parent_category_id))
-            .filter(c => isValidDepartment(c))
-            .sort((a, b) => (Number(a.metadata?.priority) || 100) - (Number(b.metadata?.priority) || 100));
-        }
+        // ── 7. Determine active departments with live inventory ──────────────
+        const departments = allCategories
+          .filter(c => (c.parent_category_id && trueRoots.has(c.parent_category_id) && hasContent(c.id)) ||
+                       (!c.parent_category_id && hasContent(c.id) && (childrenOf.get(c.id) || []).length === 0))
+          .sort((a, b) => {
+            const prioA = Number(a.metadata?.priority) || (a.rank ?? 100);
+            const prioB = Number(b.metadata?.priority) || (b.rank ?? 100);
+            return prioA - prioB;
+          });
 
         // ── 8. Build mega-menu content for each department ───────────────────
-        // Filter by real products, sort by priority, cap at 5
-        const sortTop5 = (arr) =>
-          arr
-            .filter(c => hasContent(c.id))
-            .sort((a, b) => (Number(a.metadata?.priority) || 100) - (Number(b.metadata?.priority) || 100))
-            .slice(0, 5);
-
         const megaMenus = {};
 
         departments.forEach(dept => {
           const deptCat = catMap.get(dept.id) || dept;
+          const directChildren = (childrenOf.get(dept.id) || [])
+            .filter(c => hasContent(c.id))
+            .sort((a, b) => (Number(a.metadata?.priority) || (a.rank ?? 100)) - (Number(b.metadata?.priority) || (b.rank ?? 100)));
 
-          // Columns = top 5 children with real products
-          const columns = sortTop5(childrenOf.get(dept.id) || []).map(col => {
+          // Check if direct children have nested grandchildren
+          const columns = directChildren.map(col => {
             const colCat = catMap.get(col.id) || col;
+            const grandChildren = (childrenOf.get(col.id) || [])
+              .filter(g => hasContent(g.id))
+              .sort((a, b) => (Number(a.metadata?.priority) || (a.rank ?? 100)) - (Number(b.metadata?.priority) || (b.rank ?? 100)));
+
             return {
               id: colCat.id,
               title: colCat.name,
+              handle: colCat.handle,
               href: `/product-categories/${colCat.handle}`,
-              // Items = top 5 grandchildren with real products
-              items: sortTop5(childrenOf.get(col.id) || []).map(item => ({
-                id: item.id,
-                name: item.name,
-                href: `/product-categories/${item.handle}`,
-              })),
+              image: categoryThumbnails[colCat.id] || colCat.curatedImage || null,
+              items: grandChildren.map(item => {
+                const itemCat = catMap.get(item.id) || item;
+                return {
+                  id: itemCat.id,
+                  name: itemCat.name,
+                  handle: itemCat.handle,
+                  href: `/product-categories/${itemCat.handle}`,
+                  image: categoryThumbnails[itemCat.id] || itemCat.curatedImage || null,
+                };
+              }),
             };
           });
 
           megaMenus[`/product-categories/${dept.handle}`] = {
+            id: dept.id,
             columns,
             featured: null,
             sectionLabel: dept.name,
@@ -191,15 +207,26 @@ export const useNavData = () => {
         // ── 9. Build "Shop All" overview menu ───────────────────────────────
         const shopColumns = departments.map(dept => {
           const deptCat = catMap.get(dept.id) || dept;
+          const directChildren = (childrenOf.get(dept.id) || [])
+            .filter(c => hasContent(c.id))
+            .sort((a, b) => (Number(a.metadata?.priority) || (a.rank ?? 100)) - (Number(b.metadata?.priority) || (b.rank ?? 100)));
+
           return {
             id: deptCat.id,
             title: deptCat.name,
+            handle: deptCat.handle,
             href: `/product-categories/${deptCat.handle}`,
-            items: sortTop5(childrenOf.get(dept.id) || []).map(col => ({
-              id: col.id,
-              name: col.name,
-              href: `/product-categories/${col.handle}`,
-            })),
+            image: categoryThumbnails[deptCat.id] || deptCat.curatedImage || null,
+            items: directChildren.map(col => {
+              const colCat = catMap.get(col.id) || col;
+              return {
+                id: colCat.id,
+                name: colCat.name,
+                handle: colCat.handle,
+                href: `/product-categories/${colCat.handle}`,
+                image: categoryThumbnails[colCat.id] || colCat.curatedImage || null,
+              };
+            }),
           };
         });
 
@@ -223,20 +250,15 @@ export const useNavData = () => {
             name: deptCat.name,
             href: `/product-categories/${deptCat.handle}`,
             handle: deptCat.handle,
+            image: categoryThumbnails[dept.id] || deptCat.curatedImage || null,
             hasMega: true,
           };
         });
 
-        console.log(
-          "NavData: departments →",
-          finalNavItems.map(n => n.name),
-          "| total curated:", curatedCategories.length
-        );
         setNavData(finalNavItems, megaMenus, categoryThumbnails);
 
       } catch (err) {
         console.error("Nav fetch failure:", err);
-        // Retain existing cached state to avoid layout breaking
         const currentState = useNavStore.getState();
         setNavData(currentState.navItems, currentState.megaMenuContent, currentState.categoryThumbnails);
       } finally {
@@ -245,7 +267,7 @@ export const useNavData = () => {
     };
 
     fetchNavigationData();
-  }, [isLoaded, isLoading, setNavData, setLoading]);
+  }, [isLoaded, isLoading, navItems.length, megaMenuContent, setNavData, setLoading]);
 
   useEffect(() => {
     const fetchRooms = async () => {
