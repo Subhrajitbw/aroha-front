@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import NavBar from '../layout/NavBar';
 import Footer from '../layout/Footer';
@@ -9,11 +10,21 @@ import BottomNavigation from '../layout/BottomNavigation';
 import CustomCursor from '../ui/CustomCursor';
 import { useSearchStore } from  '@/stores/searchStore';
 import { useAuthModalStore } from  '@/stores/useAuthModalStore';
+import { forceResetBodyScrollLock } from '@/hooks/useLockBodyScroll';
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
   const { isOpen: isSearchOpen, close: closeSearch } = useSearchStore();
   const { isOpen: isAuthOpen, close: closeAuth } = useAuthModalStore();
+
+  // Safety net: nothing in this app is meant to land on a new page already
+  // scroll-locked. If any modal/drawer's own cleanup ever missed releasing
+  // the lock during a client-side navigation, this guarantees it can't
+  // carry over to the next page — closing the gap where only a full
+  // reload used to fix a stuck page.
+  useEffect(() => {
+    forceResetBodyScrollLock();
+  }, [pathname]);
 
   const getNavBarVariant = () => {
     // Only Frontpage & lookbook have dark hero backgrounds — start with white text
