@@ -24,9 +24,12 @@ const AuthModal = () => {
       {isOpen && (
         <motion.div
           className="fixed inset-0 z-[9999]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          initial={{ opacity: 0, pointerEvents: "auto" }}
+          animate={{ opacity: 1, pointerEvents: "auto" }}
+          // pointerEvents applies instantly rather than fading like
+          // opacity, so this stops blocking the page the moment we start
+          // closing even if the exit animation is ever cut short mid-nav.
+          exit={{ opacity: 0, pointerEvents: "none" }}
           transition={{ duration: 0.35 }}
         >
           {/* Backdrop */}

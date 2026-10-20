@@ -183,9 +183,13 @@ export default function BottomNavigation() {
       {activeConsoleTab !== null && (
         <motion.div
           key="console-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+          initial={{ opacity: 0, pointerEvents: "auto" }}
+          animate={{ opacity: 1, pointerEvents: "auto" }}
+          // pointerEvents is applied instantly (it isn't interpolated like
+          // opacity), so this stops blocking touches the moment we start
+          // closing — even if the fade-out animation itself is ever cut
+          // short by a route change, this can't be left covering the page.
+          exit={{ opacity: 0, pointerEvents: "none" }}
           onClick={() => setActiveConsoleTab(null)}
           className="fixed inset-0 z-[100] bg-stone-950/60 backdrop-blur-md lg:hidden touch-none"
         />
@@ -194,9 +198,9 @@ export default function BottomNavigation() {
       {activeConsoleTab !== null && (
         <motion.div
             key="console-sheet"
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
+            initial={{ y: "100%", pointerEvents: "auto" }}
+            animate={{ y: 0, pointerEvents: "auto" }}
+            exit={{ y: "100%", pointerEvents: "none" }}
             transition={{ type: "spring", stiffness: 450, damping: 32 }}
             className={`bottom-nav-sheet
               fixed inset-x-0 bottom-0 z-[101] rounded-t-[2rem] border-t h-[75vh] max-h-[75vh] overflow-hidden lg:hidden flex flex-col pb-[calc(80px+env(safe-area-inset-bottom,0px))]

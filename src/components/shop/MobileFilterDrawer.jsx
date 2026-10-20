@@ -35,9 +35,12 @@ export const MobileFilterDrawer = ({
         <>
           {/* Backdrop */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0, pointerEvents: "auto" }}
+            animate={{ opacity: 1, pointerEvents: "auto" }}
+            // pointerEvents applies instantly rather than fading like
+            // opacity, so this stops blocking the page the moment we start
+            // closing even if the exit animation is ever cut short mid-nav.
+            exit={{ opacity: 0, pointerEvents: "none" }}
             transition={{ duration: 0.3 }}
             className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-50"
             onClick={onClose}
@@ -45,9 +48,9 @@ export const MobileFilterDrawer = ({
 
           {/* Drawer */}
           <motion.div
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
+            initial={{ x: "-100%", pointerEvents: "auto" }}
+            animate={{ x: 0, pointerEvents: "auto" }}
+            exit={{ x: "-100%", pointerEvents: "none" }}
             transition={{ type: "tween", duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="fixed inset-y-0 left-0 w-full max-w-sm bg-white z-50 overflow-hidden flex flex-col border-r border-stone-200/40"
           >
