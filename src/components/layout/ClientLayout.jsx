@@ -24,12 +24,12 @@ export default function ClientLayout({ children }) {
     return "light";
   };
 
-  const shouldShowFooter = !["/", "/home", "/lookbook"].includes(pathname);
+  const shouldShowFooter = !["/", "/home", "/lookbook", "/categories"].includes(pathname);
   // Frontpage uses full-screen fixed sections; it handles its own layout.
   // All other pages need a spacer so content doesn't hide under the fixed navbar.
   // Shop page, category pages, and product pages bypass this spacer to work like the frontpage.
-  const needsNavSpacer = 
-    !["/", "/home", "/lookbook", "/shop"].includes(pathname) && 
+  const needsNavSpacer =
+    !["/", "/home", "/lookbook", "/shop", "/categories"].includes(pathname) &&
     !pathname.startsWith("/product/") &&
     !pathname.startsWith("/product-categories/");
 

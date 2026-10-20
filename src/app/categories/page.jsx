@@ -7,8 +7,6 @@ import { useNavData } from "@/hooks/useNavData";
 import { ChevronRight, Search as SearchIcon, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import NavBar from "@/components/layout/NavBar";
-import BottomNavigation from "@/components/layout/BottomNavigation";
 import { motion, AnimatePresence } from "framer-motion";
 
 // Luxury Lifestyle Fallback Images for Catalog Departments and Categories
@@ -77,9 +75,6 @@ export default function CategoriesPage() {
 
   return (
     <div className="min-h-screen bg-[#fdfbf9] text-stone-900 flex flex-col selection:bg-stone-200">
-      
-      {/* Dynamic desktop standard navbar - hidden on mobile */}
-      <NavBar />
 
       {/* MOBILE COMPACT HEADER */}
       <header className="sticky top-0 z-40 bg-[#fdfbf9]/95 backdrop-blur-xl border-b border-stone-200/60 px-4 py-3 lg:hidden pt-[calc(env(safe-area-inset-top,0px)+12px)]">
@@ -243,9 +238,6 @@ export default function CategoriesPage() {
         </div>
 
       </main>
-
-      {/* Floating Classy Curved Bottom Navigation */}
-      <BottomNavigation />
 
     </div>
   );
