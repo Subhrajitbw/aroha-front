@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import gsap from "gsap";
 import { sdk } from "@/lib/medusaClient";
 import { useQuery } from "@tanstack/react-query";
@@ -11,7 +12,10 @@ import useLockBodyScroll from "@/hooks/useLockBodyScroll";
 import HeroSection from "../sections/HeroSection";
 import ProductCarousel from "../sections/ProductCarousel";
 import AboutSection from "../sections/AboutSection";
-import EngagementSection from "../sections/EngagementSection";
+// EngagementSection pulls in the Swiper carousel lib + its CSS; load it only
+// when the section actually becomes reachable instead of in the homepage's
+// initial bundle.
+const EngagementSection = dynamic(() => import("../sections/EngagementSection"), { ssr: false });
 import CategorySection from "../sections/CategorySection";
 import AnimatedSection from "../sections/AnimatedSection";
 import LuxuryLoadingOverlay from "../ui/LoadingOverlay";
@@ -39,6 +43,19 @@ const FrontpageClient = ({ initialCollections = [], heroData = null }) => {
   const touchStartX = useRef(0);
   const touchStartTime = useRef(0);
   const touchSwiped = useRef(false);
+
+  // Tracks whether the mobile bottom-nav sheet is open, updated only when it
+  // actually mounts/unmounts (via MutationObserver) instead of querying the
+  // DOM on every wheel/touch event, which runs at high frequency.
+  const bottomSheetOpenRef = useRef(false);
+  useEffect(() => {
+    bottomSheetOpenRef.current = !!document.querySelector('.bottom-nav-sheet');
+    const observer = new MutationObserver(() => {
+      bottomSheetOpenRef.current = !!document.querySelector('.bottom-nav-sheet');
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   const animationDuration = 0.75; // Smooth luxury pacing
   const SCROLL_COOLDOWN = 850; // ms: absorb trackpad momentum to prevent skipping sections
@@ -190,7 +207,7 @@ const FrontpageClient = ({ initialCollections = [], heroData = null }) => {
     };
 
     const wheelHandler = (e) => {
-      if (document.querySelector('.bottom-nav-sheet')) return;
+      if (bottomSheetOpenRef.current) return;
       if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       if (e.cancelable) e.preventDefault();
 
@@ -232,7 +249,7 @@ const FrontpageClient = ({ initialCollections = [], heroData = null }) => {
     };
 
     const onTouchStart = (e) => {
-      if (document.querySelector('.bottom-nav-sheet')) return;
+      if (bottomSheetOpenRef.current) return;
       touchStartY.current = e.touches[0].clientY;
       touchStartX.current = e.touches[0].clientX;
       touchStartTime.current = Date.now();
@@ -240,7 +257,7 @@ const FrontpageClient = ({ initialCollections = [], heroData = null }) => {
     };
 
     const onTouchMove = (e) => {
-      if (document.querySelector('.bottom-nav-sheet')) return;
+      if (bottomSheetOpenRef.current) return;
       const currentY = e.touches[0].clientY;
       const currentX = e.touches[0].clientX;
       const deltaY = Math.abs(currentY - touchStartY.current);
@@ -263,7 +280,7 @@ const FrontpageClient = ({ initialCollections = [], heroData = null }) => {
     };
 
     const onTouchEnd = (e) => {
-      if (document.querySelector('.bottom-nav-sheet')) return;
+      if (bottomSheetOpenRef.current) return;
       if (touchSwiped.current || isAnimating.current) return;
 
       const now = Date.now();

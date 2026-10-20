@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -68,7 +69,13 @@ const RoomPOV = ({ label, products, meta }) => {
         <div ref={povStripRef} className="flex h-full">
           {products.map((product) => (
             <div key={product.handle} className="w-screen h-full flex-shrink-0 relative group" onClick={() => router.push(`/product/${product.handle}`)}>
-              <img src={product.image} className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-all duration-700" alt={product.title} />
+              <Image
+                src={product.image || "https://placehold.co/1200x800/0e0c09/efe8e0?text="}
+                fill
+                sizes="100vw"
+                className="object-cover opacity-60 group-hover:opacity-100 transition-all duration-700"
+                alt={product.title}
+              />
             </div>
           ))}
         </div>
@@ -116,7 +123,13 @@ const RoomsClient = ({ rooms, initialRoomLabel }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {rooms.map((room) => (
             <Link key={room.label} href={`/rooms/${room.label.toLowerCase().replace(/\s+/g, '-')}`} className="group relative block h-[400px] overflow-hidden rounded-2xl">
-              <img src={room.products[0]?.image} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" alt={room.label} />
+              <Image
+                src={room.products[0]?.image || "https://placehold.co/1200x800/efe8e0/0e0c09?text="}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover transition-transform duration-1000 group-hover:scale-105"
+                alt={room.label}
+              />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-all" />
               <div className="absolute bottom-8 left-8 text-white">
                 <p className="text-[10px] tracking-[0.4em] uppercase mb-2">Explore</p>

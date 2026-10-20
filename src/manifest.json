@@ -22,8 +22,8 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff",
+  "theme_color": "#1c1917",
+  "background_color": "#1c1917",
   "orientation": "any",
   "categories": ["shopping", "furniture", "lifestyle"],
   "description": "Premium furniture and home decor shopping experience"

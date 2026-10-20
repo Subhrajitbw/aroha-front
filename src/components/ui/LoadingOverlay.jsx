@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import useLockBodyScroll from  "@/hooks/useLockBodyScroll";
 
@@ -151,9 +152,12 @@ const LuxuryLoadingOverlay = ({
                 animate={{ scale: [1, 1.05, 1], opacity: [0.3, 0.4, 0.3] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               />
-              <img
+              <Image
                 src="/logo_inverse.svg"
                 alt="Logo"
+                width={144}
+                height={30}
+                priority
                 className="relative z-10 w-36 h-auto"
                 style={{ filter: "drop-shadow(0 0 10px rgba(253, 230, 138, 0.2))" }}
               />

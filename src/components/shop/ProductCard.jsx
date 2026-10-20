@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from "react";
 import { Heart, ShoppingCart, Eye, Star, Sparkles } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import gsap from "gsap";
 
 export default function ProductCard({ product }) {
@@ -117,10 +118,12 @@ export default function ProductCard({ product }) {
         className="relative block"
       >
         <div className="relative w-full aspect-[4/3] overflow-hidden">
-          <img
+          <Image
             src={image}
             alt={product?.name || "Product"}
-            className="absolute inset-0 w-full h-full object-contain p-6 transition-transform duration-500 group-hover:scale-[1.04]"
+            fill
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 320px"
+            className="object-contain p-6 transition-transform duration-500 group-hover:scale-[1.04]"
             draggable={false}
           />
           {/* Elegant bottom gradient */}

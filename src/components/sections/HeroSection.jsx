@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { sanityClient } from "@/lib/sanityClient"
 import gsap from "gsap"
+import Image from "next/image"
+import { motion, AnimatePresence } from "framer-motion"
 
 const HeroSection = ({ heroData }) => {
   const [slides, setSlides] = useState(heroData?.slides || [])
@@ -8,30 +10,21 @@ const HeroSection = ({ heroData }) => {
   const [isPaused, setIsPaused] = useState(false)
   const [globalVideoUrl, setGlobalVideoUrl] = useState(heroData?.globalVideoUrl || null)
 
-  const videoRefs = useRef([])
   const heroRef = useRef(null)
   const progressRef = useRef(null)
   const autoplayRef = useRef(null)
 
-  // Removed manual video preload effect to save memory
-
-  // ── Play/pause on slide change ──
-  useEffect(() => {
-    if (!slides.length) return
-    slides.forEach((slide, idx) => {
-      const video = videoRefs.current[idx]
-      if (!video || slide.backgroundType !== "video") return
-      if (idx === current) {
-        video.currentTime = 0
-        video.muted = true // Force muted state in JS to bypass iOS Safari autoplay restrictions
-        video.play().catch((err) => {
-          console.warn("Video autoplay blocked:", err)
-        })
-      } else {
-        video.pause()
-      }
+  // Only the active slide's video/image is ever mounted (see render below) —
+  // this ref callback starts it as soon as it mounts, instead of a
+  // play/pause effect over every slide's video element.
+  const handleSlideVideoRef = useCallback((el) => {
+    if (!el) return
+    el.currentTime = 0
+    el.muted = true // Force muted state in JS to bypass iOS Safari autoplay restrictions
+    el.play().catch((err) => {
+      console.warn("Video autoplay blocked:", err)
     })
-  }, [current, slides])
+  }, [])
 
   // ── Progress bar + text animation ──
   useEffect(() => {
@@ -99,25 +92,38 @@ const HeroSection = ({ heroData }) => {
             style={{ willChange: "transform" }}
           />
         ) : (
-          slides.map((s, idx) => (
-            <div
-              key={idx}
-              className="absolute inset-0 transition-opacity duration-[1200ms] ease-in-out"
-              style={{ opacity: idx === current ? 1 : 0 }}
-            >
-              {s.backgroundType === "video" ? (
-                <video
-                  ref={el => (videoRefs.current[idx] = el)}
-                  src={s.videoUrl || null}
-                  autoPlay muted loop playsInline preload="metadata" disablePictureInPicture
-                  className="w-full h-full object-cover"
-                  style={{ willChange: "transform" }}
-                />
-              ) : (
-                <img src={s.image?.url || null} alt={s.heading} className="w-full h-full object-cover" style={{ willChange: "transform" }} />
-              )}
-            </div>
-          ))
+          <AnimatePresence mode="sync">
+            {slide && (
+              <motion.div
+                key={current}
+                className="absolute inset-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.2, ease: "easeInOut" }}
+              >
+                {slide.backgroundType === "video" ? (
+                  <video
+                    ref={handleSlideVideoRef}
+                    src={slide.videoUrl || null}
+                    autoPlay muted loop playsInline preload="auto" disablePictureInPicture
+                    className="w-full h-full object-cover"
+                    style={{ willChange: "transform" }}
+                  />
+                ) : (
+                  <Image
+                    src={slide.image?.url || ""}
+                    alt={slide.heading || ""}
+                    fill
+                    priority={current === 0}
+                    sizes="100vw"
+                    className="object-cover"
+                    style={{ willChange: "transform" }}
+                  />
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         )}
 
         {/* ═══════ CINEMATIC OVERLAY SYSTEM (Optimized to single layer) ═══════ */}

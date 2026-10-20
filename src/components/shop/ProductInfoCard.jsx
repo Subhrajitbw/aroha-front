@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ArrowUpRight, Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import gsap from "gsap";
 import { useResponsive } from "@/hooks/useResponsive";
 import { useWishlistStore } from "@/stores/useWishlistStore";
@@ -179,12 +180,13 @@ export const ProductInfoCard = ({
           style={{ transformStyle: "preserve-3d" }}
         >
           {/* Image with loading state */}
-          <img
+          <Image
             ref={imageRef}
             src={productImage}
             alt={productName}
+            fill
+            sizes="(max-width: 768px) 100vw, 400px"
             loading="lazy"
-            decoding="async"
             onLoad={() => setImageLoaded(true)}
             className={`w-full h-full object-cover absolute inset-0 transition-all duration-[800ms] ease-[cubic-bezier(0.25,1,0.5,1)] group-hover:scale-[1.08] ${imageLoaded ? "opacity-100 blur-0" : "opacity-0 blur-md"
               }`}

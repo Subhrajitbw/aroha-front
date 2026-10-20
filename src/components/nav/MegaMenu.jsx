@@ -1,6 +1,7 @@
 // src/components/nav/MegaMenu.jsx
 import React, { useRef, useEffect, forwardRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { gsap } from "gsap";
 import { ChevronRight } from "lucide-react";
 
@@ -147,9 +148,11 @@ const MegaMenu = forwardRef(({ isOpen, content, caretPosition, onClose, onMouseL
                     className="group flex items-center gap-3"
                   >
                     {feat.image && (
-                      <img
+                      <Image
                         src={feat.image}
                         alt={feat.title}
+                        width={40}
+                        height={40}
                         className="w-10 h-10 rounded-lg object-cover"
                       />
                     )}

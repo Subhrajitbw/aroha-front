@@ -114,32 +114,15 @@ export default async function RootLayout({ children }) {
                   navigator.serviceWorker.register('/sw.js').then(
                     function(registration) {
                       console.log('Service Worker registered');
-                      
-                      // Check for updates on every page load
+                      // Check for updates on every page load. A new worker
+                      // takes over silently in the background (no forced
+                      // reload) — the updated assets apply on the person's
+                      // next natural navigation instead of yanking the page
+                      // out from under them mid-scroll/mid-interaction.
                       registration.update();
-
-                      // Listen for the waiting service worker
-                      registration.addEventListener('updatefound', () => {
-                        const newWorker = registration.installing;
-                        newWorker.addEventListener('statechange', () => {
-                          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            // New content is available; auto-reload to apply it
-                            window.location.reload();
-                          }
-                        });
-                      });
                     },
                     function(err) { console.log('Service Worker registration failed: ', err); }
                   );
-                });
-
-                // Listen for controlling service worker change
-                let refreshing = false;
-                navigator.serviceWorker.addEventListener('controllerchange', () => {
-                  if (!refreshing) {
-                    window.location.reload();
-                    refreshing = true;
-                  }
                 });
               }
             `,

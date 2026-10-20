@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ShoppingBag, X, ArrowRight, Minus, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { sdk } from  "@/lib/medusaClient";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -117,9 +118,11 @@ const CartDropdown = ({ isOpen, onClose, navigate }) => {
                   {cart.items.map((item) => (
                     <div key={item.id} className="px-5 py-4 flex gap-3.5 hover:bg-stone-50/50 transition-colors group">
                       <div className="w-16 h-20 bg-stone-100 rounded-xl overflow-hidden shrink-0 border border-stone-200/50">
-                        <img 
-                          src={item.thumbnail || item.variant?.product?.thumbnail || "/placeholder.jpg"} 
+                        <Image
+                          src={item.thumbnail || item.variant?.product?.thumbnail || "/placeholder.jpg"}
                           alt={item.title}
+                          width={64}
+                          height={80}
                           className="w-full h-full object-cover"
                         />
                       </div>

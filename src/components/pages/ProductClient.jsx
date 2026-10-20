@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Heart, ChevronLeft, ChevronRight, Check, MessageCircle, ChevronDown, Ruler, ShieldCheck, Truck, RotateCcw, Star, Share2 } from "lucide-react";
 import { PortableText } from '@portabletext/react';
 import { ProductInfoCard } from "../shop/ProductInfoCard";
@@ -235,9 +236,11 @@ const ProductClient = ({ initialData }) => {
                   >
                     {/* Skeleton for main image */}
                     <div className="absolute inset-0 bg-stone-100 animate-pulse" />
-                    <img
-                      src={images[currentImageIndex]?.url || null}
-                      decoding="async"
+                    <Image
+                      src={images[currentImageIndex]?.url || "https://placehold.co/650x650/f0f0f0/e0e0e0"}
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 650px"
+                      priority={currentImageIndex === 0}
                       className="relative w-full h-full object-cover z-10 pointer-events-none"
                       alt={product.title}
                     />
@@ -267,7 +270,7 @@ const ProductClient = ({ initialData }) => {
                     onClick={() => handleImageChange(idx)}
                     className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all shrink-0 ${currentImageIndex === idx ? "border-stone-900 shadow-md scale-105" : "border-transparent bg-stone-50 opacity-60 hover:opacity-100"}`}
                   >
-                    <img src={img.url || null} loading="lazy" decoding="async" className="w-full h-full object-cover" alt="thumb" />
+                    <Image src={img.url || "https://placehold.co/112x112/f0f0f0/e0e0e0"} width={56} height={56} loading="lazy" className="w-full h-full object-cover" alt="thumb" />
                   </button>
                 ))}
                 {/* Spacer to prevent last item cutoff */}
@@ -285,7 +288,7 @@ const ProductClient = ({ initialData }) => {
                     onClick={() => handleImageChange(idx)}
                     className={`w-16 h-16 rounded-xl overflow-hidden border-2 transition-all shrink-0 ${currentImageIndex === idx ? "border-stone-900 scale-110 shadow-lg" : "border-transparent opacity-40 hover:opacity-100 hover:scale-105"}`}
                   >
-                    <img src={img.url || null} loading="lazy" decoding="async" className="w-full h-full object-cover" alt="thumb" />
+                    <Image src={img.url || "https://placehold.co/128x128/f0f0f0/e0e0e0"} width={64} height={64} loading="lazy" className="w-full h-full object-cover" alt="thumb" />
                   </button>
                 ))}
                 {/* Spacer to prevent last item cutoff vertically */}

@@ -3,6 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { 
   Home, 
@@ -266,10 +267,12 @@ export default function BottomNavigation() {
                             <div className={`w-9 h-9 rounded-full overflow-hidden border transition-all duration-300 relative
                               ${isActive ? "border-stone-300 scale-105" : "border-stone-800/80"}
                             `}>
-                              <img 
-                                src={getCategoryImage(dept)} 
+                              <Image
+                                src={getCategoryImage(dept)}
                                 alt={dept.name}
-                                className="w-full h-full object-cover" 
+                                width={36}
+                                height={36}
+                                className="w-full h-full object-cover"
                               />
                             </div>
                             <span className="text-[7.5px] tracking-widest uppercase font-semibold leading-normal break-words max-w-[80px]">
@@ -318,9 +321,11 @@ export default function BottomNavigation() {
                                   className="flex flex-col items-center gap-2.5 p-3 rounded-xl border border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all text-center group cursor-pointer"
                                 >
                                   <div className="w-14 h-14 rounded-full overflow-hidden border border-stone-850 group-hover:scale-103 transition-transform shadow-md relative">
-                                    <img 
-                                      src={getCategoryImage(col)} 
+                                    <Image
+                                      src={getCategoryImage(col)}
                                       alt={col.title}
+                                      width={56}
+                                      height={56}
                                       className="w-full h-full object-cover"
                                     />
                                   </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { X, Search, ArrowRight, TrendingUp } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useSearchStore } from  "@/stores/searchStore";
 import { searchClient, PRODUCTS_INDEX } from  "@/lib/meilisearch";
 import { medusaApi } from  "@/lib/react-query";
@@ -270,9 +271,11 @@ const SearchModal = () => {
                               }}
                               className="group relative overflow-hidden rounded-2xl aspect-[3/4] bg-stone-100"
                             >
-                              <img
+                              <Image
                                 src={cat.image || "https://placehold.co/600x800/f5f5f4/a8a29e?text="}
                                 alt={cat.name}
+                                fill
+                                sizes="(max-width: 768px) 50vw, 25vw"
                                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1.5s] ease-out group-hover:scale-110"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-stone-900/70 via-stone-900/10 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-700" />
@@ -318,11 +321,12 @@ const SearchModal = () => {
                             className={`group cursor-pointer ${selectedIndex === index ? "ring-2 ring-stone-300 rounded-2xl" : ""}`}
                           >
                             <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-stone-100 mb-4">
-                              <img
-                                src={product.thumbnail || null}
+                              <Image
+                                src={product.thumbnail || "https://placehold.co/600x800/f5f5f4/a8a29e?text="}
                                 alt={product.title}
+                                fill
+                                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
                                 loading="lazy"
-                                decoding="async"
                                 className="w-full h-full object-cover transition-transform duration-[1.2s] ease-out group-hover:scale-105"
                               />
                               <div className="absolute inset-0 bg-gradient-to-t from-stone-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />

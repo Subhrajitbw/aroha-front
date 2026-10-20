@@ -1,17 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Box } from 'lucide-react';
 
 export function FauxARViewer({ imageUrl, dimensions, title }) {
   const modelRef = useRef(null);
+  // model-viewer (a large WebGL library) is only imported once the shopper
+  // actually asks for AR, not on every product page visit.
   const [isReady, setIsReady] = useState(false);
+  const [isPreparing, setIsPreparing] = useState(false);
   const [isModelLoaded, setIsModelLoaded] = useState(false);
-
-  useEffect(() => {
-    // Dynamically import the web component only on the client
-    import('@google/model-viewer').then(() => setIsReady(true)).catch(console.error);
-  }, []);
+  const pendingActivateRef = useRef(false);
 
   // Convert Sanity dimensions (cm/mm/in) to meters for AR scaling
   const getScaleInMeters = () => {
@@ -56,8 +55,15 @@ export function FauxARViewer({ imageUrl, dimensions, title }) {
           // The Khronos Box.glb has a default red base color. Reset it to white so it doesn't tint the image.
           material.pbrMetallicRoughness.setBaseColorFactor([1, 1, 1, 1]);
           setIsModelLoaded(true);
+          setIsPreparing(false);
+
+          if (pendingActivateRef.current) {
+            pendingActivateRef.current = false;
+            activateOrWarn(modelViewer);
+          }
         } catch (e) {
           console.error("Failed to apply AR texture", e);
+          setIsPreparing(false);
         }
       };
 
@@ -76,7 +82,29 @@ export function FauxARViewer({ imageUrl, dimensions, title }) {
     applyTexture();
   }, [isReady, imageUrl]);
 
-  if (!isReady) return null;
+  const activateOrWarn = (modelViewer) => {
+    if (modelViewer?.canActivateAR) {
+      modelViewer.activateAR();
+    } else {
+      alert("AR View is only supported on mobile devices (iOS/Android). Please open this site on your phone to view in your room!");
+    }
+  };
+
+  const handleActivate = useCallback(() => {
+    if (isModelLoaded) {
+      activateOrWarn(modelRef.current);
+      return;
+    }
+    // First tap: lazily load the model-viewer library and prep the AR
+    // texture, then auto-activate once ready.
+    setIsPreparing(true);
+    pendingActivateRef.current = true;
+    import('@google/model-viewer').then(() => setIsReady(true)).catch((e) => {
+      console.error(e);
+      setIsPreparing(false);
+      pendingActivateRef.current = false;
+    });
+  }, [isModelLoaded]);
 
   return (
     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto flex items-center justify-center">
@@ -86,35 +114,32 @@ export function FauxARViewer({ imageUrl, dimensions, title }) {
           pointer-events: none;
         }
       `}</style>
-      
-      {/* Invisible model-viewer to handle WebXR/QuickLook logic */}
-      <model-viewer
-        ref={modelRef}
-        src="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb"
-        alt={`AR View for ${title}`}
-        ar
-        ar-modes="webxr scene-viewer quick-look"
-        camera-controls={false}
-        disable-zoom
-        disable-pan
-        disable-tap
-        scale={getScaleInMeters()}
-        className="absolute w-[180px] h-[48px] rounded-full overflow-hidden bg-transparent [--poster-color:transparent] outline-none border-none pointer-events-none"
-      />
+
+      {/* Invisible model-viewer to handle WebXR/QuickLook logic — only mounted after the shopper taps "View in Room" */}
+      {isReady && (
+        <model-viewer
+          ref={modelRef}
+          src="https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Box/glTF-Binary/Box.glb"
+          alt={`AR View for ${title}`}
+          ar
+          ar-modes="webxr scene-viewer quick-look"
+          camera-controls={false}
+          disable-zoom
+          disable-pan
+          disable-tap
+          scale={getScaleInMeters()}
+          className="absolute w-[180px] h-[48px] rounded-full overflow-hidden bg-transparent [--poster-color:transparent] outline-none border-none pointer-events-none"
+        />
+      )}
 
       {/* Always-visible Custom Button */}
       <button
-        onClick={() => {
-          if (modelRef.current?.canActivateAR) {
-            modelRef.current.activateAR();
-          } else {
-            alert("AR View is only supported on mobile devices (iOS/Android). Please open this site on your phone to view in your room!");
-          }
-        }}
-        className="w-[180px] h-[48px] bg-stone-900 text-white rounded-full font-bold text-[10px] tracking-[0.2em] uppercase shadow-2xl flex items-center justify-center gap-2 transition-transform active:scale-95 hover:bg-stone-800 z-10 pointer-events-auto"
+        onClick={handleActivate}
+        disabled={isPreparing}
+        className="w-[180px] h-[48px] bg-stone-900 text-white rounded-full font-bold text-[10px] tracking-[0.2em] uppercase shadow-2xl flex items-center justify-center gap-2 transition-transform active:scale-95 hover:bg-stone-800 z-10 pointer-events-auto disabled:opacity-70"
       >
         <Box className="w-4 h-4 shrink-0" />
-        <span>View in Room</span>
+        <span>{isPreparing ? "Preparing…" : "View in Room"}</span>
       </button>
     </div>
   );

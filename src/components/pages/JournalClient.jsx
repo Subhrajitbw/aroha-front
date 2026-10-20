@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight as ArrowIcon, Calendar as CalendarIcon } from "lucide-react";
 import Masonry from "react-masonry-css";
 import Breadcrumbs from "../ui/Breadcrumbs";
@@ -41,7 +42,13 @@ const JournalClient = ({ initialPosts }) => {
             {initialPosts.map((post, index) => (
               <Link key={post._id} href={`/blogs/${post.slug?.current}`} className="group block mb-12">
                 <div className={`relative overflow-hidden bg-stone-100 border border-stone-200 mb-6 group-hover:border-stone-400 transition-all ${index % 7 === 0 ? "aspect-[3/4]" : index % 4 === 0 ? "aspect-[4/3]" : "aspect-square"}`}>
-                  <img src={post.mainImage?.asset?.url} alt={post.title} className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-105" />
+                  <Image
+                    src={post.mainImage?.asset?.url || "https://placehold.co/900x1200/f5f5f4/a8a29e?text="}
+                    alt={post.title}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                    className="object-cover transition-all duration-1000 group-hover:scale-105"
+                  />
                 </div>
                 <div className="flex items-center gap-3 mb-4 text-stone-400">
                   <CalendarIcon className="w-3 h-3" />
