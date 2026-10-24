@@ -203,17 +203,21 @@ export const ProductInfoCard = ({
         </div>
 
         {/* Wishlist Button - Moved outside overflow-hidden to prevent cropping by the pill shape */}
-        <button
+        {/* div instead of button: <button> inside <a> is invalid HTML and causes React hydration error #418 */}
+        <div
+          role="button"
+          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
           onClick={(e) => {
             e.stopPropagation();
+            e.preventDefault();
             toggleWishlist(product);
           }}
-          className="absolute top-4 right-4 sm:top-5 sm:right-5 z-30 p-2 sm:p-2.5 rounded-full bg-white/90 backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-white shadow-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+          className="absolute top-4 right-4 sm:top-5 sm:right-5 z-30 p-2 sm:p-2.5 rounded-full bg-white/90 backdrop-blur-md transition-all duration-300 hover:scale-110 hover:bg-white shadow-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 cursor-pointer"
         >
           <Heart
             className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-stone-600'}`}
           />
-        </button>
+        </div>
 
         {/* Action button - larger touch target */}
         <div

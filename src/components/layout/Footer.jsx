@@ -261,7 +261,7 @@ const Footer = () => {
             __html: `
             .footer-bottom-bar { border-top: 1px solid rgba(0,0,0,0.05); }
           `}} />
-          <span className="text-[11px] text-stone-600 text-center sm:text-left">
+          <span className="text-[11px] text-stone-600 text-center sm:text-left" suppressHydrationWarning>
             © {new Date().getFullYear()} Aroha House. All rights reserved.
           </span>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
