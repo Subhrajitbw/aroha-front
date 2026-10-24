@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ArrowUpRight, Heart } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Image from "next/image";
 import gsap from "gsap";
 import { useResponsive } from "@/hooks/useResponsive";
@@ -59,7 +59,6 @@ export const ProductInfoCard = ({
   const textContainerRef = useRef(null);
 
   const { isMobile, isTablet, isDesktop } = useResponsive();
-  const router = useRouter();
 
   const finalTextColor = type === "sec" ? "#fff" : textColor || "#1a1a1a";
 
@@ -134,12 +133,7 @@ export const ProductInfoCard = ({
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('shop_scroll_pos', window.scrollY.toString());
     }
-
-    if (product?.handle) {
-      router.push(`/product/${product.handle}`);
-    } else if (product?.id) {
-      router.push(`/product/${product.id}`);
-    }
+    // Navigation is handled by the Link href
   };
 
   const productName = product?.title || "Product Name";
@@ -159,9 +153,12 @@ export const ProductInfoCard = ({
     return cardSize === "large" ? "400px" : "320px";
   };
 
+  const href = `/product/${product?.handle || product?.id || '#'}`;
+
   return (
-    <div
+    <Link
       ref={containerRef}
+      href={href}
       className={`group relative flex flex-col w-full cursor-pointer select-none ${className}`}
       onClick={handleProductClick}
       onTouchStart={handleTouchStart}
@@ -275,6 +272,6 @@ export const ProductInfoCard = ({
           </span>
         )}
       </div>
-    </div>
+    </Link>
   );
 };

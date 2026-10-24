@@ -27,7 +27,7 @@ if (typeof window === "undefined") {
       if (urlStr.includes('/store/') || urlStr.includes('localhost:9000')) {
         options = {
           ...options,
-          signal: options.signal || AbortSignal.timeout(60000), // Extend body/header timeout
+          signal: options.signal || AbortSignal.timeout(8000), // Fail fast instead of hanging
         };
         
         // Target store GET requests for production ISR caching
@@ -79,7 +79,7 @@ export const customFetch = async (path, options = {}) => {
   const url = `${normalizedBase}${normalizedPath}`;
   const response = await fetch(url, {
     cache: "no-store", // Ensure fresh data for custom routes
-    signal: AbortSignal.timeout(60000), // Protect custom routes from remote DB timeouts
+    signal: AbortSignal.timeout(8000), // Fail fast instead of hanging
     ...options,
     headers: {
       "x-publishable-api-key": publishableKey,

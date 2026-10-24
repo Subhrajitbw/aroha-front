@@ -83,6 +83,7 @@ export const useResponsive = () => {
   }, []);
 
   useEffect(() => {
+    setHasMounted(true);
     updateViewport();
     // Enhanced debounce resize handler with orientation change support
     let timeoutId;
@@ -149,7 +150,16 @@ export const useResponsive = () => {
     };
   };
 
+  // Prevents hydration mismatch: SSR always renders desktop defaults; real values
+  // are applied after mount so server HTML and first client render match exactly.
+  const [hasMounted, setHasMounted] = useState(false);
   const [viewport, setViewport] = useState(getSSRViewport);
+
+  // activeViewport is the SSR stub until client mounts, then the real measured viewport
+  const activeViewport = useMemo(
+    () => (hasMounted ? viewport : getSSRViewport()),
+    [hasMounted, viewport]
+  );
 
   // Helper function to determine breakpoint
 
@@ -157,16 +167,16 @@ export const useResponsive = () => {
   // Utility methods for enhanced functionality (memoized to prevent new references every render)
   const utilities = useMemo(() => ({
     // Check if current breakpoint matches any of the provided breakpoints
-    isBreakpoint: (...breakpoints) => breakpoints.includes(viewport.breakpoint),
-    
+    isBreakpoint: (...breakpoints) => breakpoints.includes(activeViewport.breakpoint),
+
     // Check if screen width is within range
-    isWithinRange: (min, max) => viewport.width >= min && viewport.width <= max,
-    
+    isWithinRange: (min, max) => activeViewport.width >= min && activeViewport.width <= max,
+
     // Get responsive value based on breakpoint
     getResponsiveValue: (values) => {
       const breakpointOrder = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'];
-      const currentIndex = breakpointOrder.indexOf(viewport.breakpoint);
-      
+      const currentIndex = breakpointOrder.indexOf(activeViewport.breakpoint);
+
       // Find the appropriate value by looking backwards from current breakpoint
       for (let i = currentIndex; i >= 0; i--) {
         const breakpoint = breakpointOrder[i];
@@ -174,54 +184,54 @@ export const useResponsive = () => {
           return values[breakpoint];
         }
       }
-      
+
       return values.default || null;
     },
 
     // Get card size based on current breakpoint
     getCardSize: () => {
-      const { breakpoint, isMobile, isTablet, touchDevice, width } = viewport;
-      
+      const { breakpoint, isMobile, isTablet, touchDevice, width } = activeViewport;
+
       if (touchDevice && isMobile) {
         if (width < 375) return 'sm';
         if (width < 414) return 'md';
         return 'md';
       }
-      
+
       if (isTablet) {
-        return viewport.isPortrait ? 'md' : 'md';
+        return activeViewport.isPortrait ? 'md' : 'md';
       }
-      
+
       // Desktop breakpoint mapping
       const sizeMap = {
         xs: 'xs',
-        sm: 'sm', 
+        sm: 'sm',
         md: 'md',
         lg: 'lg',
         xl: 'xl',
         xxl: 'xl'
       };
-      
+
       return sizeMap[breakpoint] || 'md';
     },
 
     // Check device categories
-    isMobileDevice: () => viewport.deviceType === 'mobile',
-    isTabletDevice: () => viewport.deviceType === 'tablet', 
-    isDesktopDevice: () => viewport.deviceType === 'desktop',
-    
+    isMobileDevice: () => activeViewport.deviceType === 'mobile',
+    isTabletDevice: () => activeViewport.deviceType === 'tablet',
+    isDesktopDevice: () => activeViewport.deviceType === 'desktop',
+
     // Screen size checks
-    isSmallScreen: () => viewport.width < 768,
-    isMediumScreen: () => viewport.width >= 768 && viewport.width < 1200,
-    isLargeScreen: () => viewport.width >= 1200,
-    
+    isSmallScreen: () => activeViewport.width < 768,
+    isMediumScreen: () => activeViewport.width >= 768 && activeViewport.width < 1200,
+    isLargeScreen: () => activeViewport.width >= 1200,
+
     // Aspect ratio checks
-    isWideScreen: () => viewport.aspectRatio > 1.6,
-    isSquareScreen: () => viewport.aspectRatio >= 0.9 && viewport.aspectRatio <= 1.1,
-  }), [viewport]);
+    isWideScreen: () => activeViewport.aspectRatio > 1.6,
+    isSquareScreen: () => activeViewport.aspectRatio >= 0.9 && activeViewport.aspectRatio <= 1.1,
+  }), [activeViewport]);
 
   return {
-    ...viewport,
+    ...activeViewport,
     ...utilities,
   };
 };
