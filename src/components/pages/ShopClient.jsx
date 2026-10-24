@@ -56,6 +56,8 @@ export default function ShopClient({ initialData }) {
 
   // State management initialized with mapped server data
   const [products, setProducts] = useState(() => (initialData.products || []).map(mapProduct));
+  // Stores the scroll position to restore after the product grid has painted
+  const [pendingScrollPos, setPendingScrollPos] = useState(null);
   const [collections, setCollections] = useState(initialData.collections || []);
   const [categories, setCategories] = useState(initialData.categories || []);
   const [loading, setLoading] = useState(false);
@@ -146,10 +148,11 @@ export default function ShopClient({ initialData }) {
           if (savedPage) setPage(parseInt(savedPage, 10));
           isRestored.current = true;
 
+          // Store target scroll pos in state — the separate effect below fires
+          // only after `products` state has been set and React has painted the
+          // grid, so the page is tall enough for scrollTo to land correctly.
           if (savedScrollPos) {
-            setTimeout(() => {
-              window.scrollTo({ top: parseInt(savedScrollPos, 10), behavior: 'instant' });
-            }, 100);
+            setPendingScrollPos(parseInt(savedScrollPos, 10));
           }
         }
       } catch (e) {
@@ -157,6 +160,22 @@ export default function ShopClient({ initialData }) {
       }
     }
   }, []);
+
+  // Execute scroll once the product grid has actually been painted.
+  // Runs when pendingScrollPos is set and products are populated.
+  useEffect(() => {
+    if (pendingScrollPos === null || products.length === 0) return;
+    // Two rAF cycles ensure the browser has committed the layout with the full
+    // product grid before we move the scroll position.
+    const raf1 = requestAnimationFrame(() => {
+      const raf2 = requestAnimationFrame(() => {
+        window.scrollTo({ top: pendingScrollPos, behavior: 'instant' });
+        setPendingScrollPos(null);
+      });
+      return () => cancelAnimationFrame(raf2);
+    });
+    return () => cancelAnimationFrame(raf1);
+  }, [pendingScrollPos, products]);
 
   const handleProductClick = (handle) => {
     if (typeof window !== 'undefined') {
