@@ -46,3 +46,8 @@ components_list.txt
 unused_files.txt
 scratch/
 public/images
+
+# Cloudflare / OpenNext build output
+.open-next/
+.dev.vars
+cloudflare-env.d.ts

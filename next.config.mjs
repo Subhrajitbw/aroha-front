@@ -1,3 +1,9 @@
+// Initialise CloudFlare bindings for local `next dev` — no-op in production build
+if (process.env.NODE_ENV !== "production") {
+  const { initOpenNextCloudflareForDev } = await import("@opennextjs/cloudflare");
+  initOpenNextCloudflareForDev();
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
