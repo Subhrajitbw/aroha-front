@@ -530,7 +530,17 @@ export default function ShopClient({ initialData }) {
                 <>
                   <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-x-6 gap-y-12 min-h-[60vh]">
                     {loading ? Array.from({ length: 8 }).map((_, i) => <ProductSkeleton key={i} />)
-                      : currentProducts.map((p) => <ProductInfoCard key={p.id} product={p} isFluid={true} />)}
+                      : currentProducts.map((p) => (
+                          <ProductInfoCard
+                            key={p.id}
+                            product={p}
+                            isFluid={true}
+                            onProductClick={() => {
+                              sessionStorage.setItem('shop_persisted_products', JSON.stringify(products));
+                              sessionStorage.setItem('shop_persisted_page', page.toString());
+                            }}
+                          />
+                        ))}
                   </div>
                   {!loading && hasMore && (
                     <div className="mt-20 flex justify-center">

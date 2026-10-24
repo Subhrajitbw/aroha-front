@@ -45,6 +45,7 @@ export const ProductInfoCard = ({
   textColor,
   type,
   isFluid,
+  onProductClick,
 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
@@ -129,11 +130,10 @@ export const ProductInfoCard = ({
   };
 
   const handleProductClick = () => {
-    // Save scroll position for restoration on back navigation
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('shop_scroll_pos', window.scrollY.toString());
     }
-    // Navigation is handled by the Link href
+    if (onProductClick) onProductClick();
   };
 
   const productName = product?.title || "Product Name";
