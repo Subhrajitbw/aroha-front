@@ -31,8 +31,9 @@ export const useWishlistStore = create(
       clearWishlist: () => set({ items: [] }),
     }),
     {
-      name: "aroha-sanctuary-storage", // Unique name for long-term persistence
+      name: "aroha-sanctuary-storage",
       storage: createJSONStorage(() => localStorage),
+      skipHydration: true, // Prevent SSR/client mismatch — ClientLayout rehydrates after mount
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

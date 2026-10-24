@@ -30,6 +30,7 @@ export const useNavStore = create(
     {
       name: 'aroha-nav-cache-v4',
       storage: createJSONStorage(() => localStorage),
+      skipHydration: true, // Prevent SSR/client mismatch — ClientLayout rehydrates after mount
       // Only persist the data, not the loading states
       partialize: (state) => ({ 
         navItems: state.navItems, 

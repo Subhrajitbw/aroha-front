@@ -11,11 +11,21 @@ import CustomCursor from '../ui/CustomCursor';
 import { useSearchStore } from  '@/stores/searchStore';
 import { useAuthModalStore } from  '@/stores/useAuthModalStore';
 import { forceResetBodyScrollLock } from '@/hooks/useLockBodyScroll';
+import { useNavStore } from '@/stores/useNavStore';
+import { useWishlistStore } from '@/stores/useWishlistStore';
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
   const { isOpen: isSearchOpen, close: closeSearch } = useSearchStore();
   const { isOpen: isAuthOpen, close: closeAuth } = useAuthModalStore();
+
+  // Rehydrate Zustand persisted stores after mount to avoid SSR/client HTML mismatch (#418).
+  // Both stores use skipHydration:true so the server and first client render both see the
+  // initial empty state; localStorage data loads here, after hydration completes.
+  useEffect(() => {
+    useNavStore.persist.rehydrate();
+    useWishlistStore.persist.rehydrate();
+  }, []);
 
   // Safety net: nothing in this app is meant to land on a new page already
   // scroll-locked. If any modal/drawer's own cleanup ever missed releasing
